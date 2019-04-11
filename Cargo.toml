@@ -1,0 +1,9 @@
+[package]
+name = "emergent"
+version = "0.1.0"
+authors = ["Armin Sander <armin@replicator.org>"]
+edition = "2018"
+
+[dependencies]
+skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan"] }
+
