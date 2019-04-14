@@ -30,7 +30,7 @@ fn main() {
         .build_vk_surface(&events_loop, instance.clone())
         .unwrap();
 
-    let (context, mut frame) = renderer::create_context_and_frame_state(instance, surface.clone());
+    let (context, mut frame) = renderer::create_context_and_frame_state(instance, surface);
 
     loop {
         match process_window_events(&mut events_loop) {
@@ -39,8 +39,7 @@ fn main() {
             WindowStateEvent::NoChange => {}
         }
 
-        let window = surface.window();
-        renderer::render(window, &context, &mut frame);
+        context.render(&mut frame);
     }
 }
 
