@@ -35,7 +35,7 @@ fn main() {
     loop {
         match process_window_events(&mut events_loop) {
             WindowStateEvent::CloseRequested => return,
-            WindowStateEvent::Resized => frame.recreate_swapchain(),
+            WindowStateEvent::Resized => frame.window_size_changed(),
             WindowStateEvent::NoChange => {}
         }
 

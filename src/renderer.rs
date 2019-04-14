@@ -259,7 +259,7 @@ void main() {
 }
 
 impl<W: Window> FrameState<W> {
-    pub fn recreate_swapchain(&mut self) {
+    pub fn window_size_changed(&mut self) {
         self.recreate_swapchain = true
     }
 }
