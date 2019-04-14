@@ -1,23 +1,20 @@
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
+use std::sync::Arc;
+use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
-use vulkano::device::{Device, DeviceExtensions};
+use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract, Subpass};
 use vulkano::image::SwapchainImage;
 use vulkano::instance::{Instance, PhysicalDevice};
 use vulkano::pipeline::viewport::Viewport;
-use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain;
 use vulkano::swapchain::{
     AcquireError, PresentMode, SurfaceTransform, Swapchain, SwapchainCreationError,
 };
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
-
 use vulkano_win::VkSurfaceBuild;
-
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
-
-use std::sync::Arc;
 
 enum WindowStateEvent {
     NoChange,
@@ -25,6 +22,27 @@ enum WindowStateEvent {
     CloseRequested,
     /// User resized the window.
     Resized,
+}
+
+#[derive(Debug, Clone)]
+struct Vertex {
+    position: [f32; 2],
+}
+
+struct RenderContext {
+    device: Arc<Device>,
+    queue: Arc<Queue>,
+    vertex_buffer: Vec<Arc<BufferAccess + Send + Sync>>,
+    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
+}
+
+struct FrameState {
+    dynamic_state: DynamicState,
+    recreate_swapchain: bool,
+    previous_frame_end: Option<Box<GpuFuture>>,
+    swapchain: Arc<Swapchain<Window>>,
+    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
 
 fn main() {
@@ -67,7 +85,7 @@ fn main() {
 
     let queue = queues.next().unwrap();
 
-    let (mut swapchain, images) = {
+    let (swapchain, images) = {
         let caps = surface.capabilities(physical).unwrap();
 
         let usage = caps.supported_usage_flags;
@@ -103,10 +121,6 @@ fn main() {
 
     // We now create a buffer that will store the shape of our triangle.
     let vertex_buffer = {
-        #[derive(Debug, Clone)]
-        struct Vertex {
-            position: [f32; 2],
-        }
         vulkano::impl_vertex!(Vertex, position);
 
         CpuAccessibleBuffer::from_iter(
@@ -194,14 +208,12 @@ void main() {
         .unwrap(),
     );
 
-    // Before we draw we have to create what is called a pipeline. This is similar to an OpenGL
-    // program, but much more specific.
     let pipeline = Arc::new(
         GraphicsPipeline::start()
             // We need to indicate the layout of the vertices.
             // The type `SingleBufferDefinition` actually contains a template parameter corresponding
             // to the type of each vertex. But in this code it is automatically inferred.
-            .vertex_input_single_buffer()
+            .vertex_input_single_buffer::<Vertex>()
             .vertex_shader(vs.main_entry_point(), ())
             // The content of the vertex buffer describes a list of triangles.
             .triangle_list()
@@ -228,10 +240,8 @@ void main() {
     //
     // Since we need to draw to multiple images, we are going to create a different framebuffer for
     // each image.
-    let mut framebuffers =
+    let framebuffers =
         window_size_dependent_setup(&images, render_pass.clone(), &mut dynamic_state);
-
-    let mut recreate_swapchain = false;
 
     // In the loop below we are going to submit commands to the GPU. Submitting a command produces
     // an object that implements the `GpuFuture` trait, which holds the resources for as long as
@@ -239,99 +249,137 @@ void main() {
     //
     // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
     // that, we store the submission of the previous frame here.
-    let mut previous_frame_end = Box::new(sync::now(device.clone())) as Box<GpuFuture>;
+    let previous_frame_end = Box::new(sync::now(device.clone())) as Box<GpuFuture>;
+
+    let context = RenderContext {
+        device,
+        queue,
+        vertex_buffer: vec![vertex_buffer],
+        render_pass,
+        pipeline,
+    };
+
+    let mut frame = FrameState {
+        dynamic_state,
+        recreate_swapchain: false,
+        previous_frame_end: Some(previous_frame_end),
+        swapchain,
+        framebuffers,
+    };
 
     loop {
         match process_window_events(&mut events_loop) {
             WindowStateEvent::CloseRequested => return,
-            WindowStateEvent::Resized => recreate_swapchain = true,
+            WindowStateEvent::Resized => frame.recreate_swapchain(),
             WindowStateEvent::NoChange => {}
         }
 
-        // It is important to call this function from time to time, otherwise resources will keep
-        // accumulating and you will eventually reach an out of memory error.
-        previous_frame_end.cleanup_finished();
-
-        // Whenever the window resizes we need to recreate everything dependent on the window size.
-        // In this example that includes the swapchain, the framebuffers and the dynamic state viewport.
-        if recreate_swapchain {
-            // Get the new dimensions of the window.
-            let dimensions = if let Some(dimensions) = window.get_inner_size() {
-                let dimensions: (u32, u32) =
-                    dimensions.to_physical(window.get_hidpi_factor()).into();
-                [dimensions.0, dimensions.1]
-            } else {
-                return;
-            };
-
-            let (new_swapchain, new_images) = match swapchain.recreate_with_dimension(dimensions) {
-                Ok(r) => r,
-                // This error tends to happen when the user is manually resizing the window.
-                // Simply restarting the loop is the easiest way to fix this issue.
-                Err(SwapchainCreationError::UnsupportedDimensions) => continue,
-                Err(err) => panic!("{:?}", err),
-            };
-
-            swapchain = new_swapchain;
-            framebuffers =
-                window_size_dependent_setup(&new_images, render_pass.clone(), &mut dynamic_state);
-
-            recreate_swapchain = false;
-        }
-
-        let (image_num, acquire_future) =
-            swapchain::acquire_next_image(swapchain.clone(), None).unwrap();
-
-        // Specify the color to clear the framebuffer with i.e. blue
-        let clear_values = vec![[1.0, 1.0, 1.0, 1.0].into()];
-
-        let command_buffer =
-            AutoCommandBufferBuilder::primary_one_time_submit(device.clone(), queue.family())
-                .unwrap()
-                .begin_render_pass(framebuffers[image_num].clone(), false, clear_values)
-                .unwrap()
-                // We are now inside the first subpass of the render pass. We add a draw command.
-                //
-                // The last two parameters contain the list of resources to pass to the shaders.
-                // Since we used an `EmptyPipeline` object, the objects have to be `()`.
-                .draw(
-                    pipeline.clone(),
-                    &dynamic_state,
-                    vertex_buffer.clone(),
-                    (),
-                    (),
-                )
-                .unwrap()
-                // We leave the render pass by calling `draw_end`. Note that if we had multiple
-                // subpasses we could have called `next_inline` (or `next_secondary`) to jump to the
-                // next subpass.
-                .end_render_pass()
-                .unwrap()
-                // Finish building the command buffer by calling `build`.
-                .build()
-                .unwrap();
-
-        let future = previous_frame_end
-            .join(acquire_future)
-            .then_execute(queue.clone(), command_buffer)
-            .unwrap()
-            .then_swapchain_present(queue.clone(), swapchain.clone(), image_num)
-            .then_signal_fence_and_flush();
-
-        match future {
-            Ok(future) => {
-                previous_frame_end = Box::new(future) as Box<_>;
-            }
-            Err(FlushError::OutOfDate) => {
-                recreate_swapchain = true;
-                previous_frame_end = Box::new(sync::now(device.clone())) as Box<_>;
-            }
-            Err(e) => {
-                println!("{:?}", e);
-                previous_frame_end = Box::new(sync::now(device.clone())) as Box<_>;
-            }
-        }
+        render(&window, &context, &mut frame);
     }
+}
+
+impl FrameState {
+    pub fn recreate_swapchain(&mut self) {
+        self.recreate_swapchain = true
+    }
+}
+
+/// Render the frame's state.
+fn render(window: &Window, context: &RenderContext, frame: &mut FrameState) {
+    // It is important to call this function from time to time, otherwise resources will keep
+    // accumulating and you will eventually reach an out of memory error.
+    frame
+        .previous_frame_end
+        .as_mut()
+        .unwrap()
+        .cleanup_finished();
+
+    // Whenever the window resizes we need to recreate everything dependent on the window size.
+    // In this example that includes the swapchain, the framebuffers and the dynamic state viewport.
+    if frame.recreate_swapchain {
+        // Get the new dimensions of the window.
+        let dimensions = if let Some(dimensions) = window.get_inner_size() {
+            let dimensions: (u32, u32) = dimensions.to_physical(window.get_hidpi_factor()).into();
+            [dimensions.0, dimensions.1]
+        } else {
+            return;
+        };
+
+        let (new_swapchain, new_images) = match frame.swapchain.recreate_with_dimension(dimensions)
+        {
+            Ok(r) => r,
+            // This error tends to happen when the user is manually resizing the window.
+            // Simply restarting the loop is the easiest way to fix this issue.
+            // TODO: what to do with that?
+            // Err(SwapchainCreationError::UnsupportedDimensions) => continue,
+            Err(err) => panic!("{:?}", err),
+        };
+
+        frame.swapchain = new_swapchain;
+        frame.framebuffers = window_size_dependent_setup(
+            &new_images,
+            context.render_pass.clone(),
+            &mut frame.dynamic_state,
+        );
+
+        frame.recreate_swapchain = false;
+    }
+
+    let (image_num, acquire_future) =
+        swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
+
+    // Specify the color to clear the framebuffer with i.e. blue
+    let clear_values = vec![[1.0, 1.0, 1.0, 1.0].into()];
+
+    let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
+        context.device.clone(),
+        context.queue.family(),
+    )
+    .unwrap()
+    .begin_render_pass(frame.framebuffers[image_num].clone(), false, clear_values)
+    .unwrap()
+    // We are now inside the first subpass of the render pass. We add a draw command.
+    //
+    // The last two parameters contain the list of resources to pass to the shaders.
+    // Since we used an `EmptyPipeline` object, the objects have to be `()`.
+    .draw(
+        context.pipeline.clone(),
+        &frame.dynamic_state,
+        context.vertex_buffer.clone(),
+        (),
+        (),
+    )
+    .unwrap()
+    // We leave the render pass by calling `draw_end`. Note that if we had multiple
+    // subpasses we could have called `next_inline` (or `next_secondary`) to jump to the
+    // next subpass.
+    .end_render_pass()
+    .unwrap()
+    // Finish building the command buffer by calling `build`.
+    .build()
+    .unwrap();
+
+    let future = frame
+        .previous_frame_end
+        .take()
+        .unwrap()
+        .join(acquire_future)
+        .then_execute(context.queue.clone(), command_buffer)
+        .unwrap()
+        .then_swapchain_present(context.queue.clone(), frame.swapchain.clone(), image_num)
+        .then_signal_fence_and_flush();
+
+    frame.previous_frame_end = Some(match future {
+        Ok(future) => Box::new(future) as Box<_>,
+        Err(FlushError::OutOfDate) => {
+            frame.recreate_swapchain = true;
+            Box::new(sync::now(context.device.clone())) as Box<_>
+        }
+        Err(e) => {
+            println!("{:?}", e);
+            Box::new(sync::now(context.device.clone())) as Box<_>
+        }
+    })
 }
 
 fn process_window_events(events_loop: &mut EventsLoop) -> WindowStateEvent {
