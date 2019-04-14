@@ -6,4 +6,7 @@ edition = "2018"
 
 [dependencies]
 skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan"] }
-
+vulkano = "0.11.1"
+vulkano-win = "0.11.1"
+vulkano-shaders = "0.11.1"
+winit = "0.18.1"
