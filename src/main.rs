@@ -19,6 +19,14 @@ use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
 use std::sync::Arc;
 
+enum WindowStateEvent {
+    NoChange,
+    /// User wants to close the window.
+    CloseRequested,
+    /// User resized the window.
+    Resized,
+}
+
 fn main() {
     let instance = {
         let extensions = vulkano_win::required_extensions();
@@ -234,6 +242,12 @@ void main() {
     let mut previous_frame_end = Box::new(sync::now(device.clone())) as Box<GpuFuture>;
 
     loop {
+        match process_window_events(&mut events_loop) {
+            WindowStateEvent::CloseRequested => return,
+            WindowStateEvent::Resized => recreate_swapchain = true,
+            WindowStateEvent::NoChange => {}
+        }
+
         // It is important to call this function from time to time, otherwise resources will keep
         // accumulating and you will eventually reach an out of memory error.
         previous_frame_end.cleanup_finished();
@@ -317,25 +331,25 @@ void main() {
                 previous_frame_end = Box::new(sync::now(device.clone())) as Box<_>;
             }
         }
-
-        // Handling the window events in order to close the program when the user wants to close
-        // it.
-        let mut done = false;
-        events_loop.poll_events(|ev| match ev {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => done = true,
-            Event::WindowEvent {
-                event: WindowEvent::Resized(_),
-                ..
-            } => recreate_swapchain = true,
-            _ => (),
-        });
-        if done {
-            return;
-        }
     }
+}
+
+fn process_window_events(events_loop: &mut EventsLoop) -> WindowStateEvent {
+    let mut r = WindowStateEvent::NoChange;
+
+    events_loop.poll_events(|ev| match ev {
+        Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            ..
+        } => r = WindowStateEvent::CloseRequested,
+        Event::WindowEvent {
+            event: WindowEvent::Resized(_),
+            ..
+        } => r = WindowStateEvent::Resized,
+        _ => {}
+    });
+
+    r
 }
 
 /// This method is called once during initialization, then again whenever the window is resized
