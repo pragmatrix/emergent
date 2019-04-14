@@ -290,7 +290,10 @@ impl<W: Window> RenderContext<W> {
                 // This error tends to happen when the user is manually resizing the window.
                 // Simply restarting the loop is the easiest way to fix this issue.
                 Err(SwapchainCreationError::UnsupportedDimensions) => {
-                    println!("unsupported dimensions {:?}, recreating", dimensions);
+                    println!(
+                        "unsupported dimensions {:?}, recreating swapchain",
+                        dimensions
+                    );
                     continue;
                 }
                 Err(err) => panic!("{:?}", err),
