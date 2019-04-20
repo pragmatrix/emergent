@@ -1,3 +1,6 @@
 [submodule "rust-skia"]
 	path = rust-skia
 	url = https://github.com/rust-skia/rust-skia.git
+[submodule "vulkano"]
+	path = vulkano
+	url = git@github.com:pragmatrix/vulkano.git

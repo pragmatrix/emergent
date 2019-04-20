@@ -1,10 +1,11 @@
+use std::mem;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract, Subpass};
 use vulkano::image::SwapchainImage;
-use vulkano::instance::{Instance, PhysicalDevice};
+use vulkano::instance::{ApplicationInfo, Instance, PhysicalDevice, Version};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain;
@@ -20,9 +21,10 @@ struct Vertex {
 }
 
 pub struct RenderContext<W: Window> {
+    physical_device_index: usize,
     surface: Arc<Surface<W>>,
-    device: Arc<Device>,
-    queue: Arc<Queue>,
+    pub device: Arc<Device>,
+    pub queue: Arc<Queue>,
     vertex_buffer: Vec<Arc<BufferAccess + Send + Sync>>,
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
@@ -30,8 +32,6 @@ pub struct RenderContext<W: Window> {
 
 pub struct FrameState<W: Window> {
     dynamic_state: DynamicState,
-    recreate_swapchain: bool,
-    previous_frame_end: Option<Box<GpuFuture>>,
     swapchain: Arc<Swapchain<W>>,
     framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
@@ -42,7 +42,17 @@ pub trait Window: Send + Sync + 'static {
 
 pub fn new_instance() -> Arc<Instance> {
     let extensions = vulkano_win::required_extensions();
-    Instance::new(None, &extensions, None).unwrap()
+    let application_info = &ApplicationInfo {
+        api_version: Version {
+            major: 1,
+            minor: 1,
+            patch: 0,
+        }
+        .into(),
+        ..ApplicationInfo::default()
+    };
+
+    Instance::new(Some(application_info), &extensions, None).unwrap()
 }
 
 pub fn create_context_and_frame_state<W: Window>(
@@ -51,14 +61,14 @@ pub fn create_context_and_frame_state<W: Window>(
 ) -> (RenderContext<W>, FrameState<W>) {
     // TODO: select a proper physical device, the first one might not be suitable for
     //       rendering on the screen.
-    let physical = PhysicalDevice::enumerate(&instance).next().unwrap();
+    let physical_device = PhysicalDevice::enumerate(&instance).next().unwrap();
     println!(
         "Using device: {} (type: {:?})",
-        physical.name(),
-        physical.ty()
+        physical_device.name(),
+        physical_device.ty()
     );
 
-    let queue_family = physical
+    let queue_family = physical_device
         .queue_families()
         .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
         .unwrap();
@@ -68,8 +78,8 @@ pub fn create_context_and_frame_state<W: Window>(
         ..DeviceExtensions::none()
     };
     let (device, mut queues) = Device::new(
-        physical,
-        physical.supported_features(),
+        physical_device,
+        physical_device.supported_features(),
         &device_ext,
         [(queue_family, 0.5)].iter().cloned(),
     )
@@ -78,7 +88,7 @@ pub fn create_context_and_frame_state<W: Window>(
     let queue = queues.next().unwrap();
 
     let (swapchain, images) = {
-        let caps = surface.capabilities(physical).unwrap();
+        let caps = surface.capabilities(physical_device).unwrap();
 
         let usage = caps.supported_usage_flags;
 
@@ -173,7 +183,7 @@ void main() {
                 color: {
                     // `load: Clear` means that we ask the GPU to clear the content of this
                     // attachment at the start of the drawing.
-                    load: Clear,
+                    load: DontCare,
                     // `store: Store` means that we ask the GPU to store the output of the draw
                     // in the actual image. We could also ask it to discard the result.
                     store: Store,
@@ -230,16 +240,9 @@ void main() {
     let framebuffers =
         window_size_dependent_setup(&images, render_pass.clone(), &mut dynamic_state);
 
-    // In the loop below we are going to submit commands to the GPU. Submitting a command produces
-    // an object that implements the `GpuFuture` trait, which holds the resources for as long as
-    // they are in use by the GPU.
-    //
-    // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
-    // that, we store the submission of the previous frame here.
-    let previous_frame_end = Box::new(sync::now(device.clone())) as Box<GpuFuture>;
-
     let context = RenderContext {
         surface,
+        physical_device_index: physical_device.index(),
         device,
         queue,
         vertex_buffer: vec![vertex_buffer],
@@ -249,8 +252,6 @@ void main() {
 
     let frame = FrameState {
         dynamic_state,
-        recreate_swapchain: false,
-        previous_frame_end: Some(previous_frame_end),
         swapchain,
         framebuffers,
     };
@@ -258,112 +259,100 @@ void main() {
     (context, frame)
 }
 
-impl<W: Window> FrameState<W> {
-    pub fn window_size_changed(&mut self) {
-        self.recreate_swapchain = true
-    }
-}
-
 impl<W: Window> RenderContext<W> {
-    /// Render the frame's state.
-    pub fn render(&self, frame: &mut FrameState<W>) {
-        // It is important to call this function from time to time, otherwise resources will keep
-        // accumulating and you will eventually reach an out of memory error.
-        frame
-            .previous_frame_end
-            .as_mut()
-            .unwrap()
-            .cleanup_finished();
+    /// Returns the physical device.
+    pub fn physical_device(&self) -> PhysicalDevice {
+        PhysicalDevice::from_index(self.instance(), self.physical_device_index).unwrap()
+    }
 
-        let window = self.surface.window();
+    pub fn instance(&self) -> &Arc<Instance> {
+        self.device.instance()
+    }
 
-        // Whenever the window resizes we need to recreate everything dependent on the window size.
-        // In this example that includes the swapchain, the framebuffers and the dynamic state viewport.
-        while frame.recreate_swapchain {
-            let dimensions = window.physical_size();
+    /// Renders a frame, updates the frame state and returns a future that gets
+    /// fulfilled when the frame is on screen.
+    pub fn render(
+        &self,
+        mut previous_render: Box<GpuFuture>,
+        frame: &mut FrameState<W>,
+    ) -> Box<GpuFuture> {
+        previous_render.cleanup_finished();
 
-            let (new_swapchain, new_images) = match frame
-                .swapchain
-                .recreate_with_dimension([dimensions.0, dimensions.1])
-            {
-                Ok(r) => r,
-                // This error tends to happen when the user is manually resizing the window.
-                // Simply restarting the loop is the easiest way to fix this issue.
-                Err(SwapchainCreationError::UnsupportedDimensions) => {
-                    println!(
-                        "unsupported dimensions {:?}, recreating swapchain",
-                        dimensions
-                    );
+        loop {
+            match self.render_and_present(previous_render, frame) {
+                Ok(future) => return future,
+                Err(FlushError::OutOfDate) => {
+                    self.recreate_swapchain(frame);
+                    previous_render = Box::new(sync::now(self.device.clone()));
                     continue;
                 }
-                Err(err) => panic!("{:?}", err),
-            };
-
-            frame.swapchain = new_swapchain;
-            frame.framebuffers = window_size_dependent_setup(
-                &new_images,
-                self.render_pass.clone(),
-                &mut frame.dynamic_state,
-            );
-
-            frame.recreate_swapchain = false;
+                Err(e) => {
+                    println!("{:?}", e);
+                    return Box::new(sync::now(self.device.clone()));
+                }
+            }
         }
+    }
+
+    /// Render the frame's state.
+    pub fn render_and_present(
+        &self,
+        previous: Box<GpuFuture>,
+        frame: &mut FrameState<W>,
+    ) -> Result<Box<GpuFuture>, FlushError> {
+        dbg!("acquire begin");
+
+        // for some reason we can't join this with acquire_future and drop it then.
+        drop(previous);
 
         let (image_num, acquire_future) =
             swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
+        dbg!("acquire end");
 
-        // Specify the color to clear the framebuffer with i.e. blue
-        let clear_values = vec![[1.0, 1.0, 1.0, 1.0].into()];
+        // drop(previous.join(acquire_future));
+        drop(acquire_future);
+        dbg!("acquired");
 
-        let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
-            self.device.clone(),
-            self.queue.family(),
-        )
-        .unwrap()
-        .begin_render_pass(frame.framebuffers[image_num].clone(), false, clear_values)
-        .unwrap()
-        // We are now inside the first subpass of the render pass. We add a draw command.
-        //
-        // The last two parameters contain the list of resources to pass to the shaders.
-        // Since we used an `EmptyPipeline` object, the objects have to be `()`.
-        .draw(
-            self.pipeline.clone(),
-            &frame.dynamic_state,
-            self.vertex_buffer.clone(),
-            (),
-            (),
-        )
-        .unwrap()
-        // We leave the render pass by calling `draw_end`. Note that if we had multiple
-        // subpasses we could have called `next_inline` (or `next_secondary`) to jump to the
-        // next subpass.
-        .end_render_pass()
-        .unwrap()
-        // Finish building the command buffer by calling `build`.
-        .build()
-        .unwrap();
+        let framebuffer = &frame.framebuffers[image_num];
 
-        let future = frame
-            .previous_frame_end
-            .take()
-            .unwrap()
-            .join(acquire_future)
-            .then_execute(self.queue.clone(), command_buffer)
-            .unwrap()
-            .then_swapchain_present(self.queue.clone(), frame.swapchain.clone(), image_num)
-            .then_signal_fence_and_flush();
+        let future: Box<GpuFuture> =
+            Box::new(sync::now(self.device.clone()).then_swapchain_present(
+                self.queue.clone(),
+                frame.swapchain.clone(),
+                image_num,
+            ));
 
-        frame.previous_frame_end = Some(match future {
-            Ok(future) => Box::new(future) as Box<_>,
-            Err(FlushError::OutOfDate) => {
-                frame.recreate_swapchain = true;
-                Box::new(sync::now(self.device.clone())) as Box<_>
+        Ok(future)
+    }
+
+    pub fn recreate_swapchain(&self, frame: &mut FrameState<W>) {
+        dbg!("recreating swapchain");
+        let window = self.surface.window();
+        let dimensions = window.physical_size();
+
+        let (new_swapchain, new_images) = match frame
+            .swapchain
+            .recreate_with_dimension([dimensions.0, dimensions.1])
+        {
+            Ok(r) => r,
+            // This error tends to happen when the user is manually resizing the window.
+            // Simply restarting the loop is the easiest way to fix this issue.
+            Err(SwapchainCreationError::UnsupportedDimensions) => {
+                println!(
+                    "unsupported dimensions {:?}, recreating swapchain",
+                    dimensions
+                );
+                return self.recreate_swapchain(frame);
             }
-            Err(e) => {
-                println!("{:?}", e);
-                Box::new(sync::now(self.device.clone())) as Box<_>
-            }
-        })
+            Err(err) => panic!("{:?}", err),
+        };
+
+        frame.swapchain = new_swapchain;
+        frame.framebuffers = window_size_dependent_setup(
+            &new_images,
+            self.render_pass.clone(),
+            &mut frame.dynamic_state,
+        );
     }
 }
 

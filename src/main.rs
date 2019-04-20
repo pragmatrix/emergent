@@ -1,7 +1,10 @@
+use vulkano::sync;
+use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
 mod renderer;
+mod skia;
 
 enum WindowStateEvent {
     NoChange,
@@ -32,14 +35,17 @@ fn main() {
 
     let (context, mut frame) = renderer::create_context_and_frame_state(instance, surface);
 
+    let frame = &mut frame;
+    let mut future: Box<GpuFuture> = Box::new(sync::now(context.device.clone()));
+
     loop {
         match process_window_events(&mut events_loop) {
             WindowStateEvent::CloseRequested => return,
-            WindowStateEvent::Resized => frame.window_size_changed(),
+            WindowStateEvent::Resized => context.recreate_swapchain(frame),
             WindowStateEvent::NoChange => {}
         }
 
-        context.render(&mut frame);
+        future = context.render(future, frame);
     }
 }
 
