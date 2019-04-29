@@ -36,6 +36,20 @@ pub struct FrameState<W: Window> {
     framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
 
+pub trait DrawingSurface {
+    fn draw(&mut self);
+}
+
+pub trait DrawingBackend {
+    type Surface: DrawingSurface;
+
+    /// Creates a DrawingSurface that draws to a framebuffer.
+    fn new_surface_from_framebuffer(
+        &mut self,
+        framebuffer: &Arc<FramebufferAbstract + Send + Sync>,
+    ) -> Self::Surface;
+}
+
 pub trait Window: Send + Sync + 'static {
     fn physical_size(&self) -> (u32, u32);
 }
@@ -271,15 +285,16 @@ impl<W: Window> RenderContext<W> {
 
     /// Renders a frame, updates the frame state and returns a future that gets
     /// fulfilled when the frame is on screen.
-    pub fn render(
+    pub fn render<DB: DrawingBackend>(
         &self,
         mut previous_render: Box<GpuFuture>,
         frame: &mut FrameState<W>,
+        drawing_backend: &mut DB,
     ) -> Box<GpuFuture> {
         previous_render.cleanup_finished();
 
         loop {
-            match self.render_and_present(previous_render, frame) {
+            match self.draw_and_present(previous_render, frame, drawing_backend) {
                 Ok(future) => return future,
                 Err(FlushError::OutOfDate) => {
                     self.recreate_swapchain(frame);
@@ -294,26 +309,28 @@ impl<W: Window> RenderContext<W> {
         }
     }
 
-    /// Render the frame's state.
-    pub fn render_and_present(
+    /// Draw the frame's state.
+    pub fn draw_and_present<DB: DrawingBackend>(
         &self,
         previous: Box<GpuFuture>,
         frame: &mut FrameState<W>,
+        drawing_backend: &mut DB,
     ) -> Result<Box<GpuFuture>, FlushError> {
-        dbg!("acquire begin");
-
         // for some reason we can't join this with acquire_future and drop it then.
         drop(previous);
 
         let (image_num, acquire_future) =
             swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
-        dbg!("acquire end");
 
         // drop(previous.join(acquire_future));
         drop(acquire_future);
-        dbg!("acquired");
 
         let framebuffer = &frame.framebuffers[image_num];
+
+        {
+            let mut surface = drawing_backend.new_surface_from_framebuffer(framebuffer);
+            surface.draw();
+        }
 
         let future: Box<GpuFuture> =
             Box::new(sync::now(self.device.clone()).then_swapchain_present(

@@ -35,6 +35,8 @@ fn main() {
 
     let (context, mut frame) = renderer::create_context_and_frame_state(instance, surface);
 
+    let drawing_context = &mut context.new_skia_context().unwrap();
+
     let frame = &mut frame;
     let mut future: Box<GpuFuture> = Box::new(sync::now(context.device.clone()));
 
@@ -45,7 +47,7 @@ fn main() {
             WindowStateEvent::NoChange => {}
         }
 
-        future = context.render(future, frame);
+        future = context.render(future, frame, drawing_context);
     }
 }
 

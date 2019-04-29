@@ -1,26 +1,31 @@
 ///! Vulkan <-> Skia interop.
-use crate::renderer::{RenderContext, Window};
-use skia_safe::gpu;
-use skia_safe::gpu::vk::{BackendContext, GetProc, GetProcOf};
+use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
+use skia_bindings::SkSurface;
+use skia_safe::gpu::vk;
+use skia_safe::{gpu, scalar, Color, Paint};
+use skia_safe::{ColorType, Surface};
+use std::convert::TryInto;
 use std::ffi::{c_void, CString};
 use std::os::raw::c_char;
+use std::sync::Arc;
 use std::{mem, ptr};
+use vulkano::framebuffer::FramebufferAbstract;
 use vulkano::instance::loader;
 use vulkano::{SynchronizedVulkanObject, VulkanObject};
 
 type GetProcResult = Option<unsafe extern "system" fn() -> c_void>;
-type GetDeviceProc = extern "system" fn(gpu::vk::Device, *const c_char) -> GetProcResult;
+type GetDeviceProc = extern "system" fn(vk::Device, *const c_char) -> GetProcResult;
 
-fn get_instance_proc(instance: gpu::vk::Instance, name: *const c_char) -> GetProcResult {
+fn get_instance_proc(instance: vk::Instance, name: *const c_char) -> GetProcResult {
     let loader = loader::auto_loader().unwrap();
     unsafe { mem::transmute(loader.get_instance_proc_addr(instance as _, name)) }
 }
 
 impl<W: Window> RenderContext<W> {
-    fn get_proc(&self, gpo: GetProcOf) -> GetProcResult {
+    fn get_proc(&self, gpo: vk::GetProcOf) -> GetProcResult {
         match gpo {
-            GetProcOf::Instance(instance, name) => get_instance_proc(instance, name),
-            GetProcOf::Device(device, name) => {
+            vk::GetProcOf::Instance(instance, name) => get_instance_proc(instance, name),
+            vk::GetProcOf::Device(device, name) => {
                 let instance = self.instance().internal_object() as _;
                 // TODO: call this only once (or resolve it via vulkano, if that is possible).
                 let get_device_proc: GetDeviceProc = unsafe {
@@ -50,11 +55,11 @@ impl<W: Window> RenderContext<W> {
     }
 }
 
-fn new_backend_context<'lt, W: Window, GP: GetProc>(
+fn new_backend_context<'lt, W: Window, GP: vk::GetProc>(
     get_proc: &'lt GP,
     render_context: &'lt RenderContext<W>,
-) -> BackendContext<'lt> {
-    let instance: gpu::vk::Instance = render_context.instance().internal_object() as _;
+) -> vk::BackendContext<'lt> {
+    let instance: vk::Instance = render_context.instance().internal_object() as _;
     let physical_device = render_context.physical_device().internal_object() as _;
     let device = render_context.device.internal_object() as _;
     let queue = render_context.queue.clone();
@@ -64,12 +69,81 @@ fn new_backend_context<'lt, W: Window, GP: GetProc>(
     );
 
     unsafe {
-        gpu::vk::BackendContext::new(
+        vk::BackendContext::new(
             instance,
             physical_device,
             device,
             (queue, queue_index),
             get_proc,
         )
+    }
+}
+
+//
+// DrawingBakcend and other Traits to make Skia accessible to the renderer.
+//
+
+impl DrawingBackend for gpu::Context {
+    type Surface = skia_safe::Surface;
+
+    fn new_surface_from_framebuffer(
+        &mut self,
+        framebuffer: &Arc<FramebufferAbstract + Send + Sync>,
+    ) -> Self::Surface {
+        let [width, height, _] = framebuffer.dimensions();
+        let image_access = framebuffer.attached_image_view(0).unwrap().parent();
+        let image_object = image_access.inner().image.internal_object();
+        let format = image_access.format();
+        dbg!(image_access.final_layout_requirement());
+        dbg!(image_access.initial_layout_requirement());
+        dbg!(format);
+        dbg!(format as i32);
+
+        let x = skia_bindings::VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+        dbg!(x as i32);
+
+        let alloc = vk::Alloc::default();
+        // TODO: verify TILING, IMAGE_LAYOUT and FORMAT assumptions.
+        let image_info = &unsafe {
+            vk::ImageInfo::from_image(
+                image_object as _,
+                alloc,
+                skia_bindings::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
+                skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                // skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                // skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                // skia_bindings::VkFormat::VK_FORMAT_B8G8R8A8_UNORM,
+                skia_bindings::VkFormat::VK_FORMAT_R8G8B8A8_UNORM,
+                1,
+                None,
+                None,
+            )
+        };
+
+        let render_target = &gpu::BackendRenderTarget::new_vulkan(
+            (width.try_into().unwrap(), height.try_into().unwrap()),
+            0,
+            image_info,
+        );
+
+        Surface::from_backend_render_target(
+            self,
+            render_target,
+            gpu::SurfaceOrigin::TopLeft,
+            ColorType::RGBA8888,
+            None,
+            None,
+        )
+        .unwrap()
+    }
+}
+
+impl DrawingSurface for skia_safe::Surface {
+    fn draw(&mut self) {
+        let canvas = self.canvas();
+        canvas.clear(Color::RED);
+        let paint = &Paint::default();
+        canvas.draw_circle((200, 200), 100.0, paint);
+        self.flush();
     }
 }
