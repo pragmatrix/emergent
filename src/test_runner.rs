@@ -28,10 +28,18 @@ impl TestRunRequest {
     pub fn new(project_directory: &Path) -> TestRunRequest {
         let command = "cargo test";
         let args = vec![];
-        let libtest_args = vec!["--test-threads", "1", "--nocapture"]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
+        let libtest_args = vec![
+            "--test-threads",
+            "1",
+            "--nocapture",
+            "-Z",
+            "unstable-options",
+            "--format",
+            "json",
+        ]
+        .iter()
+        .map(|x| x.to_string())
+        .collect();
         TestRunRequest {
             directory: project_directory.to_owned(),
             command: command.to_string(),
