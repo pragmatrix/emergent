@@ -21,20 +21,18 @@ impl Drop for Capture {
 
 impl Capture {
     pub fn stdout() -> Capture {
-        fn flush() {
-            std::io::stderr().flush().unwrap();
-        }
-        Self::begin(shh::stdout().unwrap(), &flush)
+        Self::begin(shh::stdout().unwrap(), || {
+            std::io::stderr().flush().unwrap()
+        })
     }
 
     pub fn stderr() -> Capture {
-        fn flush() {
-            std::io::stderr().flush().unwrap();
-        }
-        Self::begin(shh::stdout().unwrap(), &flush)
+        Self::begin(shh::stdout().unwrap(), || {
+            std::io::stderr().flush().unwrap()
+        })
     }
 
-    fn begin<R: Read + Send + 'static, FLUSH: Fn() -> () + Send + 'static>(
+    fn begin<R: Read + Send + 'static, FLUSH: FnOnce() -> () + Send + 'static>(
         mut handle: R,
         flush: FLUSH,
     ) -> Capture {
