@@ -9,6 +9,7 @@ mod renderer;
 mod skia;
 // mod ui;
 // mod layout;
+mod libtest;
 mod test_runner;
 
 enum WindowStateEvent {

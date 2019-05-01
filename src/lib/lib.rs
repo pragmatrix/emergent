@@ -9,9 +9,4 @@ mod mod_test {
     fn test_in_mod_capture() {
         println!("CAPTURE_ME_IN_MOD")
     }
-
-    #[test]
-    fn test_expect_fail() {
-        assert_ne!(1, 1)
-    }
 }

@@ -13,13 +13,16 @@ pub struct TestRunRequest {
 pub struct TestName(Vec<String>);
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct TestRun {
+pub struct TestCapture {
     name: TestName,
     output: String,
+    result: OkOrFailed,
 }
 
 #[derive(Debug)]
-pub struct TestRunResult {}
+pub struct TestRunResult {
+    captures: Vec<TestCapture>,
+}
 
 impl TestRunRequest {
     /// Creates a new TestRunRequest.
