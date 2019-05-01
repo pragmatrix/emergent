@@ -75,12 +75,9 @@ impl Capture {
     }
 
     pub fn end(mut self) -> Vec<u8> {
-        if let Some(thread) = self.thread.take() {
-            self.shutdown_sender.send(()).unwrap();
-            thread.join().unwrap()
-        } else {
-            panic!("internal error");
-        }
+        let thread = self.thread.take().expect("internal error");
+        self.shutdown_sender.send(()).unwrap();
+        thread.join().unwrap()
     }
 }
 
