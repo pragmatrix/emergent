@@ -3,8 +3,13 @@ use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
+mod capture;
+mod drawing;
 mod renderer;
 mod skia;
+// mod ui;
+// mod layout;
+mod test_runner;
 
 enum WindowStateEvent {
     NoChange,
