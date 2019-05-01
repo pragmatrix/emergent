@@ -6,8 +6,6 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRunRequest {
     directory: PathBuf,
-    command: String,
-    args: Vec<String>,
     libtest_args: Vec<String>,
 }
 
@@ -26,9 +24,7 @@ pub struct TestRunResult {}
 impl TestRunRequest {
     /// Creates a new TestRunRequest.
     pub fn new(project_directory: &Path) -> TestRunRequest {
-        let command = "cargo test";
-        let args = vec![];
-        let libtest_args = vec![
+        let libtest_args = [
             "--test-threads",
             "1",
             "--nocapture",
@@ -40,10 +36,9 @@ impl TestRunRequest {
         .iter()
         .map(|x| x.to_string())
         .collect();
+
         TestRunRequest {
             directory: project_directory.to_owned(),
-            command: command.to_string(),
-            args,
             libtest_args,
         }
     }
@@ -66,16 +61,6 @@ impl TestRunRequest {
             false,
             false,
         );
-        /*
-        let compile_filter = ops::CompileFilter::Only {
-            all_targets: false,
-            lib: true,
-            bins: ops::FilterRule::Just(vec![]),
-            examples: ops::FilterRule::Just(vec![]),
-            benches: ops::FilterRule::Just(vec![]),
-            tests: ops::FilterRule::Just(vec![]),
-        };
-        */
 
         let mut compile_options = ops::CompileOptions::new(&config, compiler::CompileMode::Test)?;
         compile_options.filter = compile_filter;
