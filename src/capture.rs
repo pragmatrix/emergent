@@ -22,12 +22,12 @@ impl Drop for Capture {
 impl Capture {
     pub fn stdout() -> Capture {
         Self::begin(shh::stdout().unwrap(), || {
-            std::io::stderr().flush().unwrap()
+            std::io::stdout().flush().unwrap()
         })
     }
 
     pub fn stderr() -> Capture {
-        Self::begin(shh::stdout().unwrap(), || {
+        Self::begin(shh::stderr().unwrap(), || {
             std::io::stderr().flush().unwrap()
         })
     }
