@@ -7,23 +7,23 @@
 use serde::{Deserialize, Serialize};
 
 //
-// Small, Copyable Types.
+// Geometric Primitives.
 //
 
 #[allow(non_camel_case_types)]
 pub type scalar = f64;
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Point(scalar, scalar);
+pub struct Point(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Size(scalar, scalar);
+pub struct Size(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Vector(scalar, scalar);
+pub struct Vector(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Angle(scalar);
+pub struct Angle(pub scalar);
 
 // 32-bit ARGB color value.
 // TODO: do we really want this? Serialization should be HEX I guess.
@@ -31,30 +31,62 @@ pub struct Angle(scalar);
 pub struct Color(u32);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Scale(scalar, scalar);
+pub struct Scale(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Skew(scalar, scalar);
+pub struct Skew(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Degrees(scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Radius(scalar);
-
-//
-// Larger, Cloneable types.
-//
+pub struct Radius(pub scalar);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Rect(Point, Size);
+pub struct Matrix([scalar; 9]);
 
+//
+// Elementary Shapes
+//
+
+/// A line defined by two points.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Line(pub Point, pub Point);
+
+/// A rectangle, defined by a point and a size.
+// TODO: should we separate Rect as a mathematic tool from
+// the Rectangle Shape geometric form?
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Rect(pub Point, pub Size);
+
+/// A rounded rectangle.
 // TODO: Optimize representation for simple cases?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct RoundedRect(Rect, [Vector; 4]);
 
+/// A circle at a center point with a radius.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Matrix([scalar; 9]);
+pub struct Circle(pub Point, pub Radius);
+
+/// An Oval, described by a Rect.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Oval(pub Rect);
+
+/// Line segments, an open polygon.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct LineSegments(pub Vec<Point>);
+
+/// A Polygon, always closed.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Polygon(pub Vec<Point>);
+
+// TODO: not sure what that means, verify relation to Path / Shape.
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct UseCenter(pub bool);
+
+// An Arc, described by an Avove, start angle, and sweep angle.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Transformation {
@@ -125,26 +157,23 @@ pub enum StrokeJoin {
     Bevel,
 }
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct UseCenter(bool);
-
 // contains Option values to support optimal serialization if values do not diverge from their defaults.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Paint {
     #[serde(skip_serializing_if = "Option::is_none")]
-    style: Option<PaintStyle>,
+    pub style: Option<PaintStyle>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    color: Option<Color>,
+    pub color: Option<Color>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stroke_width: Option<scalar>,
+    pub stroke_width: Option<scalar>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stroke_miter: Option<scalar>,
+    pub stroke_miter: Option<scalar>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stroke_cap: Option<StrokeCap>,
+    pub stroke_cap: Option<StrokeCap>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stroke_join: Option<StrokeJoin>,
+    pub stroke_join: Option<StrokeJoin>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    blend_mode: Option<BlendMode>,
+    pub blend_mode: Option<BlendMode>,
 }
 
 // TODO: ????
@@ -164,10 +193,7 @@ pub enum PathDirection {
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Closed(bool);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct ForceMoveTo(bool);
+pub struct ForceMoveTo(pub bool);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum PathVerb {
@@ -176,17 +202,20 @@ pub enum PathVerb {
     QuadTo(Point, Point),
     ConicTo(Point, Point, scalar),
     CubicTo(Point, Point, Point),
-    ArcTo(Rect, Angle, Angle, ForceMoveTo),
+    ArcTo(Arc, ForceMoveTo),
     Close,
     // is the direction and / or index too much?
     AddRect(Rect, Option<(PathDirection, usize)>),
-    AddOval(Rect, Option<(PathDirection, usize)>),
-    AddCircle(Point, Radius, Option<PathDirection>),
-    AddArc(Rect, Angle, Angle),
+    AddOval(Oval, Option<(PathDirection, usize)>),
+    AddCircle(Circle, Option<PathDirection>),
+    AddArc(Arc),
     AddRoundedRect(RoundedRect, Option<PathDirection>),
-    AddPolygon(Vec<Point>, Closed),
+    AddLineSegments(LineSegments),
+    AddPolygon(Polygon),
     // TODO: Do we need to support adding paths?
 }
+
+// TODO: path combinators!
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Path {
@@ -195,50 +224,122 @@ pub struct Path {
     verbs: Vec<PathVerb>,
 }
 
+// TODO: can't we _just_ use a Trait here?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Shape {
     Point(Point),
+    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
     Points(Vec<Point>),
-    Line(Point, Point),
-    // TODO: should we introduce a type Line?
-    Lines(Vec<(Point, Point)>),
-    // TODO: should we introduce a type Polygon?
-    Polygon(Vec<Point>),
+    Line(Line),
+    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
+    Lines(Vec<Line>),
+    LineSegments(LineSegments),
+    Polygon(Polygon),
     Rect(Rect),
-    Oval(Rect),
+    Oval(Oval),
     RoundedRect(RoundedRect),
     // TODO: Skia has an optimized function for drawing a rounded rect inside another. Should we support that?
-    Circle(Point, Radius),
-    Arc(Rect, Angle, Angle, UseCenter),
+    Circle(Circle),
+    Arc(Arc),
     Path(Path),
     Image(ImageId),
     ImageRect(ImageId, Option<Rect>, Rect),
     // ImageNine?
 }
 
+pub type Painting = Vec<Drawing>;
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Drawing {
-    Transformed(Transformation, Box<Drawing>),
-    // TODO: Skia supports ClipOp::Intersect, which I suppose is quite unusual.
+    /// Fill that current area with the given paint.
+    Fill(Paint, BlendMode),
+
+    /// Draw a group of shapes with the same paint.
+    Draw(Vec<Shape>, Paint),
+
+    /// A nested painting, save the current matrix and clip,
+    /// and restores it afterwards.
+    Paint(Painting),
+
+    // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
     // TODO: Also Skia supports do_anti_alias for clipping.
+    /// Intersect the current clip with the given Clip.
+    Clip(Clip),
 
-    // paint independent draw commands:
-    Clipped(Clip, Box<Drawing>),
-    Color(Color, BlendMode),
-    Clear(Color),
-
-    // TODO: think about introducing a WithPaint
-    // (which we might be able to optimize).
-    // or? a Shapes? where multiple shapes are drawn
-    // with the same paint?
-    Shape(Shape, Paint),
-    Drawings(Vec<Drawing>),
+    /// Transform the current matrix.
+    Transform(Transformation),
 }
+
+//
+// Shape From implementations.
+//
+
+impl From<Point> for Shape {
+    fn from(point: Point) -> Self {
+        Shape::Point(point)
+    }
+}
+
+impl From<Line> for Shape {
+    fn from(line: Line) -> Self {
+        Shape::Line(line)
+    }
+}
+
+impl From<LineSegments> for Shape {
+    fn from(line_segments: LineSegments) -> Self {
+        Shape::LineSegments(line_segments)
+    }
+}
+
+impl From<Polygon> for Shape {
+    fn from(polygon: Polygon) -> Self {
+        Shape::Polygon(polygon)
+    }
+}
+
+impl From<Rect> for Shape {
+    fn from(rect: Rect) -> Self {
+        Shape::Rect(rect)
+    }
+}
+
+impl From<Oval> for Shape {
+    fn from(oval: Oval) -> Self {
+        Shape::Oval(oval)
+    }
+}
+
+impl From<RoundedRect> for Shape {
+    fn from(rounded_rect: RoundedRect) -> Self {
+        Shape::RoundedRect(rounded_rect)
+    }
+}
+
+impl From<Circle> for Shape {
+    fn from(circle: Circle) -> Self {
+        Shape::Circle(circle)
+    }
+}
+
+impl From<Arc> for Shape {
+    fn from(arc: Arc) -> Self {
+        Shape::Arc(arc)
+    }
+}
+
+impl From<Path> for Shape {
+    fn from(path: Path) -> Self {
+        Shape::Path(path)
+    }
+}
+
+// TODO: ImageId / ImageRect
 
 #[test]
 fn test_serialize() {
-    let drawing = Drawing::Shape(
-        Shape::Line(Point(10.0, 1.0), Point(11.0, 1.0)),
+    let drawing = Drawing::Draw(
+        vec![Shape::Line(Line(Point(10.0, 1.0), Point(11.0, 1.0)))],
         Paint {
             style: None,
             color: None,
@@ -252,10 +353,7 @@ fn test_serialize() {
 
     println!("{}", serde_json::to_string(&drawing).unwrap());
 
-    let drawing_in_drawing = Drawing::Clipped(
-        Clip::Rect(Rect(Point(10.0, 1.0), Size(10.0, 1.0))),
-        Box::new(drawing),
-    );
+    let drawing = Drawing::Clip(Clip::Rect(Rect(Point(10.0, 1.0), Size(10.0, 1.0))));
 
-    println!("{}", serde_json::to_string(&drawing_in_drawing).unwrap());
+    println!("{}", serde_json::to_string(&drawing).unwrap());
 }

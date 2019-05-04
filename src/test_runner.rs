@@ -1,4 +1,5 @@
 use crate::capture::Capture;
+use crate::libtest::OkOrFailed;
 use cargo::core::compiler;
 use cargo::ops;
 use std::path::{Path, PathBuf};
@@ -84,8 +85,14 @@ impl TestRunRequest {
             String::from_utf8(captured).unwrap()
         );
 
-        Ok(TestRunResult {})
+        Ok(TestRunResult {
+            captures: Vec::new(),
+        })
     }
+}
+
+fn parse_test_run_output(output: &str) {
+    let lines: Vec<_> = output.split("\n").collect();
 }
 
 #[cfg(test)]

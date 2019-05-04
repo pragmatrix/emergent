@@ -5,6 +5,7 @@ use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
 mod capture;
 mod drawing;
+mod drawing_target;
 mod renderer;
 mod skia;
 // mod ui;
