@@ -1,23 +1,24 @@
 // https://github.com/rust-lang/libtest/blob/master/libtest/formatters/json.rs
 
+use failure::Fail;
 use serde_json::Value;
 use std::convert::TryInto;
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum OkOrFailed {
-    Ok,
-    Failed,
-}
+use std::io;
+use std::io::{BufRead, BufReader, Read};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum ExtraData {
-    Message(String),
-    StdOut(String),
+pub struct TestCaptures(pub Vec<TestCapture>);
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TestCapture {
+    pub name: String,
+    pub result: TestResult,
+    pub output: String,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TestResult {
-    Ok,
+    Ok(Option<String>),
     Failed(Option<ExtraData>),
     Ignored,
     AllowedFail,
@@ -26,11 +27,50 @@ pub enum TestResult {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+enum ExtraData {
+    Message(String),
+    StdOut(String),
+}
+
+#[derive(Fail, Debug)]
+pub enum TestResultsError {
+    #[fail(display = "expected suite start event {:?}", _0)]
+    ExpectedSuiteStart(Event),
+    #[fail(display = "expected test start at test no {}, got: {:?}", index, event)]
+    ExpectedTestStart { index: usize, event: Event },
+}
+
+trait EventReader {
+    fn read_next_line(&mut self) -> Result<String, io::Error>;
+
+    fn read_line_as_event(&mut self) -> Result<Event, failure::Error> {
+        let line = self.read_next_line()?;
+        parse_event(&line)
+    }
+}
+
+fn parse_event(line: &String) -> Result<Event, failure::Error> {
+    let value = serde_json::from_str(line)?;
+    Ok(Event::from_json(&value)?)
+}
+
+impl<R: Read> EventReader for BufReader<R> {
+    fn read_next_line(&mut self) -> Result<String, io::Error> {
+        let mut l: String = String::new();
+        if 0 == BufRead::read_line(self, &mut l)? {
+            Err(io::ErrorKind::UnexpectedEof.into())
+        } else {
+            Ok(l)
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Event {
-    RunStart {
+    SuiteStart {
         test_count: usize,
     },
-    RunFinish {
+    SuiteFinish {
         result: OkOrFailed,
         passed: usize,
         failed: usize,
@@ -48,52 +88,126 @@ pub enum Event {
     },
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum OkOrFailed {
+    Ok,
+    Failed,
+}
+
+#[derive(Fail, Debug)]
+pub enum EventError {
+    #[fail(display = "failed to get property '{}'", _0)]
+    GettingProperty(String),
+    #[fail(display = "unsupported type / event combination {}, {}", _0, _0)]
+    UnsupportedTypeEvent(String, String),
+    #[fail(display = "expected object")]
+    ExpectedObject,
+}
+
+impl TestCaptures {
+    /// Parses output lines from a complete libtest / suite test into
+    /// a number of test captures.
+
+    pub fn from_output<R: Read>(reader: R) -> Result<Self, failure::Error> {
+        let mut reader = BufReader::new(reader);
+
+        let num_tests = {
+            match reader.read_line_as_event()? {
+                Event::SuiteStart { test_count } => test_count,
+                e => Err(TestResultsError::ExpectedSuiteStart(e))?,
+            }
+        };
+
+        let mut captures = Vec::new();
+
+        for i in 0..num_tests {
+            let test_name = match reader.read_line_as_event()? {
+                Event::TestStart { name } => name,
+                e => Err(TestResultsError::ExpectedTestStart { index: i, event: e })?,
+            };
+
+            let output = &mut Vec::new();
+
+            let result = loop {
+                let line = reader.read_next_line()?;
+                match parse_event(&line) {
+                    Ok(Event::TestFinish {
+                        ref name,
+                        ref result,
+                    }) if name == &test_name => {
+                        break result.clone();
+                    }
+                    _ => {
+                        output.push(line);
+                    }
+                }
+            };
+
+            captures.push(TestCapture {
+                name: test_name,
+                result,
+                output: output.join("\n"),
+            })
+        }
+
+        match reader.read_line_as_event()? {
+            Event::SuiteFinish { .. } => {}
+            e => Err(TestResultsError::ExpectedSuiteStart(e))?,
+        }
+
+        Ok(TestCaptures(captures))
+    }
+}
+
 impl Event {
-    pub fn from_json(value: &Value) -> Result<Event, String> {
+    pub fn from_json(value: &Value) -> Result<Event, failure::Error> {
         // TODO: how to reduce indent here?
         if let Value::Object(m) = value {
-            let get_str = |property| {
+            let get_str = |property: &str| {
                 m.get(property)
                     .and_then(|v| v.as_str())
-                    .expect(&format!("expect string property '{}'", property))
+                    .ok_or_else(|| EventError::GettingProperty(property.to_owned()))
             };
 
-            let get_usize = |property| {
+            let get_usize = |property: &str| {
                 m.get(property)
                     .and_then(|v| v.as_u64())
-                    .expect(&format!("expect number property '{}'", property))
-                    .try_into()
-                    .unwrap()
+                    .and_then(|v| v.try_into().ok())
+                    .ok_or_else(|| EventError::GettingProperty(property.to_owned()))
             };
 
-            let run_finish = |r| Event::RunFinish {
-                result: r,
-                passed: get_usize("passed"),
-                failed: get_usize("failed"),
-                allowed_fail: get_usize("allowed_fail"),
-                ignored: get_usize("ignored"),
-                measured: get_usize("measured"),
-                filtered_out: get_usize("filtered_out"),
+            let run_finish = |r| {
+                Ok(Event::SuiteFinish {
+                    result: r,
+                    passed: get_usize("passed")?,
+                    failed: get_usize("failed")?,
+                    allowed_fail: get_usize("allowed_fail")?,
+                    ignored: get_usize("ignored")?,
+                    measured: get_usize("measured")?,
+                    filtered_out: get_usize("filtered_out")?,
+                })
             };
 
-            let test_finish = |r| Event::TestFinish {
-                name: get_str("name").into(),
-                result: r,
+            let test_finish = |r| {
+                Ok(Event::TestFinish {
+                    name: get_str("name")?.into(),
+                    result: r,
+                })
             };
 
-            let event = get_str("event");
-            let ty = get_str("type");
+            let event = get_str("event")?;
+            let ty = get_str("type")?;
 
             match (ty, event) {
-                ("suite", "started") => Ok(Event::RunStart {
-                    test_count: get_usize("test_count"),
+                ("suite", "started") => Ok(Event::SuiteStart {
+                    test_count: get_usize("test_count")?,
                 }),
-                ("suite", "ok") => Ok(run_finish(OkOrFailed::Ok)),
-                ("suite", "failed") => Ok(run_finish(OkOrFailed::Failed)),
+                ("suite", "ok") => run_finish(OkOrFailed::Ok),
+                ("suite", "failed") => run_finish(OkOrFailed::Failed),
                 ("test", "started") => Ok(Event::TestStart {
-                    name: get_str("name").into(),
+                    name: get_str("name")?.into(),
                 }),
-                ("test", "ok") => Ok(test_finish(TestResult::Ok)),
+                ("test", "ok") => test_finish(TestResult::Ok(None)),
                 ("test", "failed") => {
                     let extra_data = {
                         if let Some(message) = m.get("message").and_then(|v| v.as_str()) {
@@ -105,18 +219,15 @@ impl Event {
                         }
                     };
 
-                    Ok(test_finish(TestResult::Failed(extra_data)))
+                    test_finish(TestResult::Failed(extra_data))
                 }
-                ("test", "ignored") => Ok(test_finish(TestResult::Ignored)),
-                ("test", "allowed_fail") => Ok(test_finish(TestResult::AllowedFail)),
-                ("test", "timeout") => Ok(test_finish(TestResult::Timeout)),
-                (ty, event) => Result::Err(format!(
-                    "unsupported combination of type '{}' and event '{}'",
-                    ty, event
-                )),
+                ("test", "ignored") => test_finish(TestResult::Ignored),
+                ("test", "allowed_fail") => test_finish(TestResult::AllowedFail),
+                ("test", "timeout") => test_finish(TestResult::Timeout),
+                (ty, event) => Err(EventError::UnsupportedTypeEvent(ty.into(), event.into()))?,
             }
         } else {
-            Result::Err("expected an object".into())
+            Err(EventError::ExpectedObject)?
         }
     }
 }
@@ -130,15 +241,15 @@ fn to_event(json: &str) -> Event {
 fn parse_run_start() {
     assert_eq!(
         to_event(r#"{ "type": "suite", "event": "started", "test_count": 3 }"#),
-        Event::RunStart { test_count: 3 }
+        Event::SuiteStart { test_count: 3 }
     );
 }
 
 #[test]
-fn parse_run_fninished() {
+fn parse_run_finished() {
     assert_eq!(
         to_event(r#"{ "type": "suite", "event": "failed", "passed": 2, "failed": 1, "allowed_fail": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }"#),
-        Event::RunFinish {
+        Event::SuiteFinish {
             result: OkOrFailed::Failed,
             passed: 2,
             failed: 1,
@@ -175,7 +286,7 @@ fn parse_test_ok() {
     assert_eq!(
         to_event(r#"{ "type": "test", "name": "test_name", "event": "ok" }"#),
         Event::TestFinish {
-            result: TestResult::Ok,
+            result: TestResult::Ok(None),
             name: "test_name".to_string()
         }
     );

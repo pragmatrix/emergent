@@ -1,28 +1,14 @@
 use crate::capture::Capture;
-use crate::libtest::OkOrFailed;
+use crate::libtest::TestCaptures;
 use cargo::core::compiler;
 use cargo::ops;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRunRequest {
     directory: PathBuf,
     libtest_args: Vec<String>,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct TestName(Vec<String>);
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct TestCapture {
-    name: TestName,
-    output: String,
-    result: OkOrFailed,
-}
-
-#[derive(Debug)]
-pub struct TestRunResult {
-    captures: Vec<TestCapture>,
 }
 
 impl TestRunRequest {
@@ -47,7 +33,7 @@ impl TestRunRequest {
         }
     }
 
-    pub fn run(self) -> Result<TestRunResult, failure::Error> {
+    pub fn capture_tests(self) -> Result<TestCaptures, failure::Error> {
         let manifest_path = self.directory.join("Cargo.toml");
         let config = &cargo::Config::default()?;
         let workspace = &cargo::core::Workspace::new(&manifest_path, config)?;
@@ -78,21 +64,12 @@ impl TestRunRequest {
         let capture = Capture::stdout();
 
         let test_error = ops::run_tests(workspace, test_options, &self.libtest_args)?;
-
         let captured = capture.end();
-        println!(
-            ">>>OUT: \n{}\n<<<END OUT",
-            String::from_utf8(captured).unwrap()
-        );
 
-        Ok(TestRunResult {
-            captures: Vec::new(),
-        })
+        let cursor = Cursor::new(captured);
+
+        TestCaptures::from_output(cursor)
     }
-}
-
-fn parse_test_run_output(output: &str) {
-    let lines: Vec<_> = output.split("\n").collect();
 }
 
 #[cfg(test)]
@@ -101,9 +78,6 @@ use std::env;
 #[test]
 fn run_tests_self() {
     let request = TestRunRequest::new(&env::current_dir().unwrap());
-    println!(">>> IN");
-
-    request.run().unwrap();
-
-    println!("<<< OUT");
+    let captures = request.capture_tests().unwrap();
+    println!("captures:\n{:?}", captures);
 }
