@@ -1,12 +1,9 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::Render;
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::io::Write;
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Painting(pub Vec<Drawing>);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
