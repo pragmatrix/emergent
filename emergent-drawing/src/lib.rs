@@ -4,8 +4,8 @@ pub use canvas::*;
 mod drawing;
 pub use drawing::*;
 
-use std::io::Write;
 use std::io;
+use std::io::Write;
 
 mod drawing_target;
 

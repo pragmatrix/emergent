@@ -1,10 +1,10 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use serde::{Deserialize, Serialize};
 use crate::Render;
-use std::io::Write;
+use serde::{Deserialize, Serialize};
 use std::io;
+use std::io::Write;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Painting(pub Vec<Drawing>);
@@ -177,7 +177,6 @@ pub struct Paint {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blend_mode: Option<BlendMode>,
 }
-
 
 // https://developer.android.com/reference/android/graphics/PorterDuff.Mode
 // We support 12 alpha composition modes, 5 blending modes, and simple addition for now.

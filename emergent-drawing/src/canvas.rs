@@ -1,22 +1,29 @@
 //! Usability optimized drawing functions and wrappers.
 
 use crate::drawing_target::DrawingTarget;
-use crate::{scalar, Point, Radius, Paint, Shape, Circle, Line, LineSegments, Polygon, Rect, Oval, RoundedRect, Arc, Path};
+use crate::{
+    scalar, Arc, Circle, Line, LineSegments, Oval, Paint, Path, Point, Polygon, Radius, Rect,
+    RoundedRect, Shape,
+};
 
 pub struct Canvas<'a, DT>
-    where DT: DrawingTarget<'a> {
+where
+    DT: DrawingTarget<'a>,
+{
     drawing_target: &'a mut DT,
 }
 
 impl<'a, DT: DrawingTarget<'a>> Canvas<'a, DT> {
-
     pub fn from_target(drawing_target: &'a mut DT) -> Self {
-        Canvas {
-            drawing_target
-        }
+        Canvas { drawing_target }
     }
 
-    pub fn draw_circle<IP: Into<Point>, IR: Into<Radius>>(&mut self, point: IP, radius: IR, paint: &Paint) {
+    pub fn draw_circle<IP: Into<Point>, IR: Into<Radius>>(
+        &mut self,
+        point: IP,
+        radius: IR,
+        paint: &Paint,
+    ) {
         self.draw_shape(Circle(point.into(), radius.into()), paint)
     }
 
@@ -24,7 +31,6 @@ impl<'a, DT: DrawingTarget<'a>> Canvas<'a, DT> {
     fn draw_shape<IS: Into<Shape>>(&mut self, shape: IS, paint: &Paint) {
         self.drawing_target.draw(shape.into(), paint);
     }
-
 }
 
 //
@@ -33,7 +39,7 @@ impl<'a, DT: DrawingTarget<'a>> Canvas<'a, DT> {
 
 impl From<(scalar, scalar)> for Point {
     fn from((x, y): (f64, f64)) -> Self {
-        Point(x,y)
+        Point(x, y)
     }
 }
 
