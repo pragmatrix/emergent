@@ -18,7 +18,7 @@ pub struct TestCapture {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TestResult {
-    Ok(Option<String>),
+    Ok(),
     Failed(Option<ExtraData>),
     Ignored,
     AllowedFail,
@@ -207,7 +207,7 @@ impl Event {
                 ("test", "started") => Ok(Event::TestStart {
                     name: get_str("name")?.into(),
                 }),
-                ("test", "ok") => test_finish(TestResult::Ok(None)),
+                ("test", "ok") => test_finish(TestResult::Ok()),
                 ("test", "failed") => {
                     let extra_data = {
                         if let Some(message) = m.get("message").and_then(|v| v.as_str()) {
@@ -286,7 +286,7 @@ fn parse_test_ok() {
     assert_eq!(
         to_event(r#"{ "type": "test", "name": "test_name", "event": "ok" }"#),
         Event::TestFinish {
-            result: TestResult::Ok(None),
+            result: TestResult::Ok(),
             name: "test_name".to_string()
         }
     );
