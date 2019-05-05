@@ -1,3 +1,5 @@
+use crate::test_runner::TestRunRequest;
+use std::env;
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
@@ -8,6 +10,7 @@ mod libtest;
 mod renderer;
 mod skia;
 mod test_runner;
+mod test_watcher;
 
 enum WindowStateEvent {
     NoChange,

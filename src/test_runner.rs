@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRunRequest {
-    directory: PathBuf,
+    pub project_directory: PathBuf,
 }
 
 impl TestRunRequest {
@@ -15,12 +15,12 @@ impl TestRunRequest {
     /// in the given cargo project directory.
     pub fn new_lib(project_directory: &Path) -> TestRunRequest {
         TestRunRequest {
-            directory: project_directory.to_owned(),
+            project_directory: project_directory.to_owned(),
         }
     }
 
     pub fn capture_tests(self) -> Result<TestCaptures, failure::Error> {
-        let manifest_path = self.directory.join("Cargo.toml");
+        let manifest_path = self.project_directory.join("Cargo.toml");
         let config = &cargo::Config::default()?;
         let workspace = &cargo::core::Workspace::new(&manifest_path, config)?;
 
