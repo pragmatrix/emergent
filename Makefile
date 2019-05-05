@@ -1,11 +1,7 @@
 .PHONY: test
 test:
-	cargo test -- --test-threads 1
-
-.PHONY: testnc
-testnc:
-	cargo test -vv -- --test-threads 1 --nocapture
+	cargo test --bin emergent -- --test-threads 1 --nocapture
 
 .PHONY: wtest
 wtest:
-	cargo watch -x "test -- --test-threads 1"
+	cargo watch -x "test --bin emergent -- --test-threads 1"
