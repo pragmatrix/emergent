@@ -65,6 +65,9 @@ impl TestRunRequest {
 
         let test_error = ops::run_tests(workspace, test_options, &self.libtest_args)?;
         let captured = capture.end();
+        println!(">>> CAPTURED BEGIN");
+        println!("{}", String::from_utf8_lossy(&captured));
+        println!(">>> CAPTURED END");
 
         let cursor = Cursor::new(captured);
 

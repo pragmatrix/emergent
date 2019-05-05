@@ -146,7 +146,7 @@ impl TestCaptures {
             captures.push(TestCapture {
                 name: test_name,
                 result,
-                output: output.join("\n"),
+                output: output.concat(),
             })
         }
 

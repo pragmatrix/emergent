@@ -1,49 +1,61 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-// TODO: construction API of these objects need to be separate (perhaps via regular builders and functions?),
-//       so that we can make the serialization more compact?
-
 use serde::{Deserialize, Serialize};
-
-//
-// Geometric Primitives.
-//
-
-#[allow(non_camel_case_types)]
-pub type scalar = f64;
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Point(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Size(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Vector(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Angle(pub scalar);
-
-// 32-bit ARGB color value.
-// TODO: do we really want this? Serialization should be HEX I guess.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Color(u32);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Scale(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Skew(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Degrees(scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Radius(pub scalar);
+use crate::Render;
+use std::io::Write;
+use std::io;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Matrix([scalar; 9]);
+pub struct Painting(pub Vec<Drawing>);
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Drawing {
+    /// Fill that current area with the given paint.
+    Fill(Paint, BlendMode),
+
+    /// Draw a group of shapes with the same paint.
+    Draw(Vec<Shape>, Paint),
+
+    /// A nested painting, save the current matrix and clip,
+    /// and restores it afterwards.
+    Paint(Painting),
+
+    // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
+    // TODO: Also Skia supports do_anti_alias for clipping.
+    /// Intersect the current clip with the given Clip.
+    Clip(Clip),
+
+    /// Transform the current matrix.
+    Transform(Transformation),
+}
+
+//
+// Shapes
+//
+
+// TODO: can't we _just_ use a Trait Shape here?
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Shape {
+    Point(Point),
+    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
+    Points(Vec<Point>),
+    Line(Line),
+    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
+    Lines(Vec<Line>),
+    LineSegments(LineSegments),
+    Polygon(Polygon),
+    Rect(Rect),
+    Oval(Oval),
+    RoundedRect(RoundedRect),
+    // TODO: Skia has an optimized function for drawing a rounded rect inside another. Should we support that?
+    Circle(Circle),
+    Arc(Arc),
+    Path(Path),
+    Image(ImageId),
+    ImageRect(ImageId, Option<Rect>, Rect),
+    // ImageNine?
+}
 
 //
 // Elementary Shapes
@@ -88,6 +100,10 @@ pub struct UseCenter(pub bool);
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
 
+//
+// States
+//
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Transformation {
     Translate(Vector),
@@ -103,6 +119,65 @@ pub enum Clip {
     RoundedRect(RoundedRect),
     Path(Path),
 }
+
+//
+// Geometric Primitives.
+//
+
+#[allow(non_camel_case_types)]
+pub type scalar = f64;
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Point(pub scalar, pub scalar);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Size(pub scalar, pub scalar);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Vector(pub scalar, pub scalar);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Angle(pub scalar);
+
+// 32-bit ARGB color value.
+// TODO: do we really want this? Serialization should be HEX I guess.
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Color(u32);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Scale(pub scalar, pub scalar);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Skew(pub scalar, pub scalar);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Degrees(scalar);
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Radius(pub scalar);
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Matrix([scalar; 9]);
+
+// contains Option values to support optimal serialization if values do not diverge from their defaults.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
+pub struct Paint {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub style: Option<PaintStyle>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stroke_width: Option<scalar>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stroke_miter: Option<scalar>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stroke_cap: Option<StrokeCap>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stroke_join: Option<StrokeJoin>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blend_mode: Option<BlendMode>,
+}
+
 
 // https://developer.android.com/reference/android/graphics/PorterDuff.Mode
 // We support 12 alpha composition modes, 5 blending modes, and simple addition for now.
@@ -157,28 +232,21 @@ pub enum StrokeJoin {
     Bevel,
 }
 
-// contains Option values to support optimal serialization if values do not diverge from their defaults.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Paint {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub style: Option<PaintStyle>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<Color>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_width: Option<scalar>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_miter: Option<scalar>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_cap: Option<StrokeCap>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_join: Option<StrokeJoin>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub blend_mode: Option<BlendMode>,
-}
-
 // TODO: ????
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct ImageId(String);
+
+//
+// Path
+//
+
+// TODO: add path combinators!
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Path {
+    fill_type: PathFillType,
+    matrix: Matrix,
+    verbs: Vec<PathVerb>,
+}
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum PathFillType {
@@ -213,125 +281,6 @@ pub enum PathVerb {
     AddLineSegments(LineSegments),
     AddPolygon(Polygon),
     // TODO: Do we need to support adding paths?
-}
-
-// TODO: path combinators!
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Path {
-    fill_type: PathFillType,
-    matrix: Matrix,
-    verbs: Vec<PathVerb>,
-}
-
-// TODO: can't we _just_ use a Trait here?
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Shape {
-    Point(Point),
-    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
-    Points(Vec<Point>),
-    Line(Line),
-    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
-    Lines(Vec<Line>),
-    LineSegments(LineSegments),
-    Polygon(Polygon),
-    Rect(Rect),
-    Oval(Oval),
-    RoundedRect(RoundedRect),
-    // TODO: Skia has an optimized function for drawing a rounded rect inside another. Should we support that?
-    Circle(Circle),
-    Arc(Arc),
-    Path(Path),
-    Image(ImageId),
-    ImageRect(ImageId, Option<Rect>, Rect),
-    // ImageNine?
-}
-
-pub type Painting = Vec<Drawing>;
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Drawing {
-    /// Fill that current area with the given paint.
-    Fill(Paint, BlendMode),
-
-    /// Draw a group of shapes with the same paint.
-    Draw(Vec<Shape>, Paint),
-
-    /// A nested painting, save the current matrix and clip,
-    /// and restores it afterwards.
-    Paint(Painting),
-
-    // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
-    // TODO: Also Skia supports do_anti_alias for clipping.
-    /// Intersect the current clip with the given Clip.
-    Clip(Clip),
-
-    /// Transform the current matrix.
-    Transform(Transformation),
-}
-
-//
-// Shape From implementations.
-//
-
-impl From<Point> for Shape {
-    fn from(point: Point) -> Self {
-        Shape::Point(point)
-    }
-}
-
-impl From<Line> for Shape {
-    fn from(line: Line) -> Self {
-        Shape::Line(line)
-    }
-}
-
-impl From<LineSegments> for Shape {
-    fn from(line_segments: LineSegments) -> Self {
-        Shape::LineSegments(line_segments)
-    }
-}
-
-impl From<Polygon> for Shape {
-    fn from(polygon: Polygon) -> Self {
-        Shape::Polygon(polygon)
-    }
-}
-
-impl From<Rect> for Shape {
-    fn from(rect: Rect) -> Self {
-        Shape::Rect(rect)
-    }
-}
-
-impl From<Oval> for Shape {
-    fn from(oval: Oval) -> Self {
-        Shape::Oval(oval)
-    }
-}
-
-impl From<RoundedRect> for Shape {
-    fn from(rounded_rect: RoundedRect) -> Self {
-        Shape::RoundedRect(rounded_rect)
-    }
-}
-
-impl From<Circle> for Shape {
-    fn from(circle: Circle) -> Self {
-        Shape::Circle(circle)
-    }
-}
-
-impl From<Arc> for Shape {
-    fn from(arc: Arc) -> Self {
-        Shape::Arc(arc)
-    }
-}
-
-impl From<Path> for Shape {
-    fn from(path: Path) -> Self {
-        Shape::Path(path)
-    }
 }
 
 // TODO: ImageId / ImageRect

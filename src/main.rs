@@ -4,13 +4,9 @@ use vulkano_win::VkSurfaceBuild;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
 mod capture;
-mod drawing;
-mod drawing_target;
+mod libtest;
 mod renderer;
 mod skia;
-// mod ui;
-// mod layout;
-mod libtest;
 mod test_runner;
 
 enum WindowStateEvent {

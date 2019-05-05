@@ -41,10 +41,19 @@ impl<'a> DerefMut for PaintScope<'a> {
 impl<'a> Drop for PaintScope<'a> {
     fn drop(&mut self) {
         let index = self.begin;
-        let nested_painting: Painting = self.drain(index..).collect();
+        let nested_painting = Painting(self.0.drain(index..).collect());
         if !nested_painting.is_empty() {
-            self.push(Drawing::Paint(nested_painting))
+            self.0.push(Drawing::Paint(nested_painting))
         }
+    }
+}
+
+impl Painting {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -52,30 +61,30 @@ impl<'a> DrawingTarget<'a> for Painting {
     type PaintScope = PaintScope<'a>;
 
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode) {
-        self.push(Drawing::Fill(paint.clone(), blend_mode));
+        self.0.push(Drawing::Fill(paint.clone(), blend_mode));
     }
 
     fn draw(&mut self, shape: Shape, paint: &Paint) {
-        match self.last_mut() {
+        match self.0.last_mut() {
             Some(Drawing::Draw(shapes, p)) if p == paint => {
                 shapes.push(shape);
             }
-            _ => self.push(Drawing::Draw(vec![shape], paint.clone())),
+            _ => self.0.push(Drawing::Draw(vec![shape], paint.clone())),
         }
     }
 
     fn paint(&'a mut self) -> Self::PaintScope {
         PaintScope {
-            begin: self.len(),
+            begin: self.0.len(),
             target: self,
         }
     }
 
     fn clip(&mut self, clip: Clip) {
-        self.push(Drawing::Clip(clip));
+        self.0.push(Drawing::Clip(clip));
     }
 
     fn transform(&mut self, transformation: Transformation) {
-        self.push(Drawing::Transform(transformation));
+        self.0.push(Drawing::Transform(transformation));
     }
 }
