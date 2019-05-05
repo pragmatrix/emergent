@@ -1,5 +1,5 @@
 use crate::capture::Capture;
-use crate::libtest::TestCaptures;
+use crate::libtest::{TestCapture, TestCaptures, TestResult};
 use cargo::core::compiler;
 use cargo::ops;
 use std::io::Cursor;
@@ -83,4 +83,24 @@ fn run_tests_self() {
     let request = TestRunRequest::new(&env::current_dir().unwrap());
     let captures = request.capture_tests().unwrap();
     println!("captures:\n{:?}", captures);
+
+    let captures = captures.0;
+
+    assert!(captures.contains(&TestCapture {
+        name: "test_output_capture".into(),
+        result: TestResult::Ok(),
+        output: "CAPTURE_ME\n".into()
+    }));
+
+    assert!(captures.contains(&TestCapture {
+        name: "mod_test::test_in_mod_capture".into(),
+        result: TestResult::Ok(),
+        output: "CAPTURE_ME_IN_MOD\n".into()
+    }));
+
+    assert!(captures.contains(&TestCapture {
+        name: "test_output_capture_multiline".into(),
+        result: TestResult::Ok(),
+        output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
+    }));
 }
