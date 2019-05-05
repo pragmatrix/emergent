@@ -8,28 +8,14 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRunRequest {
     directory: PathBuf,
-    libtest_args: Vec<String>,
 }
 
 impl TestRunRequest {
-    /// Creates a new TestRunRequest.
-    pub fn new(project_directory: &Path) -> TestRunRequest {
-        let libtest_args = [
-            "--test-threads",
-            "1",
-            "--nocapture",
-            "-Z",
-            "unstable-options",
-            "--format",
-            "json",
-        ]
-        .iter()
-        .map(|x| x.to_string())
-        .collect();
-
+    /// Creates a new TestRunRequest for the library
+    /// in the given cargo project directory.
+    pub fn new_lib(project_directory: &Path) -> TestRunRequest {
         TestRunRequest {
             directory: project_directory.to_owned(),
-            libtest_args,
         }
     }
 
@@ -38,19 +24,15 @@ impl TestRunRequest {
         let config = &cargo::Config::default()?;
         let workspace = &cargo::core::Workspace::new(&manifest_path, config)?;
 
-        // WTF?
-        let compile_filter = ops::CompileFilter::new(
-            true,
-            vec![],
-            false,
-            vec![],
-            false,
-            vec![],
-            false,
-            vec![],
-            false,
-            false,
-        );
+        // build library only for now.
+        let compile_filter = ops::CompileFilter::Only {
+            all_targets: false,
+            lib: true,
+            bins: FilterRule::Just(vec![]),
+            examples: FilterRule::Just(vec![]),
+            tests: FilterRule::Just(vec![]),
+            benches: FilterRule::Just(vec![]),
+        };
 
         let mut compile_options = ops::CompileOptions::new(&config, compiler::CompileMode::Test)?;
         compile_options.filter = compile_filter;
@@ -63,7 +45,21 @@ impl TestRunRequest {
 
         let capture = Capture::stdout();
 
-        let test_error = ops::run_tests(workspace, test_options, &self.libtest_args)?;
+        // we need a very specific set of arguments to make precise capturing of the otuput work.
+        let libtest_args: Vec<String> = [
+            "--test-threads",
+            "1",
+            "--nocapture",
+            "-Z",
+            "unstable-options",
+            "--format",
+            "json",
+        ]
+        .iter()
+        .map(|x| x.to_string())
+        .collect();
+
+        let test_error = ops::run_tests(workspace, test_options, &libtest_args)?;
         let captured = capture.end();
         println!(">>> CAPTURED BEGIN");
         println!("{}", String::from_utf8_lossy(&captured));
@@ -75,12 +71,13 @@ impl TestRunRequest {
     }
 }
 
+use cargo::ops::FilterRule;
 #[cfg(test)]
 use std::env;
 
 #[test]
 fn run_tests_self() {
-    let request = TestRunRequest::new(&env::current_dir().unwrap());
+    let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
     let captures = request.capture_tests().unwrap();
     println!("captures:\n{:?}", captures);
 
