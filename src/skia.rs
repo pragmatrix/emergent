@@ -1,6 +1,5 @@
 ///! Vulkan <-> Skia interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
-use skia_bindings::SkSurface;
 use skia_safe::gpu::vk;
 use skia_safe::{gpu, scalar, Color, Paint};
 use skia_safe::{ColorType, Surface};
@@ -93,14 +92,19 @@ impl DrawingBackend for gpu::Context {
         let [width, height, _] = framebuffer.dimensions();
         let image_access = framebuffer.attached_image_view(0).unwrap().parent();
         let image_object = image_access.inner().image.internal_object();
-        let format = image_access.format();
-        dbg!(image_access.final_layout_requirement());
-        dbg!(image_access.initial_layout_requirement());
-        dbg!(format);
-        dbg!(format as i32);
 
-        let x = skia_bindings::VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
-        dbg!(x as i32);
+        let format = image_access.format();
+
+        let (vk_format, color_type) = match format {
+            vulkano::format::Format::B8G8R8A8Unorm => (
+                skia_bindings::VkFormat::VK_FORMAT_B8G8R8A8_UNORM,
+                ColorType::BGRA8888,
+            ),
+            _ => panic!("unsupported color format {:?}", format),
+        };
+
+        // dbg!(image_access.final_layout_requirement());
+        // dbg!(image_access.initial_layout_requirement());
 
         let alloc = vk::Alloc::default();
         // TODO: verify TILING, IMAGE_LAYOUT and FORMAT assumptions.
@@ -110,10 +114,7 @@ impl DrawingBackend for gpu::Context {
                 alloc,
                 skia_bindings::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
                 skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                // skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                // skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                // skia_bindings::VkFormat::VK_FORMAT_B8G8R8A8_UNORM,
-                skia_bindings::VkFormat::VK_FORMAT_R8G8B8A8_UNORM,
+                vk_format,
                 1,
                 None,
                 None,
@@ -130,7 +131,7 @@ impl DrawingBackend for gpu::Context {
             self,
             render_target,
             gpu::SurfaceOrigin::TopLeft,
-            ColorType::RGBA8888,
+            color_type,
             None,
             None,
         )
