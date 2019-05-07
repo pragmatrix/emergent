@@ -3,7 +3,7 @@
 	url = https://github.com/rust-skia/rust-skia.git
 [submodule "vulkano"]
 	path = vulkano
-	url = git@github.com:pragmatrix/vulkano.git
+	url = https://github.com/pragmatrix/vulkano.git
 [submodule "watchexec"]
 	path = watchexec
 	url = https://github.com/pragmatrix/watchexec.git
