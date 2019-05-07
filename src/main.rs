@@ -1,5 +1,6 @@
 use crate::test_runner::TestRunRequest;
 use std::env;
+use std::sync::mpsc;
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
@@ -32,6 +33,11 @@ impl renderer::Window for Window {
 }
 
 fn main() {
+    let test_run_request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+    let (notifier_tx, notifier_rx) = mpsc::channel();
+
+    test_watcher::begin_watching(test_run_request, notifier_tx).unwrap();
+
     let instance = renderer::new_instance();
 
     let mut events_loop = EventsLoop::new();

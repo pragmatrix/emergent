@@ -10,7 +10,7 @@ use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain;
 use vulkano::swapchain::{
-    PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainCreationError,
+    acquire_next_image, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainCreationError,
 };
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
@@ -316,14 +316,10 @@ impl<W: Window> RenderContext<W> {
         frame: &mut FrameState<W>,
         drawing_backend: &mut DB,
     ) -> Result<Box<GpuFuture>, FlushError> {
-        // for some reason we can't join this with acquire_future and drop it then.
+        // for some reason we can't join this with acquire_future and drop it afterwards.
         drop(previous);
 
-        let (image_num, acquire_future) =
-            swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
-
-        // drop(previous.join(acquire_future));
-        drop(acquire_future);
+        let image_num = self.acquire_next_fb(frame);
 
         let framebuffer = &frame.framebuffers[image_num];
 
@@ -332,6 +328,23 @@ impl<W: Window> RenderContext<W> {
             surface.draw();
         }
 
+        self.present(frame, image_num)
+    }
+
+    pub fn acquire_next_fb(&self, frame: &mut FrameState<W>) -> usize {
+        let (image_num, acquire_future) =
+            swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
+
+        // drop(previous.join(acquire_future));
+        drop(acquire_future);
+        image_num
+    }
+
+    pub fn present(
+        &self,
+        frame: &mut FrameState<W>,
+        image_num: usize,
+    ) -> Result<Box<GpuFuture>, FlushError> {
         let future: Box<GpuFuture> =
             Box::new(sync::now(self.device.clone()).then_swapchain_present(
                 self.queue.clone(),

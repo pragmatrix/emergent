@@ -142,9 +142,14 @@ impl DrawingBackend for gpu::Context {
 impl DrawingSurface for skia_safe::Surface {
     fn draw(&mut self) {
         let canvas = self.canvas();
-        canvas.clear(Color::RED);
-        let paint = &Paint::default();
+        canvas.clear(Color::BLUE);
+
+        let paint = &mut Paint::default();
+        paint.set_color(Color::RED);
+        paint.set_anti_alias(true);
+
         canvas.draw_circle((200, 200), 100.0, paint);
+
         self.flush();
     }
 }

@@ -19,7 +19,7 @@ impl TestRunRequest {
         }
     }
 
-    pub fn capture_tests(self) -> Result<TestCaptures, failure::Error> {
+    pub fn capture_tests(&self) -> Result<TestCaptures, failure::Error> {
         let manifest_path = self.project_directory.join("Cargo.toml");
         let config = &cargo::Config::default()?;
         let workspace = &cargo::core::Workspace::new(&manifest_path, config)?;
