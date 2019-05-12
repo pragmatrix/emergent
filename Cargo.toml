@@ -10,6 +10,9 @@ path = "src/lib/lib.rs"
 
 [dependencies]
 
+# channels
+crossbeam-channel = "0.3.8"
+
 # emergent
 
 emergent-drawing = { path = "emergent-drawing" }

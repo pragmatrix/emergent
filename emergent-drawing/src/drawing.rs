@@ -121,8 +121,9 @@ pub enum Clip {
 // Geometric Primitives.
 //
 
+// TODO: consider f64 here.
 #[allow(non_camel_case_types)]
-pub type scalar = f64;
+pub type scalar = f32;
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Point(pub scalar, pub scalar);
@@ -138,8 +139,9 @@ pub struct Angle(pub scalar);
 
 // 32-bit ARGB color value.
 // TODO: do we really want this? Serialization should be HEX I guess.
+// Also: what about a decent color type, say 4 f32 values, may be both?
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Color(u32);
+pub struct Color(pub u32);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Scale(pub scalar, pub scalar);
@@ -156,7 +158,9 @@ pub struct Radius(pub scalar);
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Matrix([scalar; 9]);
 
-// contains Option values to support optimal serialization if values do not diverge from their defaults.
+// Contains Option values to support optimal serialization if values do not diverge from their defaults.
+// TODO: we need some way to resolve that to a paint _with_ all values set, and specify a default.
+// ref: https://skia.org/user/api/SkPaint_Reference
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Paint {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -184,11 +188,12 @@ pub struct Paint {
 //   Hue, Saturation, Color, Luminosity
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[repr(usize)]
 pub enum BlendMode {
     Source,
     SourceOver,
     SourceIn,
-    SourceAtop,
+    SourceATop,
     Destination,
     DestinationOver,
     DestinationIn,

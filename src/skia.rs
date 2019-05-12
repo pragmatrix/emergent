@@ -1,7 +1,12 @@
+use crate::framebuilder::Frame;
 ///! Vulkan <-> Skia interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
+use emergent_drawing as drawing;
+use emergent_drawing::{Circle, Radius, Shape};
 use skia_safe::gpu::vk;
-use skia_safe::{gpu, scalar, Color, Paint};
+use skia_safe::{
+    gpu, scalar, BlendMode, Canvas, Color, Paint, PaintCap, PaintJoin, PaintStyle, Point,
+};
 use skia_safe::{ColorType, Surface};
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
@@ -140,16 +145,205 @@ impl DrawingBackend for gpu::Context {
 }
 
 impl DrawingSurface for skia_safe::Surface {
-    fn draw(&mut self) {
+    fn draw(&mut self, frame: &Frame) {
         let canvas = self.canvas();
-        canvas.clear(Color::BLUE);
+        canvas.clear(Color::WHITE);
 
-        let paint = &mut Paint::default();
-        paint.set_color(Color::RED);
-        paint.set_anti_alias(true);
-
-        canvas.draw_circle((200, 200), 100.0, paint);
+        let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas);
+        frame.draw(drawing_target);
 
         self.flush();
+    }
+}
+
+struct CanvasDrawingTarget<'canvas> {
+    canvas: &'canvas mut Canvas,
+    paint: PaintSync,
+}
+
+impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
+    fn fill(&mut self, paint: &drawing::Paint, blend_mode: drawing::BlendMode) {
+        unimplemented!()
+    }
+
+    fn draw(&mut self, shape: drawing::Shape, paint: &drawing::Paint) {
+        match shape {
+            Shape::Point(_) => {}
+            Shape::Points(_) => {}
+            Shape::Line(_) => {}
+            Shape::Lines(_) => {}
+            Shape::LineSegments(_) => {}
+            Shape::Polygon(_) => {}
+            Shape::Rect(_) => {}
+            Shape::Oval(_) => {}
+            Shape::RoundedRect(_) => {}
+            Shape::Circle(Circle(p, r)) => {
+                self.canvas
+                    .draw_circle(p.into_skia(), r.into_skia(), self.paint.resolve(paint));
+            }
+            Shape::Arc(_) => {}
+            Shape::Path(_) => {}
+            Shape::Image(_) => {}
+            Shape::ImageRect(_, _, _) => {}
+        }
+    }
+
+    fn clip(&mut self, clip: drawing::Clip) {
+        unimplemented!()
+    }
+
+    fn transform(&mut self, transformation: drawing::Transformation) {
+        unimplemented!()
+    }
+}
+
+impl<'a> CanvasDrawingTarget<'a> {
+    fn canvas(&mut self) -> &mut Canvas {
+        &mut self.canvas
+    }
+
+    fn from_canvas(canvas: &'a mut Canvas) -> Self {
+        let drawing_paint = drawing::Paint::default();
+
+        Self {
+            canvas,
+            paint: PaintSync::from_paint(drawing_paint),
+        }
+    }
+}
+
+struct PaintSync {
+    drawing_paint: drawing::Paint,
+    paint: Paint,
+}
+
+impl PaintSync {
+    fn from_paint(drawing_paint: drawing::Paint) -> PaintSync {
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        PaintSync::apply_paint(&mut paint, &drawing_paint);
+        PaintSync {
+            paint,
+            drawing_paint,
+        }
+    }
+
+    fn resolve(&mut self, paint: &drawing::Paint) -> &Paint {
+        if *paint != self.drawing_paint {
+            Self::apply_paint(&mut self.paint, paint);
+            self.drawing_paint = paint.clone();
+        }
+        &self.paint
+    }
+
+    // defaults are here: https://skia.org/user/api/SkPaint_Reference
+    // TODO: resolve the individual defaults and store them locally.
+    fn apply_paint(paint: &mut Paint, dp: &drawing::Paint) {
+        // TODO: we _do_ know which values have been changed, so probably we should apply only that.
+        paint.set_style(dp.style.unwrap_or(drawing::PaintStyle::Fill).into_skia());
+        // TODO: specify the default on the drawing:: side.
+        paint.set_color(dp.color.map(|c| c.into_skia()).unwrap_or(Color::BLACK));
+        paint.set_stroke_width(dp.stroke_width.unwrap_or(0.0));
+        paint.set_stroke_miter(dp.stroke_miter.unwrap_or(4.0));
+        paint.set_stroke_cap(
+            dp.stroke_cap
+                .unwrap_or(drawing::StrokeCap::Butt)
+                .into_skia(),
+        );
+        paint.set_stroke_join(
+            dp.stroke_join
+                .unwrap_or(drawing::StrokeJoin::Miter)
+                .into_skia(),
+        );
+        paint.set_blend_mode(
+            dp.blend_mode
+                .unwrap_or(drawing::BlendMode::SourceOver)
+                .into_skia(),
+        );
+    }
+}
+
+//
+// IntoSkia implementations
+//
+
+trait IntoSkia<ST> {
+    fn into_skia(self) -> ST;
+}
+
+impl IntoSkia<Point> for drawing::Point {
+    fn into_skia(self) -> Point {
+        let drawing::Point(x, y) = self;
+        Point::from((x, y))
+    }
+}
+
+impl IntoSkia<Color> for drawing::Color {
+    fn into_skia(self) -> Color {
+        Color::from(self.0)
+    }
+}
+
+impl IntoSkia<f32> for drawing::Radius {
+    fn into_skia(self) -> scalar {
+        self.0
+    }
+}
+
+impl IntoSkia<BlendMode> for drawing::BlendMode {
+    fn into_skia(self) -> BlendMode {
+        BLEND_MODE_TABLE[self as usize]
+    }
+}
+
+// TODO: can we statically verfiy the of this table?
+const BLEND_MODE_TABLE: [skia_safe::BlendMode; 18] = [
+    BlendMode::Src,
+    BlendMode::SrcOver,
+    BlendMode::SrcIn,
+    BlendMode::SrcATop,
+    BlendMode::Dst,
+    BlendMode::DstOver,
+    BlendMode::DstIn,
+    BlendMode::DstATop,
+    BlendMode::Clear,
+    BlendMode::SrcOut,
+    BlendMode::DstOut,
+    BlendMode::Xor,
+    BlendMode::Darken,
+    BlendMode::Lighten,
+    BlendMode::Multiply,
+    BlendMode::Screen,
+    BlendMode::Overlay,
+    BlendMode::Plus,
+];
+
+impl IntoSkia<PaintStyle> for drawing::PaintStyle {
+    fn into_skia(self) -> PaintStyle {
+        match self {
+            drawing::PaintStyle::Stroke => PaintStyle::Stroke,
+            drawing::PaintStyle::Fill => PaintStyle::Fill,
+            drawing::PaintStyle::StrokeAndFill => PaintStyle::StrokeAndFill,
+        }
+    }
+}
+
+impl IntoSkia<PaintCap> for drawing::StrokeCap {
+    fn into_skia(self) -> PaintCap {
+        match self {
+            drawing::StrokeCap::Butt => PaintCap::Butt,
+            drawing::StrokeCap::Round => PaintCap::Round,
+            drawing::StrokeCap::Square => PaintCap::Square,
+        }
+    }
+}
+
+impl IntoSkia<PaintJoin> for drawing::StrokeJoin {
+    fn into_skia(self) -> PaintJoin {
+        match self {
+            drawing::StrokeJoin::Miter => PaintJoin::Miter,
+            drawing::StrokeJoin::Round => PaintJoin::Round,
+            drawing::StrokeJoin::Bevel => PaintJoin::Bevel,
+        }
     }
 }

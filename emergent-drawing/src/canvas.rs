@@ -8,20 +8,20 @@ use crate::{
 
 pub struct Canvas<'a, DT>
 where
-    DT: DrawingTarget<'a>,
+    DT: DrawingTarget,
 {
     drawing_target: &'a mut DT,
 }
 
-impl<'a, DT: DrawingTarget<'a>> Canvas<'a, DT> {
+impl<'a, DT: DrawingTarget> Canvas<'a, DT> {
     pub fn from_target(drawing_target: &'a mut DT) -> Self {
         Canvas { drawing_target }
     }
 
-    pub fn draw_circle<IP: Into<Point>, IR: Into<Radius>>(
+    pub fn draw_circle(
         &mut self,
-        point: IP,
-        radius: IR,
+        point: impl Into<Point>,
+        radius: impl Into<Radius>,
         paint: &Paint,
     ) {
         self.draw_shape(Circle(point.into(), radius.into()), paint)
@@ -38,7 +38,7 @@ impl<'a, DT: DrawingTarget<'a>> Canvas<'a, DT> {
 //
 
 impl From<(scalar, scalar)> for Point {
-    fn from((x, y): (f64, f64)) -> Self {
+    fn from((x, y): (scalar, scalar)) -> Self {
         Point(x, y)
     }
 }

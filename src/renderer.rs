@@ -1,3 +1,4 @@
+use crate::framebuilder::Frame;
 use std::mem;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
@@ -37,7 +38,7 @@ pub struct FrameState<W: Window> {
 }
 
 pub trait DrawingSurface {
-    fn draw(&mut self);
+    fn draw(&mut self, frame: &Frame);
 }
 
 pub trait DrawingBackend {
@@ -285,19 +286,20 @@ impl<W: Window> RenderContext<W> {
 
     /// Renders a frame, updates the frame state and returns a future that gets
     /// fulfilled when the frame is on screen.
-    pub fn render<DB: DrawingBackend>(
+    pub fn render(
         &self,
         mut previous_render: Box<GpuFuture>,
-        frame: &mut FrameState<W>,
-        drawing_backend: &mut DB,
+        frame_state: &mut FrameState<W>,
+        drawing_backend: &mut impl DrawingBackend,
+        frame: &Frame,
     ) -> Box<GpuFuture> {
         previous_render.cleanup_finished();
 
         loop {
-            match self.draw_and_present(previous_render, frame, drawing_backend) {
+            match self.draw_and_present(previous_render, frame_state, drawing_backend, frame) {
                 Ok(future) => return future,
                 Err(FlushError::OutOfDate) => {
-                    self.recreate_swapchain(frame);
+                    self.recreate_swapchain(frame_state);
                     previous_render = Box::new(sync::now(self.device.clone()));
                     continue;
                 }
@@ -310,25 +312,26 @@ impl<W: Window> RenderContext<W> {
     }
 
     /// Draw the frame's state.
-    pub fn draw_and_present<DB: DrawingBackend>(
+    pub fn draw_and_present(
         &self,
         previous: Box<GpuFuture>,
-        frame: &mut FrameState<W>,
-        drawing_backend: &mut DB,
+        frame_state: &mut FrameState<W>,
+        drawing_backend: &mut impl DrawingBackend,
+        frame: &Frame,
     ) -> Result<Box<GpuFuture>, FlushError> {
         // for some reason we can't join this with acquire_future and drop it afterwards.
         drop(previous);
 
-        let image_num = self.acquire_next_fb(frame);
+        let image_num = self.acquire_next_fb(frame_state);
 
-        let framebuffer = &frame.framebuffers[image_num];
+        let framebuffer = &frame_state.framebuffers[image_num];
 
         {
             let mut surface = drawing_backend.new_surface_from_framebuffer(framebuffer);
-            surface.draw();
+            surface.draw(frame);
         }
 
-        self.present(frame, image_num)
+        self.present(frame_state, image_num)
     }
 
     pub fn acquire_next_fb(&self, frame: &mut FrameState<W>) -> usize {
@@ -353,6 +356,18 @@ impl<W: Window> RenderContext<W> {
             ));
 
         Ok(future)
+    }
+
+    /// Returns true if the dimensions of the swapchain do not match the window's physical size.
+    pub fn need_to_recreate_swapchain(&self, frame: &FrameState<W>) -> bool {
+        let window = self.surface.window();
+        let win_size = window.physical_size();
+        let sc_size = {
+            let [width, height] = frame.swapchain.dimensions();
+            (width, height)
+        };
+
+        win_size != sc_size
     }
 
     pub fn recreate_swapchain(&self, frame: &mut FrameState<W>) {

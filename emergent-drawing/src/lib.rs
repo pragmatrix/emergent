@@ -8,6 +8,7 @@ use std::io;
 use std::io::Write;
 
 mod drawing_target;
+pub use drawing_target::DrawingTarget;
 
 pub trait Render {
     fn render(&self);

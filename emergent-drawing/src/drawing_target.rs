@@ -5,19 +5,21 @@ use crate::drawing::{
 pub use crate::drawing::{Line, LineSegments, Point, Polygon};
 use std::ops::{Deref, DerefMut};
 
+/// A drawing target represents an unsized sink for drawing commands.
 /// The essential commands that a drawing target must be able to run to provide all the canvas functionality.
 /// This is an internal API that is meant to be a full storage and execution backend for a more usable Canvas API.
 /// Most of the function consume their input for optimization.
-pub trait DrawingTarget<'a> {
-    type PaintScope: 'a + Drop + DerefMut<Target = Self>;
+pub trait DrawingTarget /* <'a> */ {
+    // type PaintScope: 'a + Drop + DerefMut<Target = Self>;
 
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode);
     fn draw(&mut self, shape: Shape, paint: &Paint);
-    fn paint(&'a mut self) -> Self::PaintScope;
+    // fn paint(&'a mut self) -> Self::PaintScope;
     fn clip(&mut self, clip: Clip);
     fn transform(&mut self, transformation: Transformation);
 }
 
+/*
 pub struct PaintScope<'a> {
     /// Index into the painting when the nested scope was generated.
     begin: usize,
@@ -48,6 +50,8 @@ impl<'a> Drop for PaintScope<'a> {
     }
 }
 
+*/
+
 impl Painting {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -58,8 +62,8 @@ impl Painting {
     }
 }
 
-impl<'a> DrawingTarget<'a> for Painting {
-    type PaintScope = PaintScope<'a>;
+impl DrawingTarget for Painting {
+    // type PaintScope = PaintScope<'a>;
 
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode) {
         self.0.push(Drawing::Fill(paint.clone(), blend_mode));
@@ -74,12 +78,14 @@ impl<'a> DrawingTarget<'a> for Painting {
         }
     }
 
+    /*
     fn paint(&'a mut self) -> Self::PaintScope {
         PaintScope {
             begin: self.0.len(),
             target: self,
         }
     }
+    */
 
     fn clip(&mut self, clip: Clip) {
         self.0.push(Drawing::Clip(clip));
