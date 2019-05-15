@@ -17,14 +17,6 @@ mod skia;
 mod test_runner;
 mod test_watcher;
 
-enum WindowStateEvent {
-    NoChange,
-    /// User wants to close the window.
-    CloseRequested,
-    /// User resized the window.
-    Resized,
-}
-
 impl renderer::Window for winit::Window {
     fn physical_size(&self) -> (u32, u32) {
         if let Some(dimensions) = self.get_inner_size() {
@@ -131,31 +123,3 @@ fn main() {
 
     dbg!("events loop out");
 }
-
-/*
-enum RendererEvent {
-    RenderFrame(Box<Frame>),
-    CloseRequested,
-}
-*/
-
-/*
-fn process_window_events(events_loop: &mut EventsLoop) -> WindowStateEvent {
-    let mut r = WindowStateEvent::NoChange;
-
-    events_loop.poll_events(|ev| match ev {
-        Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } => r = WindowStateEvent::CloseRequested,
-        Event::WindowEvent {
-            event: WindowEvent::Resized(_),
-            ..
-        } => r = WindowStateEvent::Resized,
-        _ => {}
-    });
-
-    r
-}
-
-*/
