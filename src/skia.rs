@@ -1,4 +1,4 @@
-use crate::framebuilder::Frame;
+use crate::emergent::Frame;
 ///! Vulkan <-> Skia interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use emergent_drawing as drawing;

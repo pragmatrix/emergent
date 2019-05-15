@@ -3,7 +3,8 @@ use crate::test_runner::TestRunRequest;
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
-use tea_rs::{Cmd, Model};
+use emergent_drawing::{scalar, Circle, DrawingTarget, Paint};
+use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
 pub enum Event {
@@ -60,7 +61,6 @@ impl Emergent {
                         self.latest_test_error = Some(e.to_string());
                     }
                 }
-                let receiver = self.notification_receiver.clone();
                 self.receive_watcher_notifications()
             }
 
@@ -78,5 +78,54 @@ impl Emergent {
     fn receive_watcher_notifications(&self) -> Cmd<Event> {
         let receiver = self.notification_receiver.clone();
         Cmd::from(move || Event::WatcherNotification(receiver.recv().unwrap()))
+    }
+}
+
+impl View<Box<Frame>> for Emergent {
+    fn render(&self) -> Box<Frame> {
+        let size = (256, 256);
+        let frame = FnFrame {
+            size,
+            draw: move |target| {
+                let (w, h): (scalar, scalar) = {
+                    let (w, h) = size;
+                    (w as _, h as _)
+                };
+
+                let (x, y) = (w / 2.0, h / 2.0);
+                let r = w.min(h) / 2.0;
+
+                let paint = Paint::default();
+                target.draw(Circle((x, y).into(), r.into()).into(), &paint)
+            },
+        };
+
+        Box::new(frame)
+    }
+}
+
+/// A frame represents a sized and layouted, ready to be drawn
+/// frame that renders to a DrawingTarget.
+// TODO: do we need that at all?
+pub trait Frame: Send {
+    fn size(&self) -> (u32, u32);
+    fn draw(&self, target: &mut DrawingTarget);
+}
+
+pub struct FnFrame<F: Fn(&mut DrawingTarget)> {
+    size: (u32, u32),
+    draw: F,
+}
+
+impl<F: Fn(&mut DrawingTarget)> Frame for FnFrame<F>
+where
+    F: Send,
+{
+    fn size(&self) -> (u32, u32) {
+        self.size
+    }
+
+    fn draw(&self, target: &mut DrawingTarget) {
+        (self.draw)(target);
     }
 }
