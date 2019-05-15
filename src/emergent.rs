@@ -8,22 +8,24 @@ use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
 pub enum Event {
-    WindowResized((usize, usize)),
+    WindowResized((u32, u32)),
     WatcherNotification(test_watcher::Notification),
 }
 
 pub struct Emergent {
+    window_size: (u32, u32),
     notification_receiver: Receiver<test_watcher::Notification>,
     test_captures: TestCaptures,
     latest_test_error: Option<String>,
 }
 
 impl Emergent {
-    pub fn new(req: TestRunRequest) -> (Self, Cmd<Event>) {
+    pub fn new(window_size: (u32, u32), req: TestRunRequest) -> (Self, Cmd<Event>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
         test_watcher::begin_watching(req, sender).unwrap();
 
         let emergent = Self {
+            window_size,
             notification_receiver: receiver.clone(),
             test_captures: TestCaptures::default(),
             latest_test_error: None,
@@ -38,7 +40,7 @@ impl Model<Event> for Emergent {
     fn update(&mut self, event: Event) -> Cmd<Event> {
         println!("{:?}", event);
         match event {
-            Event::WindowResized(_) => {}
+            Event::WindowResized(new_size) => self.window_size = new_size,
             Event::WatcherNotification(wn) => {
                 self.update_watcher(wn);
                 return self.receive_watcher_notifications();
@@ -83,7 +85,7 @@ impl Emergent {
 
 impl View<Box<Frame>> for Emergent {
     fn render(&self) -> Box<Frame> {
-        let size = (256, 256);
+        let size = self.window_size;
         let frame = FnFrame {
             size,
             draw: move |target| {

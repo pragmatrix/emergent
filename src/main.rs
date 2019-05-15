@@ -29,14 +29,6 @@ impl renderer::Window for winit::Window {
 }
 
 fn main() {
-    let test_run_request = TestRunRequest::new_lib(&env::current_dir().unwrap());
-    let (emergent, initial_cmd) = Emergent::new(test_run_request);
-    let executor = ThreadSpawnExecutor::default();
-    let (notification_sender, application_notification) = crossbeam_channel::unbounded();
-    let notifier = move || notification_sender.send(()).unwrap();
-    let mut application = Application::new(emergent, executor, notifier);
-    application.schedule(initial_cmd);
-
     let instance = renderer::new_instance();
 
     let mut events_loop = EventsLoop::new();
@@ -44,23 +36,20 @@ fn main() {
         .build_vk_surface(&events_loop, instance.clone())
         .unwrap();
 
-    dbg!("initial request");
+    let test_run_request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+    let window_size = window_surface.window().physical_size();
+    let (emergent, initial_cmd) = Emergent::new(window_size, test_run_request);
+    let executor = ThreadSpawnExecutor::default();
+    let mut application = Application::new(emergent, executor);
+    application.schedule(initial_cmd);
 
-    /*
-        // create the initial frame request, so that we have something to show.
-        framebuilder.request(window_surface.window().physical_size(), move |frame| {
-            renderer_send2
-                .send(RendererEvent::RenderFrame(frame))
-                .unwrap()
-        });
-    */
-
-    dbg!("spawning application & renderer");
+    dbg!("spawning application & renderer loop");
 
     // events loop does not implement Send, so we keep it in the main thread, but
     // instead push the renderer loop out.
 
     let render_surface = window_surface.clone();
+    let mailbox = application.mailbox();
 
     thread::spawn(move || {
         let (context, mut frame_state) =
@@ -70,7 +59,7 @@ fn main() {
         let mut future: Box<GpuFuture> = Box::new(sync::now(context.device.clone()));
 
         loop {
-            application_notification.recv().unwrap();
+            application.update();
             let frame = application.model().render();
 
             // even if we drop the frame, we want to recreate the swapchain so that we are
@@ -94,31 +83,24 @@ fn main() {
         dbg!("shutting down renderer loop");
     });
 
-    events_loop.run_forever(move |event| {
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::Resized(logical_size),
-                ..
-            } => {
-                // resized, compute new physical size and request a new frame.
-                println!("window resized, requesting new frame");
-                /*
-                framebuilder.request(window_surface.window().physical_size(), move |frame| {
-                    renderer_send2
-                        .send(RendererEvent::RenderFrame(frame))
-                        .unwrap()
-                }); */
-                winit::ControlFlow::Continue
-            }
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => {
-                dbg!("close requested");
-                winit::ControlFlow::Break
-            }
-            _ => winit::ControlFlow::Continue,
+    events_loop.run_forever(move |event| match event {
+        Event::WindowEvent {
+            event: WindowEvent::Resized(logical_size),
+            ..
+        } => {
+            println!("window resized, requesting new frame");
+            let size = window_surface.window().physical_size();
+            mailbox.post(emergent::Event::WindowResized(size));
+            winit::ControlFlow::Continue
         }
+        Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            ..
+        } => {
+            dbg!("close requested");
+            winit::ControlFlow::Break
+        }
+        _ => winit::ControlFlow::Continue,
     });
 
     dbg!("events loop out");
