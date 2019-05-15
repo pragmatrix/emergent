@@ -6,7 +6,7 @@ use std::convert::TryInto;
 use std::io;
 use std::io::{BufRead, BufReader, Read};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct TestCaptures(pub Vec<TestCapture>);
 
 #[derive(Clone, PartialEq, Eq, Debug)]

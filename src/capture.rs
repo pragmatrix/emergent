@@ -32,9 +32,9 @@ impl Capture {
         })
     }
 
-    fn begin<R: Read + Send + 'static, FLUSH: FnOnce() -> () + Send + 'static>(
-        mut handle: R,
-        flush: FLUSH,
+    fn begin(
+        mut handle: impl Read + Send + 'static,
+        flush: impl (FnOnce() -> ()) + Send + 'static,
     ) -> Capture {
         let (shutdown_sender, shutdown_receiver) = mpsc::channel();
 

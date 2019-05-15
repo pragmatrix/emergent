@@ -499,6 +499,7 @@ dependencies = [
  "shh 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia-bindings 0.8.0",
  "skia-safe 0.8.0",
+ "tea-rs 0.1.0",
  "vk-sys 0.4.0",
  "vulkano 0.11.1",
  "vulkano-shaders 0.11.1",
@@ -1681,6 +1682,10 @@ dependencies = [
  "libc 0.2.51 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_syscall 0.1.54 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "tea-rs"
+version = "0.1.0"
 
 [[package]]
 name = "tempfile"

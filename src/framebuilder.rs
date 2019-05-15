@@ -5,12 +5,18 @@ use crossbeam_channel::{Receiver, SendError, Sender};
 use emergent::ThreadJoiner;
 use emergent_drawing::{scalar, Circle, DrawingTarget, Paint, Shape};
 use std::thread;
-use std::thread::JoinHandle;
 
-/// A frame represents a sized and layouted ready to be drawn frame that renders to a DrawingTarget.
+/// A frame represents a sized and layouted, ready to be drawn
+/// frame that renders to a DrawingTarget.
 pub trait Frame: Send {
     fn size(&self) -> (u32, u32);
     fn draw(&self, target: &mut DrawingTarget);
+}
+
+// A request to produce and send back a frame.
+struct BuildFrameRequest {
+    pub size: (u32, u32),
+    pub notify: Box<Fn(Box<Frame>) + Send>,
 }
 
 struct FnFrame<F: Fn(&mut DrawingTarget)> {
@@ -91,10 +97,4 @@ impl FrameBuilder {
             },
         }
     }
-}
-
-// A request to produce and send back a frame.
-struct BuildFrameRequest {
-    pub size: (u32, u32),
-    pub notify: Box<Fn(Box<Frame>) + Send>,
 }

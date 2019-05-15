@@ -1,12 +1,14 @@
 use crate::libtest::TestCaptures;
 use crate::test_runner::TestRunRequest;
 use clap::ArgMatches;
-use std::sync::mpsc;
+use crossbeam_channel;
+use crossbeam_channel::Sender;
 use std::thread;
 use watchexec::cli::Args;
 use watchexec::pathop;
 use watchexec::run;
 
+#[derive(Debug)]
 pub enum Notification {
     /// Stopped
     WatcherStopped(Result<(), failure::Error>),
@@ -14,11 +16,11 @@ pub enum Notification {
     TestRunCompleted(Result<TestCaptures, failure::Error>),
 }
 
-/// Begin watching and running tests and send out test captures to the channel gieven.
+/// Begin watching and running tests and send out test captures to the channel given.
 /// The asynchronous thread cannot be interrupted (yet).
 pub fn begin_watching(
     req: TestRunRequest,
-    notifier: mpsc::Sender<Notification>,
+    notifier: Sender<Notification>,
 ) -> Result<(), failure::Error> {
     // parse arguments:
     let mut args = cargo_watch::get_options(false, &ArgMatches::default());
@@ -45,7 +47,7 @@ pub fn begin_watching(
 struct TestWatcher {
     args: Args,
     request: TestRunRequest,
-    notifier: mpsc::Sender<Notification>,
+    notifier: Sender<Notification>,
 }
 
 impl TestWatcher {

@@ -7,3 +7,6 @@
 [submodule "watchexec"]
 	path = watchexec
 	url = https://github.com/pragmatrix/watchexec.git
+[submodule "tears"]
+	path = tears
+	url = https://github.com/pragmatrix/tears.git

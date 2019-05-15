@@ -1,3 +1,4 @@
+use crate::emergent::Emergent;
 use crate::framebuilder::{Frame, FrameBuilder};
 use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
@@ -5,12 +6,14 @@ use core::borrow::Borrow;
 use crossbeam_channel::Sender;
 use emergent_drawing::DrawingTarget;
 use std::{env, thread};
+use tea_rs::{Application, ThreadSpawnExecutor};
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
 use winit::{Event, EventsLoop, WindowBuilder, WindowEvent};
 
 mod capture;
+mod emergent;
 mod framebuilder;
 mod libtest;
 mod renderer;
@@ -39,10 +42,14 @@ impl renderer::Window for winit::Window {
 
 fn main() {
     let test_run_request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+    let (emergent, initial_cmd) = Emergent::new(test_run_request);
+    let executor = ThreadSpawnExecutor::default();
+    let notifier = || {};
+    let mut application = Application::new(emergent, executor, notifier);
+    application.schedule(initial_cmd);
+
     let (renderer_send, renderer_recv) = crossbeam_channel::unbounded();
     let framebuilder = FrameBuilder::new();
-
-    // test_watcher::begin_watching(test_run_request, notifier_tx).unwrap();
 
     let instance = renderer::new_instance();
 
