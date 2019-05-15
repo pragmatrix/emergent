@@ -1,4 +1,4 @@
-# Emergent, a Graphical Testrunner for Rust
+# Emergent, a Visual Testrunner for Rust
 
 ## Copyright & License 
 
