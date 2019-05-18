@@ -59,7 +59,6 @@ fn main() {
         let mut future: Box<GpuFuture> = Box::new(sync::now(context.device.clone()));
 
         loop {
-            application.update();
             let frame = application.model().render();
 
             // even if we drop the frame, we want to recreate the swapchain so that we are
@@ -78,6 +77,13 @@ fn main() {
                     frame_size, window_size
                 );
             }
+
+            // if we don't drop the future here, the last image rendered won't be shown.
+            // TODO: Can't we do this asynchronously, or run the
+            //       application update asynchronously here?
+            future = Box::new(sync::now(context.device.clone()));
+
+            application.update();
         }
 
         dbg!("shutting down renderer loop");
