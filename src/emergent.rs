@@ -1,5 +1,5 @@
 use crate::frame::Frame;
-use crate::libtest::TestCaptures;
+use crate::libtest::{TestCapture, TestCaptures};
 use crate::test_runner::TestRunRequest;
 use crate::test_watcher;
 use crate::test_watcher::Notification;
@@ -86,19 +86,42 @@ impl Emergent {
 
 impl View<Frame> for Emergent {
     fn render(&self) -> Frame {
-        let size = self.window_size;
+        let mut painting = Painting::new();
 
-        let (w, h): (scalar, scalar) = (size.0 as _, size.1 as _);
-        let (x, y) = (w / 2.0, h / 2.0);
-        let r = w.min(h) / 2.0;
+        // TODO: implement Iter in TestCaptures
+        for capture in self.test_captures.0.iter() {
+            // TODO: add a nice paintings combinator.
+            painting.0.extend(render_capture(capture).0)
+        }
+        /*
+                let size = self.window_size;
 
-        let paint = Paint::default();
+                let (w, h): (scalar, scalar) = (size.0 as _, size.1 as _);
+                let (x, y) = (w / 2.0, h / 2.0);
+                let r = w.min(h) / 2.0;
+
+                let paint = Paint::default();
+                Frame {
+                    size,
+                    painting: Painting(vec![Drawing::Draw(
+                        vec![Shape::Circle(Circle((x, y).into(), r.into()))],
+                        paint,
+                    )]),
+                }
+        */
+
         Frame {
-            size,
-            painting: Painting(vec![Drawing::Draw(
-                vec![Shape::Circle(Circle((x, y).into(), r.into()))],
-                paint,
-            )]),
+            size: self.window_size,
+            painting: painting,
         }
     }
+}
+
+fn render_capture(capture: &TestCapture) -> Painting {
+    if !capture.output.starts_with("> ") {
+        return Painting::new();
+    };
+
+    // todo: handle parse errors:
+    serde_json::from_str(&capture.output[2..]).unwrap()
 }
