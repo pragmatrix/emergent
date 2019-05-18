@@ -1,3 +1,7 @@
+.PHONY: run
+run:
+	cargo run --release
+
 .PHONY: test
 test:
 	cargo test --bin emergent -- --test-threads 1 --nocapture
@@ -5,3 +9,4 @@ test:
 .PHONY: wtest
 wtest:
 	cargo watch -x "test --bin emergent -- --test-threads 1"
+
