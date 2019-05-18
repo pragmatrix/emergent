@@ -39,7 +39,7 @@ impl Emergent {
 
 impl Model<Event> for Emergent {
     fn update(&mut self, event: Event) -> Cmd<Event> {
-        println!("{:?}", event);
+        dbg!(&event);
         match event {
             Event::WindowResized(new_size) => self.window_size = new_size,
             Event::WatcherNotification(wn) => {
