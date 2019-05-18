@@ -94,7 +94,6 @@ fn main() {
             event: WindowEvent::Resized(logical_size),
             ..
         } => {
-            println!("window resized, requesting new frame");
             let size = window_surface.window().physical_size();
             mailbox.post(emergent::Event::WindowResized(size));
             winit::ControlFlow::Continue
