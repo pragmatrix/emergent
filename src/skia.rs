@@ -1,8 +1,8 @@
-use crate::emergent::Frame;
+use crate::frame::Frame;
 ///! Vulkan <-> Skia interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use emergent_drawing as drawing;
-use emergent_drawing::{Circle, Radius, Shape};
+use emergent_drawing::{Circle, DrawTo, Shape};
 use skia_safe::gpu::vk;
 use skia_safe::{
     gpu, scalar, BlendMode, Canvas, Color, Paint, PaintCap, PaintJoin, PaintStyle, Point,
@@ -84,7 +84,7 @@ fn new_backend_context<'lt, W: Window, GP: vk::GetProc>(
 }
 
 //
-// DrawingBakcend and other Traits to make Skia accessible to the renderer.
+// DrawingBackend and other Traits to make Skia accessible to the renderer.
 //
 
 impl DrawingBackend for gpu::Context {
@@ -150,7 +150,7 @@ impl DrawingSurface for skia_safe::Surface {
         canvas.clear(Color::WHITE);
 
         let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas);
-        frame.draw(drawing_target);
+        frame.painting.draw_to(drawing_target);
 
         self.flush();
     }
@@ -166,7 +166,7 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         unimplemented!()
     }
 
-    fn draw(&mut self, shape: drawing::Shape, paint: &drawing::Paint) {
+    fn draw(&mut self, shape: &drawing::Shape, paint: &drawing::Paint) {
         match shape {
             Shape::Point(_) => {}
             Shape::Points(_) => {}
@@ -188,12 +188,21 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         }
     }
 
-    fn clip(&mut self, clip: drawing::Clip) {
+    fn paint(&mut self) -> drawing::PaintScope<Self> {
+        self.canvas.save();
+        drawing::PaintScope::from_index(self, 0)
+    }
+
+    fn clip(&mut self, clip: &drawing::Clip) {
         unimplemented!()
     }
 
-    fn transform(&mut self, transformation: drawing::Transformation) {
+    fn transform(&mut self, transformation: &drawing::Transformation) {
         unimplemented!()
+    }
+
+    fn drop_scope(&mut self, begin: usize) {
+        self.canvas.restore();
     }
 }
 

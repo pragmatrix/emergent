@@ -26,6 +26,7 @@ impl Capture {
         })
     }
 
+    #[allow(dead_code)]
     pub fn stderr() -> Capture {
         Self::begin(shh::stderr().unwrap(), || {
             std::io::stderr().flush().unwrap()

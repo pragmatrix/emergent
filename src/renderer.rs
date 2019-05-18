@@ -1,4 +1,4 @@
-use crate::emergent::Frame;
+use crate::frame::Frame;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};

@@ -29,7 +29,7 @@ impl<'a, DT: DrawingTarget> Canvas<'a, DT> {
 
     // TODO: should this be pub?
     fn draw_shape<IS: Into<Shape>>(&mut self, shape: IS, paint: &Paint) {
-        self.drawing_target.draw(shape.into(), paint);
+        self.drawing_target.draw(&shape.into(), paint);
     }
 }
 

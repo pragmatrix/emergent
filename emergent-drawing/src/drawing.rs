@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Painting(pub Vec<Drawing>);
 
+// TODO: Drawing is quite misleading here, basically this is a DrawingCommand
+// or a DrawingOperation, because Clip() and Transform() leak state.
+// What I may accept as a pure drawing is a nested application of Clip &| Transform.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Drawing {
     /// Fill that current area with the given paint.

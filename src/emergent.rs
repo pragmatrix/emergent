@@ -1,9 +1,10 @@
+use crate::frame::Frame;
 use crate::libtest::TestCaptures;
 use crate::test_runner::TestRunRequest;
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
-use emergent_drawing::{scalar, Circle, DrawingTarget, Paint};
+use emergent_drawing::{scalar, Circle, Drawing, DrawingTarget, Paint, Painting, Shape};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
@@ -83,51 +84,21 @@ impl Emergent {
     }
 }
 
-impl View<Box<Frame>> for Emergent {
-    fn render(&self) -> Box<Frame> {
+impl View<Frame> for Emergent {
+    fn render(&self) -> Frame {
         let size = self.window_size;
-        let frame = FnFrame {
+
+        let (w, h): (scalar, scalar) = (size.0 as _, size.1 as _);
+        let (x, y) = (w / 2.0, h / 2.0);
+        let r = w.min(h) / 2.0;
+
+        let paint = Paint::default();
+        Frame {
             size,
-            draw: move |target| {
-                let (w, h): (scalar, scalar) = {
-                    let (w, h) = size;
-                    (w as _, h as _)
-                };
-
-                let (x, y) = (w / 2.0, h / 2.0);
-                let r = w.min(h) / 2.0;
-
-                let paint = Paint::default();
-                target.draw(Circle((x, y).into(), r.into()).into(), &paint)
-            },
-        };
-
-        Box::new(frame)
-    }
-}
-
-/// A frame represents a sized and layouted, ready to be drawn
-/// frame that renders to a DrawingTarget.
-// TODO: do we need that at all?
-pub trait Frame: Send {
-    fn size(&self) -> (u32, u32);
-    fn draw(&self, target: &mut DrawingTarget);
-}
-
-pub struct FnFrame<F: Fn(&mut DrawingTarget)> {
-    size: (u32, u32),
-    draw: F,
-}
-
-impl<F: Fn(&mut DrawingTarget)> Frame for FnFrame<F>
-where
-    F: Send,
-{
-    fn size(&self) -> (u32, u32) {
-        self.size
-    }
-
-    fn draw(&self, target: &mut DrawingTarget) {
-        (self.draw)(target);
+            painting: Painting(vec![Drawing::Draw(
+                vec![Shape::Circle(Circle((x, y).into(), r.into()))],
+                paint,
+            )]),
+        }
     }
 }

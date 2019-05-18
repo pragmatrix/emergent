@@ -11,6 +11,7 @@ use winit::{Event, EventsLoop, WindowBuilder, WindowEvent};
 
 mod capture;
 mod emergent;
+mod frame;
 mod libtest;
 mod renderer;
 mod skia;
@@ -67,7 +68,7 @@ fn main() {
                 context.recreate_swapchain(frame_state)
             }
 
-            let frame_size = frame.size();
+            let frame_size = frame.size;
             let window_size = render_surface.window().physical_size();
             if frame_size == window_size {
                 future = context.render(future, frame_state, drawing_context, frame.borrow());

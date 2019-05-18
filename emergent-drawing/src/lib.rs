@@ -4,15 +4,15 @@ pub use canvas::*;
 mod drawing;
 pub use drawing::*;
 
-use std::io;
-use std::io::Write;
-
 mod drawing_target;
-pub use drawing_target::DrawingTarget;
+pub use drawing_target::*;
 
 pub trait Render {
     fn render(&self);
 }
+
+use std::io;
+use std::io::Write;
 
 impl Render for Painting {
     fn render(&self) {
