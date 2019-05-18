@@ -1,10 +1,11 @@
-use emergent_drawing::{Canvas, Drawing, Paint, Painting, Point, Radius, Render, Shape};
-
 #[test]
 fn draw_circle() {
+    use emergent_drawing::{Canvas, Color, Paint, Painting, Render};
+
     let mut painting: Painting = Painting::new();
     let mut canvas = Canvas::from_target(&mut painting);
-    let paint = &Paint::default();
-    canvas.draw_circle((100, 100), 50, paint);
+    let mut paint = &mut Paint::default();
+    paint.color = Some(Color(0xff0000ff));
+    canvas.draw_circle((100, 100), 100, &paint);
     painting.render();
 }
