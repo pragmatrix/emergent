@@ -33,29 +33,9 @@ impl<'a, DT: DrawingTarget> Canvas<'a, DT> {
     }
 }
 
-//
-// From scalar conversions
-//
-
-impl From<(scalar, scalar)> for Point {
-    fn from((x, y): (scalar, scalar)) -> Self {
-        Point(x, y)
-    }
-}
-
 impl From<scalar> for Radius {
     fn from(radius: scalar) -> Self {
         Radius(radius)
-    }
-}
-
-//
-// From i64 conversion
-//
-
-impl From<(i64, i64)> for Point {
-    fn from((x, y): (i64, i64)) -> Self {
-        (x as scalar, y as scalar).into()
     }
 }
 

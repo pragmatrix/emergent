@@ -68,13 +68,14 @@ pub struct Line(pub Point, pub Point);
 /// A rectangle, defined by a point and a size.
 // TODO: should we separate Rect as a mathematic tool from
 // the Rectangle Shape geometric form?
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Rect(pub Point, pub Size);
 
 /// A rounded rectangle.
 // TODO: Optimize representation for simple cases?
+// TODO: also not clear to which corners the vector's are related to.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct RoundedRect(Rect, [Vector; 4]);
+pub struct RoundedRect(pub Rect, pub [Vector; 4]);
 
 /// A circle at a center point with a radius.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -96,7 +97,7 @@ pub struct Polygon(pub Vec<Point>);
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct UseCenter(pub bool);
 
-// An Arc, described by an Avove, start angle, and sweep angle.
+// An Arc, described by an oval, start angle, and sweep angle.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
 
@@ -128,16 +129,16 @@ pub enum Clip {
 #[allow(non_camel_case_types)]
 pub type scalar = f32;
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Point(pub scalar, pub scalar);
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Size(pub scalar, pub scalar);
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Vector(pub scalar, pub scalar);
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Angle(pub scalar);
 
 // 32-bit ARGB color value.
@@ -255,7 +256,7 @@ pub struct Path {
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum PathFillType {
     Winding,
-    EventOdd, // TODO: Inverse?
+    EvenOdd, // TODO: Inverse?
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]

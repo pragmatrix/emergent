@@ -7,6 +7,15 @@ pub use drawing::*;
 mod drawing_target;
 pub use drawing_target::*;
 
+mod outline;
+pub use outline::*;
+
+mod rect;
+pub use rect::*;
+
+mod vector;
+pub use vector::*;
+
 pub trait Render {
     fn render(&self);
 }
