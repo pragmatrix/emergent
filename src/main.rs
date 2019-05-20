@@ -1,8 +1,9 @@
 use crate::emergent::Emergent;
 use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
+use clap::{App, Arg};
 use core::borrow::Borrow;
-use std::{env, thread};
+use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
@@ -30,6 +31,26 @@ impl renderer::Window for winit::Window {
 }
 
 fn main() {
+    let matches = App::new("Emergent")
+        .author("Armin Sander")
+        .about("A visual testrunner for Rust")
+        .arg(
+            Arg::with_name("PATH")
+                .help("The directory of a a Cargo project to run tests and watch for changes.")
+                .index(1),
+        )
+        .get_matches();
+
+    let project_path = {
+        let current = path::PathBuf::from(env::current_dir().unwrap());
+
+        let provided = matches.value_of("PATH").map(|p| path::PathBuf::from(p));
+
+        provided.map(|p| current.join(p)).unwrap_or(current)
+    };
+
+    dbg!(&project_path);
+
     let instance = renderer::new_instance();
 
     let mut events_loop = EventsLoop::new();
@@ -37,7 +58,7 @@ fn main() {
         .build_vk_surface(&events_loop, instance.clone())
         .unwrap();
 
-    let test_run_request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+    let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
     let (emergent, initial_cmd) = Emergent::new(window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();

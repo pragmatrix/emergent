@@ -22,7 +22,9 @@ impl TestRunRequest {
     pub fn capture_tests(&self) -> Result<TestCaptures, failure::Error> {
         let manifest_path = self.project_directory.join("Cargo.toml");
         let config = &cargo::Config::default()?;
-        let workspace = &cargo::core::Workspace::new(&manifest_path, config)?;
+        let normalized_path = cargo::util::paths::normalize_path(&manifest_path);
+        dbg!(&normalized_path);
+        let workspace = &cargo::core::Workspace::new(&normalized_path, config)?;
 
         // build library only for now.
         let compile_filter = ops::CompileFilter::Only {

@@ -1,3 +1,5 @@
+use emergent_drawing::Rect;
+
 #[test]
 fn draw_circle() {
     use emergent_drawing::{Canvas, Color, Paint, Painting, Render};
