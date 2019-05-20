@@ -28,6 +28,9 @@ skia-bindings = {path = "rust-skia/skia-bindings", features = ["vulkan"] }
 # window & rendering
 
 winit = "0.19"
+# we need a custom vulkano build that sets the request Vulkan instance version
+# to the same version as the physical device's version,
+# because of the version consistency Skia expects.
 vk-sys = { path = "vulkano/vk-sys" }
 vulkano = { path = "vulkano/vulkano" }
 vulkano-win = { path = "vulkano/vulkano-win" }
@@ -56,4 +59,6 @@ clap = "2.33.0"
 watchexec = "1.10.1"
 
 [replace]
+# needed to parameterize the TestWatcher.
 "watchexec:1.10.1" = { path = "watchexec" }
+
