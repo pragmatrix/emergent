@@ -2,6 +2,7 @@
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
 use serde::{Deserialize, Serialize};
+use std::ops;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Painting(pub Vec<Drawing>);

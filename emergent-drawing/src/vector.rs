@@ -83,6 +83,12 @@ impl From<(scalar, scalar)> for Point {
     }
 }
 
+impl From<(isize, isize)> for Point {
+    fn from((x, y): (isize, isize)) -> Self {
+        Point::from((x as scalar, y as scalar))
+    }
+}
+
 impl From<(scalar, scalar)> for Size {
     fn from((x, y): (scalar, scalar)) -> Self {
         Size(x, y)
