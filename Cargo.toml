@@ -8,8 +8,12 @@ edition = "2018"
 name = "emergent"
 path = "src/lib/lib.rs"
 
-[dev-dependencies]
-emergent-layout = { path = "emergent-layout" }
+[workspace]
+exclude = ["rust-skia", "vulkano"]
+members = [
+  "emergent-drawing",
+  "emergent-layout" 
+]
 
 [dependencies]
 
