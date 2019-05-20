@@ -8,17 +8,17 @@ edition = "2018"
 name = "emergent"
 path = "src/lib/lib.rs"
 
+[dev-dependencies]
+emergent-layout = { path = "emergent-layout" }
+
 [dependencies]
 
-# tear
+# project local dependencies
 tears = { path = "tears" }
+emergent-drawing = { path = "emergent-drawing" }
 
 # channels
 crossbeam-channel = "0.3.8"
-
-# emergent
-
-emergent-drawing = { path = "emergent-drawing" }
 
 # skia
 
