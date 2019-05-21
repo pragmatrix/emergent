@@ -124,8 +124,13 @@ pub type scalar = f32;
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Point(pub scalar, pub scalar);
 
+// TODO: replace size by Vector?
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Size(pub scalar, pub scalar);
+
+/// A padding area around a rectangle.
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
+pub struct Padding(pub [scalar; 4]);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Vector(pub scalar, pub scalar);

@@ -7,6 +7,9 @@ pub use drawing::*;
 mod drawing_target;
 pub use drawing_target::*;
 
+mod geometry;
+pub use geometry::*;
+
 mod outline;
 pub use outline::*;
 
@@ -18,9 +21,6 @@ pub use rounded_rect::*;
 
 mod shape;
 pub use shape::*;
-
-mod vector;
-pub use vector::*;
 
 pub trait Render {
     fn render(&self);
