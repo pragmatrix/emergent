@@ -2,13 +2,13 @@
 use crate::drawing::{
     BlendMode, Clip, Drawing, Paint, Painting, Rect, Shape, Size, Transformation,
 };
-pub use crate::drawing::{Line, LineSegments, Point, Polygon};
+use crate::drawing::{Point, Polygon};
 use std::ops::{Deref, DerefMut};
 
-/// A drawing target represents an unsized sink for drawing commands.
+/// A drawing target is a function based API for drawing commands.
 ///
 /// These are the essential commands that a drawing target must be able to
-/// process to provide all the canvas functionality.
+/// process to provide all the functionality to implement a canvas.
 /// This is an internal API that is meant to be a full storage and execution
 /// backend for a more usable Canvas API.
 /// TODO: review the PaintScope implementation, scope with a function for

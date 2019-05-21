@@ -1,6 +1,5 @@
 use crate::{
-    Arc, Circle, ForceMoveTo, LineSegments, Oval, PathVerb, Point, Polygon, Radius, Rect,
-    RoundedRect, Size,
+    Arc, Circle, ForceMoveTo, Oval, PathVerb, Point, Polygon, Radius, Rect, RoundedRect, Size,
 };
 
 pub struct Outline(pub Vec<PathVerb>);
@@ -77,11 +76,7 @@ impl Outline {
                     points.extend(&r.points());
                     current = Some(r.center())
                 }
-                PathVerb::AddLineSegments(LineSegments(pts)) => {
-                    points.extend(pts);
-                    current = pts.last().cloned().or(current);
-                }
-                PathVerb::AddPolygon(Polygon(pts)) => {
+                PathVerb::AddOpenPolygon(Polygon(pts)) => {
                     points.extend(pts);
                     current = pts.last().cloned().or(current);
                 }

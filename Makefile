@@ -10,3 +10,7 @@ test:
 wtest:
 	cargo watch -x "test --bin emergent -- --test-threads 1"
 
+.PHONY: watch
+watch:
+	cargo watch -x "build --all-targets"
+

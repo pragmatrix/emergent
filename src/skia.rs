@@ -2,10 +2,11 @@ use crate::frame::Frame;
 ///! Vulkan <-> Skia interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use emergent_drawing as drawing;
-use emergent_drawing::{Circle, DrawTo, Shape};
+use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape};
 use skia_safe::gpu::vk;
 use skia_safe::{
-    gpu, scalar, BlendMode, Canvas, Color, Paint, PaintCap, PaintJoin, PaintStyle, Point,
+    gpu, scalar, BlendMode, Canvas, CanvasPointMode, Color, Paint, PaintCap, PaintJoin, PaintStyle,
+    Point, RRect, Rect, Size, Vector,
 };
 use skia_safe::{ColorType, Surface};
 use std::convert::TryInto;
@@ -168,23 +169,41 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
 
     fn draw(&mut self, shape: &drawing::Shape, paint: &drawing::Paint) {
         match shape {
-            Shape::Point(_) => {}
-            Shape::Points(_) => {}
-            Shape::Line(_) => {}
-            Shape::Lines(_) => {}
-            Shape::LineSegments(_) => {}
-            Shape::Polygon(_) => {}
-            Shape::Rect(_) => {}
-            Shape::Oval(_) => {}
-            Shape::RoundedRect(_) => {}
+            Shape::Point(p) => {
+                self.canvas
+                    .draw_point(p.to_skia(), self.paint.resolve(paint));
+            }
+            Shape::Line(Line(p1, p2)) => {
+                self.canvas
+                    .draw_line(p1.to_skia(), p2.to_skia(), self.paint.resolve(paint));
+            }
+            Shape::Polygon(Polygon(points)) => {
+                self.canvas.draw_points(
+                    CanvasPointMode::Polygon,
+                    points.to_skia().as_slice(),
+                    self.paint.resolve(paint),
+                );
+            }
+            Shape::Rect(rect) => {
+                self.canvas
+                    .draw_rect(rect.to_skia(), self.paint.resolve(paint));
+            }
+            Shape::Oval(Oval(oval)) => {
+                self.canvas
+                    .draw_oval(oval.to_skia(), self.paint.resolve(paint));
+            }
+            Shape::RoundedRect(rounded_rect) => {
+                self.canvas
+                    .draw_rrect(rounded_rect.to_skia(), self.paint.resolve(paint));
+            }
             Shape::Circle(Circle(p, r)) => {
                 self.canvas
-                    .draw_circle(p.into_skia(), r.into_skia(), self.paint.resolve(paint));
+                    .draw_circle(p.to_skia(), r.to_skia(), self.paint.resolve(paint));
             }
-            Shape::Arc(_) => {}
-            Shape::Path(_) => {}
-            Shape::Image(_) => {}
-            Shape::ImageRect(_, _, _) => {}
+            Shape::Arc(_) => unimplemented!(),
+            Shape::Path(_) => unimplemented!(),
+            Shape::Image(_) => unimplemented!(),
+            Shape::ImageRect(_, _, _) => unimplemented!(),
         }
     }
 
@@ -249,25 +268,21 @@ impl PaintSync {
     // TODO: resolve the individual defaults and store them locally.
     fn apply_paint(paint: &mut Paint, dp: &drawing::Paint) {
         // TODO: we _do_ know which values have been changed, so probably we should apply only that.
-        paint.set_style(dp.style.unwrap_or(drawing::PaintStyle::Fill).into_skia());
+        paint.set_style(dp.style.unwrap_or(drawing::PaintStyle::Fill).to_skia());
         // TODO: specify the default on the drawing:: side.
-        paint.set_color(dp.color.map(|c| c.into_skia()).unwrap_or(Color::BLACK));
+        paint.set_color(dp.color.map(|c| c.to_skia()).unwrap_or(Color::BLACK));
         paint.set_stroke_width(dp.stroke_width.unwrap_or(0.0));
         paint.set_stroke_miter(dp.stroke_miter.unwrap_or(4.0));
-        paint.set_stroke_cap(
-            dp.stroke_cap
-                .unwrap_or(drawing::StrokeCap::Butt)
-                .into_skia(),
-        );
+        paint.set_stroke_cap(dp.stroke_cap.unwrap_or(drawing::StrokeCap::Butt).to_skia());
         paint.set_stroke_join(
             dp.stroke_join
                 .unwrap_or(drawing::StrokeJoin::Miter)
-                .into_skia(),
+                .to_skia(),
         );
         paint.set_blend_mode(
             dp.blend_mode
                 .unwrap_or(drawing::BlendMode::SourceOver)
-                .into_skia(),
+                .to_skia(),
         );
     }
 }
@@ -276,32 +291,72 @@ impl PaintSync {
 // IntoSkia implementations
 //
 
-trait IntoSkia<ST> {
-    fn into_skia(self) -> ST;
+trait ToSkia<ST> {
+    fn to_skia(&self) -> ST;
 }
 
-impl IntoSkia<Point> for drawing::Point {
-    fn into_skia(self) -> Point {
-        let drawing::Point(x, y) = self;
-        Point::from((x, y))
-    }
-}
-
-impl IntoSkia<Color> for drawing::Color {
-    fn into_skia(self) -> Color {
+impl ToSkia<Color> for drawing::Color {
+    fn to_skia(&self) -> Color {
         Color::from(self.0)
     }
 }
 
-impl IntoSkia<f32> for drawing::Radius {
-    fn into_skia(self) -> scalar {
+impl ToSkia<Point> for drawing::Point {
+    fn to_skia(&self) -> Point {
+        let drawing::Point(x, y) = *self;
+        Point::from((x, y))
+    }
+}
+
+impl ToSkia<Vector> for drawing::Vector {
+    fn to_skia(&self) -> Point {
+        let drawing::Vector(x, y) = *self;
+        Vector::from((x, y))
+    }
+}
+
+impl ToSkia<Vec<Point>> for Vec<drawing::Point> {
+    fn to_skia(&self) -> Vec<Point> {
+        self.into_iter().map(|p| p.to_skia()).collect()
+    }
+}
+
+impl ToSkia<Size> for drawing::Size {
+    fn to_skia(&self) -> Size {
+        let drawing::Size(width, height) = *self;
+        Size::from((width, height))
+    }
+}
+
+impl ToSkia<Rect> for drawing::Rect {
+    fn to_skia(&self) -> Rect {
+        let drawing::Rect(p, s) = self;
+        Rect::from((p.to_skia(), s.to_skia()))
+    }
+}
+
+impl ToSkia<RRect> for drawing::RoundedRect {
+    fn to_skia(&self) -> RRect {
+        let drawing::RoundedRect(rect, corners) = self;
+        let corners = [
+            corners[0].to_skia(),
+            corners[1].to_skia(),
+            corners[2].to_skia(),
+            corners[3].to_skia(),
+        ];
+        RRect::new_rect_radii(rect.to_skia(), &corners)
+    }
+}
+
+impl ToSkia<f32> for drawing::Radius {
+    fn to_skia(&self) -> scalar {
         self.0
     }
 }
 
-impl IntoSkia<BlendMode> for drawing::BlendMode {
-    fn into_skia(self) -> BlendMode {
-        BLEND_MODE_TABLE[self as usize]
+impl ToSkia<BlendMode> for drawing::BlendMode {
+    fn to_skia(&self) -> BlendMode {
+        BLEND_MODE_TABLE[*self as usize]
     }
 }
 
@@ -327,8 +382,8 @@ const BLEND_MODE_TABLE: [skia_safe::BlendMode; 18] = [
     BlendMode::Plus,
 ];
 
-impl IntoSkia<PaintStyle> for drawing::PaintStyle {
-    fn into_skia(self) -> PaintStyle {
+impl ToSkia<PaintStyle> for drawing::PaintStyle {
+    fn to_skia(&self) -> PaintStyle {
         match self {
             drawing::PaintStyle::Stroke => PaintStyle::Stroke,
             drawing::PaintStyle::Fill => PaintStyle::Fill,
@@ -337,8 +392,8 @@ impl IntoSkia<PaintStyle> for drawing::PaintStyle {
     }
 }
 
-impl IntoSkia<PaintCap> for drawing::StrokeCap {
-    fn into_skia(self) -> PaintCap {
+impl ToSkia<PaintCap> for drawing::StrokeCap {
+    fn to_skia(&self) -> PaintCap {
         match self {
             drawing::StrokeCap::Butt => PaintCap::Butt,
             drawing::StrokeCap::Round => PaintCap::Round,
@@ -347,8 +402,8 @@ impl IntoSkia<PaintCap> for drawing::StrokeCap {
     }
 }
 
-impl IntoSkia<PaintJoin> for drawing::StrokeJoin {
-    fn into_skia(self) -> PaintJoin {
+impl ToSkia<PaintJoin> for drawing::StrokeJoin {
+    fn to_skia(&self) -> PaintJoin {
         match self {
             drawing::StrokeJoin::Miter => PaintJoin::Miter,
             drawing::StrokeJoin::Round => PaintJoin::Round,

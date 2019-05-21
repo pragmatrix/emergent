@@ -1,4 +1,4 @@
-use crate::{scalar, Point, Rect, Size};
+use crate::{scalar, Point, Size};
 use std::ops;
 
 impl Point {
@@ -79,18 +79,24 @@ impl ops::Sub<Size> for Point {
 
 impl From<(scalar, scalar)> for Point {
     fn from((x, y): (scalar, scalar)) -> Self {
-        Point(x, y)
+        Self(x, y)
     }
 }
 
 impl From<(isize, isize)> for Point {
     fn from((x, y): (isize, isize)) -> Self {
-        Point::from((x as scalar, y as scalar))
+        Self::from((x as scalar, y as scalar))
     }
 }
 
 impl From<(scalar, scalar)> for Size {
     fn from((x, y): (scalar, scalar)) -> Self {
-        Size(x, y)
+        Self(x, y)
+    }
+}
+
+impl From<(isize, isize)> for Size {
+    fn from((w, h): (isize, isize)) -> Self {
+        Self::from((w as scalar, h as scalar))
     }
 }

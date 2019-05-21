@@ -39,12 +39,7 @@ pub enum Drawing {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Shape {
     Point(Point),
-    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
-    Points(Vec<Point>),
     Line(Line),
-    // TODO: unwrap to multiple Shapes and optimize that later by comparing Paints?
-    Lines(Vec<Line>),
-    LineSegments(LineSegments),
     Polygon(Polygon),
     Rect(Rect),
     Oval(Oval),
@@ -74,7 +69,7 @@ pub struct Rect(pub Point, pub Size);
 
 /// A rounded rectangle.
 // TODO: Optimize representation for simple cases?
-// TODO: also not clear to which corners the vector's are related to.
+// Corners are starting at the upper left and follow clockwise.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct RoundedRect(pub Rect, pub [Vector; 4]);
 
@@ -86,11 +81,7 @@ pub struct Circle(pub Point, pub Radius);
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Oval(pub Rect);
 
-/// Line segments, an open polygon.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct LineSegments(pub Vec<Point>);
-
-/// A Polygon, always closed.
+/// A Polygon, closed when used as a shape, open when added to a path.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Polygon(pub Vec<Point>);
 
@@ -284,8 +275,7 @@ pub enum PathVerb {
     AddCircle(Circle, Option<PathDirection>),
     AddArc(Arc),
     AddRoundedRect(RoundedRect, Option<PathDirection>),
-    AddLineSegments(LineSegments),
-    AddPolygon(Polygon),
+    AddOpenPolygon(Polygon),
     // TODO: Do we need to support adding paths?
 }
 

@@ -13,6 +13,12 @@ pub use outline::*;
 mod rect;
 pub use rect::*;
 
+mod rounded_rect;
+pub use rounded_rect::*;
+
+mod shape;
+pub use shape::*;
+
 mod vector;
 pub use vector::*;
 

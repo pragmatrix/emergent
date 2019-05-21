@@ -1,4 +1,4 @@
-use emergent_drawing::Rect;
+use emergent_drawing::{Circle, Rect};
 
 #[test]
 fn draw_circle() {
@@ -8,6 +8,6 @@ fn draw_circle() {
     let mut canvas = Canvas::from_target(&mut painting);
     let mut paint = &mut Paint::default();
     paint.color = Some(Color(0xff0000ff));
-    canvas.draw_circle((100, 100), 100, &paint);
+    canvas.draw(Circle((100, 100).into(), 100.into()), &paint);
     painting.render();
 }
