@@ -1,8 +1,6 @@
-use emergent_drawing::{Circle, Radius, Rect, RoundedRect};
-
 #[test]
 fn draw_circle() {
-    use emergent_drawing::{Canvas, Color, Paint, Painting, Render};
+    use emergent_drawing::{Canvas, Color, Paint, Painting, Radius, Rect, Render, RoundedRect};
 
     let mut painting: Painting = Painting::new();
     let mut canvas = Canvas::from_target(&mut painting);
