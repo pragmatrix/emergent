@@ -33,8 +33,27 @@ impl Render for Painting {
     fn render(&self) {
         let rendered = serde_json::to_string(self).unwrap();
         let mut stdout = io::stdout();
-        stdout.write(b"> ");
+        stdout.write(b"> ").unwrap();
         stdout.write_all(rendered.as_bytes()).unwrap();
-        stdout.write(b"\n");
+        stdout.write(b"\n").unwrap();
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PaintingCanvas(Painting);
+
+impl PaintingCanvas {
+    pub fn new() -> Self {
+        PaintingCanvas(Painting::new())
+    }
+
+    pub fn render(&self) {
+        self.0.render()
+    }
+}
+
+impl Canvas<Painting> for PaintingCanvas {
+    fn target(&mut self) -> &mut Painting {
+        &mut self.0
     }
 }
