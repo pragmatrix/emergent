@@ -2,33 +2,32 @@
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
 use serde::{Deserialize, Serialize};
-use std::ops;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Painting(pub Vec<Drawing>);
+pub struct Drawing(pub Vec<Draw>);
 
 // TODO: Drawing is quite misleading here, basically this is a DrawingCommand
 // or a DrawingOperation, because Clip() and Transform() leak state.
 // What I may accept as a pure drawing is a nested application of Clip &| Transform.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Drawing {
+pub enum Draw {
     /// Fill that current area with the given paint.
-    Fill(Paint, BlendMode),
+    Paint(Paint, BlendMode),
 
-    /// Draw a group of shapes with the same paint.
-    Draw(Vec<Shape>, Paint),
+    /// Draw a number of shapes with the same paint.
+    Shapes(Vec<Shape>, Paint),
 
-    /// A nested painting, save the current matrix and clip,
+    /// A nested drawing, save the current matrix and clip,
     /// and restores it afterwards.
-    Paint(Painting),
+    Drawing(Drawing),
 
     // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
     // TODO: Also Skia supports do_anti_alias for clipping.
     /// Intersect the current clip with the given Clip.
-    Clip(Clip),
+    Clipped(Clip, Drawing),
 
-    /// Transform the current matrix.
-    Transform(Transformation),
+    /// Draw a drawing transformed with the current matrix.
+    Transformed(Transformation, Drawing),
 }
 
 //
@@ -288,7 +287,7 @@ pub enum PathVerb {
 
 #[test]
 fn test_serialize() {
-    let drawing = Drawing::Draw(
+    let shapes = Draw::Shapes(
         vec![Shape::Line(Line(Point(10.0, 1.0), Point(11.0, 1.0)))],
         Paint {
             style: None,
@@ -301,9 +300,12 @@ fn test_serialize() {
         },
     );
 
-    println!("{}", serde_json::to_string(&drawing).unwrap());
+    println!("{}", serde_json::to_string(&shapes).unwrap());
 
-    let drawing = Drawing::Clip(Clip::Rect(Rect(Point(10.0, 1.0), Size(10.0, 1.0))));
+    let drawing = Draw::Clipped(
+        Clip::Rect(Rect(Point(10.0, 1.0), Size(10.0, 1.0))),
+        Drawing(vec![shapes]),
+    );
 
     println!("{}", serde_json::to_string(&drawing).unwrap());
 }

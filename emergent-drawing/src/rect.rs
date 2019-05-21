@@ -109,19 +109,14 @@ impl Add<Padding> for Rect {
     type Output = Self;
     fn add(self, rhs: Padding) -> Self {
         let (p1, p2) = (self.left_top(), self.right_bottom());
-        Rect::from((p1 - rhs.left_top(), p2 + rhs.right_bottom()))
+        let (p1, p2) = (p1 - rhs.left_top(), p2 + rhs.right_bottom());
+        Rect::from((p1, (p2 - p1).into()))
     }
 }
 
 impl From<(Point, Size)> for Rect {
     fn from((p, s): (Point, Size)) -> Self {
         Rect(p, s)
-    }
-}
-
-impl From<(Point, Point)> for Rect {
-    fn from((p1, p2): (Point, Point)) -> Self {
-        Self::from((p1, Size::from(p2 - p1)))
     }
 }
 

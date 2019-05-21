@@ -4,7 +4,7 @@ use crate::test_runner::TestRunRequest;
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
-use emergent_drawing::{scalar, Circle, Drawing, DrawingTarget, Paint, Painting, Shape};
+use emergent_drawing::{Drawing, DrawingTarget, Paint, Shape};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
@@ -86,12 +86,12 @@ impl Emergent {
 
 impl View<Frame> for Emergent {
     fn render(&self) -> Frame {
-        let mut painting = Painting::new();
+        let mut drawing = Drawing::new();
 
         // TODO: implement Iter in TestCaptures
         for capture in self.test_captures.0.iter() {
             // TODO: add a nice paintings combinator.
-            painting.0.extend(render_capture(capture).0)
+            drawing.0.extend(render_capture(capture).0)
         }
         /*
                 let size = self.window_size;
@@ -112,16 +112,16 @@ impl View<Frame> for Emergent {
 
         Frame {
             size: self.window_size,
-            painting: painting,
+            drawing,
         }
     }
 }
 
-fn render_capture(capture: &TestCapture) -> Painting {
+fn render_capture(capture: &TestCapture) -> Drawing {
     if !capture.output.starts_with("> ") {
-        return Painting::new();
+        return Drawing::new();
     };
 
-    // todo: handle parse errors:
+    // TODO: handle parse errors:
     serde_json::from_str(&capture.output[2..]).unwrap()
 }

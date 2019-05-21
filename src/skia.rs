@@ -151,7 +151,7 @@ impl DrawingSurface for skia_safe::Surface {
         canvas.clear(Color::WHITE);
 
         let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas);
-        frame.painting.draw_to(drawing_target);
+        frame.drawing.draw_to(drawing_target);
 
         self.flush();
     }
@@ -207,16 +207,19 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         }
     }
 
-    fn paint(&mut self) -> drawing::PaintScope<Self> {
+    fn paint(&mut self) -> drawing::DrawingScope<Self> {
         self.canvas.save();
-        drawing::PaintScope::from_index(self, 0)
+        drawing::DrawingScope::from_index(self, 0)
     }
 
-    fn clip(&mut self, clip: &drawing::Clip) {
+    fn clip(&mut self, clip: &drawing::Clip) -> drawing::DrawingScope<Self> {
         unimplemented!()
     }
 
-    fn transform(&mut self, transformation: &drawing::Transformation) {
+    fn transform(
+        &mut self,
+        transformation: &drawing::Transformation,
+    ) -> drawing::DrawingScope<Self> {
         unimplemented!()
     }
 

@@ -1,8 +1,7 @@
 //! Function based API to specify drawings.
 use crate::drawing::{
-    BlendMode, Clip, Drawing, Paint, Painting, Rect, Shape, Size, Transformation,
+    BlendMode, Clip, Draw, Drawing, Paint, Polygon, Rect, Shape, Size, Transformation,
 };
-use crate::drawing::{Point, Polygon};
 use std::ops::{Deref, DerefMut};
 
 /// A drawing target is a function based API for drawing commands.
@@ -16,13 +15,13 @@ use std::ops::{Deref, DerefMut};
 pub trait DrawingTarget: Sized {
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode);
     fn draw(&mut self, shape: &Shape, paint: &Paint);
-    fn paint(&mut self) -> PaintScope<Self>;
+    fn paint(&mut self) -> DrawingScope<Self>;
     /// When PaintScope is going out of scope, drop_scope will be called.
     // TODO: this could be called directly in nested scope and mess
     //       everything up, can we do something about that?
     fn drop_scope(&mut self, begin: usize);
-    fn clip(&mut self, clip: &Clip);
-    fn transform(&mut self, transformation: &Transformation);
+    fn clip(&mut self, clip: &Clip) -> DrawingScope<Self>;
+    fn transform(&mut self, transformation: &Transformation) -> DrawingScope<Self>;
 }
 
 /// A trait for something that is drawable to a drawing target.
@@ -30,41 +29,41 @@ pub trait DrawTo {
     fn draw_to<DT: DrawingTarget>(&self, target: &mut DT);
 }
 
-/// A nested painting scope.
+/// A nested drawing scope.
 /// TODO: this is highly specific for now, because I don't want to put a lifetime or
 ///       associated type on the DrawingTarget trait.
-pub struct PaintScope<'a, DT: DrawingTarget> {
+pub struct DrawingScope<'a, DT: DrawingTarget> {
     /// Index into the internal structure representing this scope.
     begin: usize,
     target: &'a mut DT,
 }
 
-impl<'a, DT: DrawingTarget> Drop for PaintScope<'a, DT> {
+impl<'a, DT: DrawingTarget> Drop for DrawingScope<'a, DT> {
     fn drop(&mut self) {
         self.target.drop_scope(self.begin);
     }
 }
 
-impl<'a, DT: DrawingTarget> Deref for PaintScope<'a, DT> {
+impl<'a, DT: DrawingTarget> Deref for DrawingScope<'a, DT> {
     type Target = DT;
     fn deref(&self) -> &DT {
         self.target
     }
 }
 
-impl<'a, DT: DrawingTarget> DerefMut for PaintScope<'a, DT> {
+impl<'a, DT: DrawingTarget> DerefMut for DrawingScope<'a, DT> {
     fn deref_mut(&mut self) -> &mut DT {
         self.target
     }
 }
 
-impl<'a, DT: DrawingTarget> PaintScope<'a, DT> {
-    pub fn from_index(target: &'a mut DT, begin: usize) -> PaintScope<'a, DT> {
-        PaintScope { begin, target }
+impl<'a, DT: DrawingTarget> DrawingScope<'a, DT> {
+    pub fn from_index(target: &'a mut DT, begin: usize) -> DrawingScope<'a, DT> {
+        DrawingScope { begin, target }
     }
 }
 
-impl Painting {
+impl Drawing {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -74,9 +73,9 @@ impl Painting {
     }
 }
 
-impl DrawTo for Painting {
+impl DrawTo for Drawing {
     fn draw_to<DT: DrawingTarget>(&self, target: &mut DT) {
-        // drawing a painting _always_ introduces a new scope in the drawing
+        // drawing a drawing _always_ introduces a new scope in the drawing
         // target to avoid changing state.
         let scope = &mut target.paint();
         self.0
@@ -85,56 +84,79 @@ impl DrawTo for Painting {
     }
 }
 
-impl DrawTo for Drawing {
+impl DrawTo for Draw {
     fn draw_to<DT: DrawingTarget>(&self, target: &mut DT) {
         match self {
-            Drawing::Fill(paint, blend_mode) => target.fill(&paint, *blend_mode),
-            Drawing::Draw(shapes, paint) => {
+            Draw::Paint(paint, blend_mode) => target.fill(&paint, *blend_mode),
+            Draw::Shapes(shapes, paint) => {
                 // TODO: optimize paint reuse here?
                 shapes.iter().for_each(|shape| target.draw(shape, &paint))
             }
-            Drawing::Paint(painting) => painting.draw_to(target),
-            Drawing::Clip(clip) => target.clip(clip),
-            Drawing::Transform(transform) => target.transform(transform),
+            Draw::Drawing(drawing) => drawing.draw_to(target),
+            Draw::Clipped(clip, drawing) => {
+                let target = &mut target.clip(clip);
+                drawing.draw_to(target.target)
+            }
+            Draw::Transformed(transform, drawing) => {
+                let mut target = target.transform(transform);
+                drawing.draw_to(target.target);
+            }
         }
     }
 }
 
-impl DrawingTarget for Painting {
+impl DrawingTarget for Drawing {
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode) {
-        self.0.push(Drawing::Fill(paint.clone(), blend_mode));
+        self.0.push(Draw::Paint(paint.clone(), blend_mode));
     }
 
     fn draw(&mut self, shape: &Shape, paint: &Paint) {
         match self.0.last_mut() {
-            Some(Drawing::Draw(shapes, p)) if p == paint => {
+            Some(Draw::Shapes(shapes, p)) if p == paint => {
                 shapes.push(shape.clone());
             }
             _ => self
                 .0
-                .push(Drawing::Draw(vec![shape.clone()], paint.clone())),
+                .push(Draw::Shapes(vec![shape.clone()], paint.clone())),
         }
     }
 
-    fn paint(&mut self) -> PaintScope<Self> {
-        PaintScope {
+    fn paint(&mut self) -> DrawingScope<Self> {
+        self.0.push(Draw::Drawing(Drawing::new()));
+        DrawingScope {
             begin: self.0.len(),
             target: self,
         }
     }
 
     fn drop_scope(&mut self, begin: usize) {
-        let nested_painting = Painting(self.0.drain(begin..).collect());
-        if !nested_painting.is_empty() {
-            self.0.push(Drawing::Paint(nested_painting))
+        let nested = Drawing(self.0.drain(begin..).collect());
+        if !nested.is_empty() {
+            match self.0.last_mut().unwrap() {
+                Draw::Drawing(d) => *d = nested,
+                Draw::Clipped(_, d) => *d = nested,
+                Draw::Transformed(_, d) => *d = nested,
+                _ => {}
+            }
+        } else {
+            self.0.pop();
         }
     }
 
-    fn clip(&mut self, clip: &Clip) {
-        self.0.push(Drawing::Clip(clip.clone()));
+    fn clip(&mut self, clip: &Clip) -> DrawingScope<Self> {
+        self.0.push(Draw::Clipped(clip.clone(), Drawing::new()));
+        DrawingScope {
+            begin: self.0.len(),
+            target: self,
+        }
     }
 
-    fn transform(&mut self, transformation: &Transformation) {
-        self.0.push(Drawing::Transform(transformation.clone()));
+    fn transform(&mut self, transformation: &Transformation) -> DrawingScope<Self> {
+        self.0
+            .push(Draw::Transformed(transformation.clone(), Drawing::new()));
+        DrawingScope {
+            begin: self.0.len(),
+            target: self,
+        }
     }
 }

@@ -29,7 +29,7 @@ pub trait Render {
 use std::io;
 use std::io::Write;
 
-impl Render for Painting {
+impl Render for Drawing {
     fn render(&self) {
         let rendered = serde_json::to_string(self).unwrap();
         let mut stdout = io::stdout();
@@ -40,11 +40,11 @@ impl Render for Painting {
 }
 
 #[derive(Clone, Debug)]
-pub struct PaintingCanvas(Painting);
+pub struct DrawingCanvas(Drawing);
 
-impl PaintingCanvas {
+impl DrawingCanvas {
     pub fn new() -> Self {
-        PaintingCanvas(Painting::new())
+        Self(Drawing::new())
     }
 
     pub fn render(&self) {
@@ -52,8 +52,8 @@ impl PaintingCanvas {
     }
 }
 
-impl Canvas<Painting> for PaintingCanvas {
-    fn target(&mut self) -> &mut Painting {
+impl Canvas<Drawing> for DrawingCanvas {
+    fn target(&mut self) -> &mut Drawing {
         &mut self.0
     }
 }
