@@ -44,12 +44,9 @@ pub enum ResultRef<'a> {
     Grid(&'a mut Grid),
 }
 
-impl<'a, 'b> From<&'b mut Rect> for ResultRef<'a>
-where
-    'b: 'a,
-{
-    fn from(rect: &'b mut Rect) -> ResultRef<'a> {
-        ResultRef::<'a>::Rect(rect)
+impl<'a> From<&'a mut Rect> for ResultRef<'a> {
+    fn from(rect: &mut Rect) -> ResultRef {
+        ResultRef::Rect(rect)
     }
 }
 
