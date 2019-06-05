@@ -1,15 +1,16 @@
 use emergent_drawing::{scalar, DrawingCanvas, Point, Rect, Size};
 
 pub mod constraints;
-pub mod layout;
-
 mod grid;
 pub use grid::*;
+pub mod layout;
+mod primitives;
+pub use primitives::*;
+mod span;
+pub use span::*;
 
-mod types;
 use crate::constraints::Linear;
 use crate::layout::Constrain;
-pub use types::*;
 
 pub trait Layout {
     /// Compute the constraints of the given axis.
@@ -133,7 +134,7 @@ impl Layout for Rect {
 }
 
 trait RectHelper {
-    fn set_pos(&mut self, axis: usize, pos: scalar);
+    fn set_pos(&mut self, axis: usize, pos: finite);
     fn set_length(&mut self, axis: usize, length: length);
     fn set_span(&mut self, axis: usize, span: Span) {
         self.set_pos(axis, span.start());
@@ -142,10 +143,10 @@ trait RectHelper {
 }
 
 impl RectHelper for Rect {
-    fn set_pos(&mut self, axis: usize, pos: scalar) {
+    fn set_pos(&mut self, axis: usize, pos: finite) {
         match axis {
-            0 => self.0 = Point(pos, self.top()),
-            1 => self.0 = Point(self.left(), pos),
+            0 => self.0 = Point(*pos, self.top()),
+            1 => self.0 = Point(self.left(), *pos),
             _ => panic!("invalid axis"),
         }
     }
@@ -174,7 +175,7 @@ pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<length> {
     // order of the axes to be layouted, first all bounded then the unbounded
     // ones.
 
-    let mut ordered: Vec<usize> = vec![bounded, unbounded].into_iter().flatten().collect();
+    let ordered: Vec<usize> = vec![bounded, unbounded].into_iter().flatten().collect();
 
     let mut axis = *ordered.first().unwrap();
     let mut completed = CompletedAxes::new(axes);
