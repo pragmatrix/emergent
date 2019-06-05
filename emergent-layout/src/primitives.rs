@@ -60,12 +60,12 @@ impl finite {
 
     pub fn max(&self, other: impl Into<finite>) -> Self {
         let other = other.into();
-        self.map(|v| v.max(other.0))
+        self.map(|v| v.max(*other))
     }
 
     pub fn min(&self, other: impl Into<finite>) -> Self {
         let other = other.into();
-        self.map(|v| v.min(other.0))
+        self.map(|v| v.min(*other))
     }
 }
 
@@ -98,21 +98,21 @@ impl From<usize> for length {
 impl Add for length {
     type Output = length;
     fn add(self, rhs: length) -> Self::Output {
-        self.map(|v| v + rhs.0)
+        self.map(|v| v + *rhs)
     }
 }
 
 impl Sub for length {
     type Output = length;
     fn sub(self, rhs: length) -> Self::Output {
-        self.map(|v| v - rhs.0)
+        self.map(|v| v - *rhs)
     }
 }
 
 impl Mul for length {
     type Output = length;
     fn mul(self, rhs: length) -> Self::Output {
-        self.map(|v| v * rhs.0)
+        self.map(|v| v * *rhs)
     }
 }
 
@@ -128,12 +128,12 @@ impl length {
 
     pub fn max(&self, other: impl Into<length>) -> Self {
         let other = other.into();
-        self.map(|v| v.max(other.0))
+        self.map(|v| v.max(*other))
     }
 
     pub fn min(&self, other: impl Into<length>) -> Self {
         let other = other.into();
-        self.map(|v| v.min(other.0))
+        self.map(|v| v.min(*other))
     }
 }
 
