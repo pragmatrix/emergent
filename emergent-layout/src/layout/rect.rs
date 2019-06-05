@@ -35,29 +35,11 @@ impl Layout for Rect {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        layout_and_position, Bound, Color, Constrain, DrawingCanvas, Linear, Paint, Point, Rect,
-        Size,
-    };
-    use emergent_drawing::Canvas;
-
+    use crate::{layout_and_position, Bound, Rect};
     #[test]
-    fn test_simple_rect_layout() {
-        let constraints = [Linear::min(10.into()), Linear::min(20.into())];
-        let mut r = Rect::default();
-        let mut l = r.constrain(&constraints);
-        layout_and_position(
-            &mut l,
-            &[Bound::Bounded(2.into()), Bound::Bounded(4.into())],
-            &[1.0, 3.0],
-        );
-
-        assert_eq!(r, Rect(Point::from((1, 3)), Size::from((2, 4))));
-
-        let mut canvas = DrawingCanvas::new();
-        let mut paint = &mut Paint::default();
-        paint.color = Some(Color(0xff0000f0));
-        canvas.draw(r, &paint);
-        canvas.render();
+    fn unbounded_uses_rect_size_as_fixed_constraint() {
+        let mut r = Rect::from((10.0, 11.0, 100.0, 110.0));
+        layout_and_position(&mut r, &[Bound::Unbounded, Bound::Unbounded], &[1.0, 1.1]);
+        assert_eq!(r, Rect::from((1.0, 1.1, 100.0, 110.0)));
     }
 }
