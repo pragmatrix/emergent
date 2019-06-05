@@ -9,7 +9,7 @@ pub use primitives::*;
 mod span;
 pub use span::*;
 
-use crate::constraints::Linear;
+use crate::constraints::{Combine, Linear};
 use crate::layout::Constrain;
 
 /// A ResultRef is just a mutable Rectangle for now.

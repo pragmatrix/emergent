@@ -50,47 +50,6 @@ impl Linear {
         self.max.map(|m| self.min + self.preferred + m)
     }
 
-    /// Combine the constraints of one axis to create a constraint that represents
-    /// the elements of that axis layouted one after each other.
-    pub fn directional(a: &[Linear]) -> Linear {
-        match a.len() {
-            0 => panic!("internal error: zero directional constraints"),
-            1 => *a.first().unwrap(),
-            _ => a[1..].iter().fold(a[0], |a, b| Linear {
-                min: a.min + b.min,
-                preferred: a.preferred + b.preferred,
-                max: match (a.max, b.max) {
-                    (Max::Length(_), Max::Infinite) => Max::Infinite,
-                    (Max::Infinite, Max::Length(_)) => Max::Infinite,
-                    (Max::Length(a), Max::Length(b)) => Max::Length(a + b),
-                    (Max::Infinite, Max::Infinite) => Max::Infinite,
-                },
-            }),
-        }
-    }
-
-    pub fn orthogonal(a: &[Linear]) -> Linear {
-        match a.len() {
-            0 => panic!("internal error: zero orthogonal constraints"),
-            1 => *a.first().unwrap(),
-            _ => a[1..].iter().fold(a[0], |a, b| Linear {
-                min: a.min.max(b.min),
-                // try to give every element the preferred size, so we
-                // use max here and not average.
-                preferred: a.preferred.max(b.preferred),
-                max: match (a.max, b.max) {
-                    (Max::Length(a), Max::Infinite) => Max::Length(a),
-                    (Max::Infinite, Max::Length(b)) => Max::Length(b),
-                    // note: the maximum of an element can be always exceeded
-                    // when the element gets sized, which means that is must be
-                    // aligned inside its box, which the element decides how.
-                    (Max::Length(a), Max::Length(b)) => Max::Length(a.max(b)),
-                    (Max::Infinite, Max::Infinite) => Max::Infinite,
-                },
-            }),
-        }
-    }
-
     /// Layouts the linear constraint.
     ///
     /// For an unbounded Bound, this uses the preferred size.
@@ -106,6 +65,54 @@ impl Linear {
         match bound {
             Bound::Unbounded => self.effective_preferred(),
             Bound::Bounded(length) => length,
+        }
+    }
+}
+
+pub trait Combine<T> {
+    fn combine_directional(&self) -> T;
+    fn combine_orthogonal(&self) -> T;
+}
+
+impl Combine<Linear> for [Linear] {
+    /// Combine the constraints of one axis to create a constraint that represents
+    /// the elements of that axis layouted one after each other.
+    fn combine_directional(&self) -> Linear {
+        match self.len() {
+            0 => panic!("internal error: zero directional constraints"),
+            1 => *self.first().unwrap(),
+            _ => self[1..].iter().fold(self[0], |a, b| Linear {
+                min: a.min + b.min,
+                preferred: a.preferred + b.preferred,
+                max: match (a.max, b.max) {
+                    (Max::Length(_), Max::Infinite) => Max::Infinite,
+                    (Max::Infinite, Max::Length(_)) => Max::Infinite,
+                    (Max::Length(a), Max::Length(b)) => Max::Length(a + b),
+                    (Max::Infinite, Max::Infinite) => Max::Infinite,
+                },
+            }),
+        }
+    }
+
+    fn combine_orthogonal(&self) -> Linear {
+        match self.len() {
+            0 => panic!("internal error: zero orthogonal constraints"),
+            1 => *self.first().unwrap(),
+            _ => self[1..].iter().fold(self[0], |a, b| Linear {
+                min: a.min.max(b.min),
+                // try to give every element the preferred size, so we
+                // use max here and not average.
+                preferred: a.preferred.max(b.preferred),
+                max: match (a.max, b.max) {
+                    (Max::Length(a), Max::Infinite) => Max::Length(a),
+                    (Max::Infinite, Max::Length(b)) => Max::Length(b),
+                    // note: the maximum of an element can be always exceeded
+                    // when the element gets sized, which means that is must be
+                    // aligned inside its box, which the element decides how.
+                    (Max::Length(a), Max::Length(b)) => Max::Length(a.max(b)),
+                    (Max::Infinite, Max::Infinite) => Max::Infinite,
+                },
+            }),
         }
     }
 }
