@@ -11,7 +11,7 @@ pub type Volume = [Linear; 3];
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Linear {
     min: length,
-    /// The additional length preferred over min.
+    /// The additional length preferred added to min.
     preferred: length,
     /// The additional length the defines the maximum added to min + preferred.
     /// If not set, there is no maximum size.
@@ -60,8 +60,8 @@ impl Linear {
                 min: a.min + b.min,
                 preferred: a.preferred + b.preferred,
                 max: match (a.max, b.max) {
-                    (Max::Finite(a), Max::Infinite) => Max::Infinite,
-                    (Max::Infinite, Max::Finite(b)) => Max::Infinite,
+                    (Max::Finite(_), Max::Infinite) => Max::Infinite,
+                    (Max::Infinite, Max::Finite(_)) => Max::Infinite,
                     (Max::Finite(a), Max::Finite(b)) => Max::Finite(a + b),
                     (Max::Infinite, Max::Infinite) => Max::Infinite,
                 },
