@@ -1,12 +1,17 @@
 use emergent_drawing::scalar;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Deref, Mul, Sub};
 
-/// A span, an offset and dimension.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Span(fps, fps);
+/// A span, a one-dimensional offset and length.
+///
+/// Note that the offset can be negative.
+/// TODO: may a finite scalar type should be introduced.
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Span(scalar, fps);
+// Scalar can not NaN, so implement Eq
+impl Eq for Span {}
 
-pub fn span(start: impl Into<fps>, dim: impl Into<fps>) -> Span {
-    Span(start.into(), dim.into())
+pub fn span(start: scalar, dim: impl Into<fps>) -> Span {
+    Span(start, dim.into())
 }
 
 impl Span {
@@ -14,7 +19,7 @@ impl Span {
         span(0.0, 0.0)
     }
 
-    pub fn start(&self) -> fps {
+    pub fn start(&self) -> scalar {
         self.0
     }
 
@@ -23,11 +28,20 @@ impl Span {
     }
 }
 
-/// A finite, positive, non-NaN scalar with support for Eq.
-#[allow(non_upper_case_globals)]
+/// A finite, positive, non-NaN scalar.
+///
+/// TODO: rename to length().
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct fps(scalar);
 impl Eq for fps {}
+
+impl Deref for fps {
+    type Target = scalar;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl From<scalar> for fps {
     fn from(v: scalar) -> Self {

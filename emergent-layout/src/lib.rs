@@ -1,4 +1,4 @@
-use emergent_drawing::{DrawingCanvas, Point, Rect, Size};
+use emergent_drawing::{scalar, DrawingCanvas, Point, Rect, Size};
 
 pub mod constraints;
 pub mod layout;
@@ -7,34 +7,59 @@ mod grid;
 pub use grid::*;
 
 mod types;
+use crate::constraints::Linear;
+use crate::layout::Constrain;
 pub use types::*;
 
 pub trait Layout {
-    /// Compute the combined constraints of the given axis.
-    fn compute_constraints(&self, axis: usize) -> constraints::Dim;
-
-    /// Distribute the available span on the given axis.
+    /// Compute the constraints of the given axis.
     ///
-    /// This might change constraints of the other axes.
-    fn layout(&mut self, axis: usize, span: Span);
+    /// Returns None if layout of this axis is not supported.
+    fn compute_constraints(&self, axis: usize) -> Option<Linear>;
+
+    /// Layouts the given axis according to the given bound.
+    ///
+    /// The element is supposed to return a finite positive length of the current's
+    /// axis size, and the next axis to layout, or None if layout of
+    /// all axes is completed. The returned axis is not allowed to contain an axis
+    /// that has already been completed layout.
+    fn layout(
+        &mut self,
+        completed_axes: &CompletedAxes,
+        axis: usize,
+        bound: Bound,
+    ) -> (fps, Option<usize>);
+
+    /// Positions this layout on all the axes.
+    fn position(&mut self, spans: &[Span]);
 }
 
-pub trait Constrain<'a, L>
-where
-    L: Layout + 'a,
-{
-    fn constrain(&'a mut self, constraints: constraints::Rect) -> L;
+/// A layout bound on an axis.
+///
+/// TOOD: this looks similar to Max.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Bound {
+    Unbounded,
+    Bounded(fps),
 }
 
-impl<'a> Constrain<'a, layout::Rect<'a>> for Rect {
-    fn constrain(&mut self, constraints: constraints::Rect) -> layout::Rect {
-        layout::Rect {
-            constraints,
-            result: self.into(),
+pub trait LayoutExtensions: Layout {
+    fn constrain(&mut self, constraints: &[Linear]) -> Constrain;
+}
+
+impl<T: Layout> LayoutExtensions for T {
+    fn constrain(&mut self, constraints: &[Linear]) -> Constrain {
+        Constrain {
+            layout: self,
+            constraints: constraints.to_vec(),
         }
     }
 }
 
+/// A ResultRef is just a mutable Rectangle for now.
+type ResultRef<'a> = &'a mut Rect;
+
+/*
 /// A mut reference to either a Rect or a Grid.
 ///
 /// This type is used as a placeholder that points to the result of a layout
@@ -44,6 +69,23 @@ pub enum ResultRef<'a> {
     Grid(&'a mut Grid),
 }
 
+impl<'a> ResultRef<'a> {
+    pub fn set_span(&mut self, axis: usize, span: Span) {
+        match self {
+            Rect(rect) => {
+                rect.set_span(rect.0).0 = span.start;
+            }
+        }
+
+    }
+
+
+
+}
+
+*/
+
+/*
 impl<'a> From<&'a mut Rect> for ResultRef<'a> {
     fn from(rect: &mut Rect) -> ResultRef {
         ResultRef::Rect(rect)
@@ -54,6 +96,122 @@ impl<'a> From<&'a mut Grid> for ResultRef<'a> {
     fn from(grid: &mut Grid) -> ResultRef {
         ResultRef::Grid(grid)
     }
+}
+*/
+
+/// A Rect as a layout.
+///
+/// The size will stay fixed, and the position is set when positioned.
+impl Layout for Rect {
+    fn compute_constraints(&self, axis: usize) -> Option<Linear> {
+        let length = match axis {
+            0 => Some(self.width()),
+            1 => Some(self.height()),
+            _ => None,
+        };
+
+        length.map(|l| Linear::fixed(l.into()))
+    }
+
+    fn layout(
+        &mut self,
+        completed: &CompletedAxes,
+        axis: usize,
+        bound: Bound,
+    ) -> (fps, Option<usize>) {
+        let length = self.compute_constraints(axis).unwrap().layout(bound);
+        self.set_length(axis, length);
+        (length, completed.first_incomplete_except(axis))
+    }
+
+    fn position(&mut self, spans: &[Span]) {
+        spans
+            .iter()
+            .enumerate()
+            .for_each(|(axis, span)| self.set_span(axis, *span))
+    }
+}
+
+trait RectHelper {
+    fn set_pos(&mut self, axis: usize, pos: scalar);
+    fn set_length(&mut self, axis: usize, length: fps);
+    fn set_span(&mut self, axis: usize, span: Span) {
+        self.set_pos(axis, span.start());
+        self.set_length(axis, span.size());
+    }
+}
+
+impl RectHelper for Rect {
+    fn set_pos(&mut self, axis: usize, pos: scalar) {
+        match axis {
+            0 => self.0 = Point(pos, self.top()),
+            1 => self.0 = Point(self.left(), pos),
+            _ => panic!("invalid axis"),
+        }
+    }
+
+    fn set_length(&mut self, axis: usize, length: fps) {
+        match axis {
+            0 => self.1 = Size(*length, self.height()),
+            1 => self.1 = Size(self.width(), *length),
+            _ => {}
+        }
+    }
+}
+
+pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<fps> {
+    let axes = bounds.len();
+    let all_axes = 0..axes;
+    let (bounded, unbounded): (Vec<usize>, Vec<usize>) = all_axes.partition(|axis| {
+        if let Bound::Bounded(_) = bounds[*axis] {
+            true
+        } else {
+            false
+        }
+    });
+
+    // if layout() does not return a new recommended axis, this is the default
+    // order of the axes to be layouted, first all bounded then the unbounded
+    // ones.
+
+    let mut ordered: Vec<usize> = vec![bounded, unbounded].into_iter().flatten().collect();
+
+    let mut axis = *ordered.first().unwrap();
+    let mut completed = CompletedAxes::new(axes);
+    let mut lengths: Vec<fps> = vec![0.0.into(); axes];
+
+    loop {
+        let (length, next_axis) = layout.layout(&completed, axis, bounds[axis]);
+        lengths[axis] = length;
+        completed.complete_axis(axis);
+        if completed.is_complete() {
+            assert_eq!(next_axis, None);
+            break;
+        }
+
+        axis = match next_axis {
+            Some(axis) => {
+                assert!(!completed.is_axis_complete(axis));
+                axis
+            }
+            None => *ordered
+                .iter()
+                .find(|axis| !completed.is_axis_complete(**axis))
+                .unwrap(),
+        }
+    }
+
+    lengths
+}
+
+pub fn layout_and_position<L: Layout>(layout: &mut L, bounds: &[Bound], positions: &[scalar]) {
+    let lengths = self::layout(layout, bounds);
+    let spans: Vec<Span> = positions
+        .iter()
+        .enumerate()
+        .map(|(i, p)| span(*p, lengths[i]))
+        .collect();
+    layout.position(&spans);
 }
 
 /*
@@ -81,8 +239,44 @@ pub struct DimProperties {
 
 */
 
+/// Flags for each of the axes currently in layout that are completed.
+///
+/// TODO: use BitVec for that (crate bit_vec).
+#[derive(Clone, PartialEq, Eq, Default, Debug)]
+pub struct CompletedAxes(Vec<bool>);
+
+impl CompletedAxes {
+    pub fn new(axes: usize) -> CompletedAxes {
+        CompletedAxes(vec![false; axes])
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.0.iter().cloned().all(identity)
+    }
+
+    pub fn is_axis_complete(&self, axis: usize) -> bool {
+        self.0[axis]
+    }
+
+    pub fn complete_axis(&mut self, axis: usize) -> &mut Self {
+        self.0[axis] = true;
+        self
+    }
+
+    /// The first incomplete axis.
+    pub fn first_incomplete(&self) -> Option<usize> {
+        self.0.iter().cloned().position(|b| !b)
+    }
+
+    pub fn first_incomplete_except(&self, axis: usize) -> Option<usize> {
+        self.clone().complete_axis(axis).first_incomplete()
+    }
+}
+
 #[cfg(test)]
 use emergent_drawing::{Canvas, Color, Paint, Radius, RoundedRect};
+use std::convert::identity;
+use std::ops::Range;
 
 #[test]
 fn draw_circle() {
@@ -96,13 +290,17 @@ fn draw_circle() {
 
 #[test]
 fn test_simple_rect_layout() {
-    let constraints = [
-        constraints::Dim::min(10.into()),
-        constraints::Dim::min(20.into()),
-    ];
+    let constraints = [Linear::min(10.into()), Linear::min(20.into())];
     let mut r = Rect::default();
-    let mut layout = r.constrain(constraints);
-    layout.layout(0, span(10, 15));
+    let mut l = r.constrain(&constraints);
+    // LayoutAlgorithm::layout(&mut layout, &[Bound::Bounded(2.into()), Bound::Bounded(4.into())]);
+    layout_and_position(
+        &mut l,
+        &[Bound::Bounded(2.into()), Bound::Bounded(4.into())],
+        &[1.0, 2.0],
+    );
+
+    assert_eq!(r, Rect(Point::from((1, 3)), Size::from((2, 4))));
 
     let mut canvas = DrawingCanvas::new();
     let mut paint = &mut Paint::default();

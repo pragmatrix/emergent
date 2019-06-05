@@ -11,8 +11,10 @@ path = "src/lib/lib.rs"
 [workspace]
 exclude = ["rust-skia", "vulkano"]
 members = [
+  "emergent-cache",
   "emergent-drawing",
-  "emergent-layout" 
+  "emergent-layout", 
+  "emergent-concept"
 ]
 
 [dependencies]

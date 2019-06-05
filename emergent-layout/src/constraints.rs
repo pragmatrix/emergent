@@ -1,43 +1,129 @@
 use crate::fps;
+use crate::Bound;
 
-/// Two-dimensional constraints.
-pub type Rect = [Dim; 2];
+/// Area constraints.
+pub type Area = [Linear; 2];
 
-/// One-dimensional hard constraints.
+/// Volume constraint.
+pub type Volume = [Linear; 3];
+
+/// Linear constraint.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Dim {
+pub struct Linear {
     min: fps,
-    // The additional size element prefers,
-    // if 0, min _must_ be the size of the element, if
-    // set min+range is the preferred _and_ the maximum size.
-    // If not set, everything >= min is tolerated.
-    range: Option<fps>,
+    /// The additional length preferred over min.
+    preferred: fps,
+    /// The additional length the defines the maximum added to min + preferred.
+    /// If not set, there is no maximum size.
+    max: Max,
 }
 
-impl Dim {
-    pub fn identity() -> Dim {
-        Dim {
-            min: 0.0.into(),
-            range: None,
+impl Linear {
+    /// A linear constraint that just specifies a minimum size.
+    pub fn min(min: fps) -> Linear {
+        Linear {
+            min,
+            preferred: 0.0.into(),
+            max: Max::Infinite,
         }
     }
 
-    /// A constraint that just specifies a minimum size.
-    pub fn min(min: fps) -> Dim {
-        Dim { min, range: None }
+    /// A fixed size constraint.
+    /// TODO: may rename to tight?
+    pub fn fixed(value: fps) -> Linear {
+        Linear {
+            min: value,
+            preferred: 0.0.into(),
+            max: Max::Finite(0.0.into()),
+        }
     }
 
-    /// Combine the constraints of one axis to create a combined constraint for all
-    /// the elements of that axis.
-    pub fn combine(a: &[Dim]) -> Dim {
-        a.iter().fold(Self::identity(), |a, b| Dim {
-            min: a.min + b.min,
-            range: match (a.range, b.range) {
-                (Some(a), None) => Some(a),
-                (None, Some(b)) => Some(b),
-                (Some(a), Some(b)) => Some(a + b),
-                (None, None) => None,
-            },
-        })
+    /// The effective preferred size.
+    ///
+    /// Equals to min + preferred.
+    pub fn effective_preferred(&self) -> fps {
+        self.min + self.preferred
+    }
+
+    /// The effective maximum size.
+    pub fn effective_max(&self) -> Max {
+        self.max.map(|m| self.min + self.preferred + m)
+    }
+
+    /// Combine the constraints of one axis to create a constraint that represents
+    /// the elements of that axis layouted one after each other.
+    pub fn directional(a: &[Linear]) -> Linear {
+        match a.len() {
+            0 => panic!("internal error: zero directional constraints"),
+            1 => *a.first().unwrap(),
+            _ => a[1..].iter().fold(a[0], |a, b| Linear {
+                min: a.min + b.min,
+                preferred: a.preferred + b.preferred,
+                max: match (a.max, b.max) {
+                    (Max::Finite(a), Max::Infinite) => Max::Infinite,
+                    (Max::Infinite, Max::Finite(b)) => Max::Infinite,
+                    (Max::Finite(a), Max::Finite(b)) => Max::Finite(a + b),
+                    (Max::Infinite, Max::Infinite) => Max::Infinite,
+                },
+            }),
+        }
+    }
+
+    pub fn orthogonal(a: &[Linear]) -> Linear {
+        match a.len() {
+            0 => panic!("internal error: zero orthogonal constraints"),
+            1 => *a.first().unwrap(),
+            _ => a[1..].iter().fold(a[0], |a, b| Linear {
+                min: a.min.max(b.min),
+                // try to give every element the preferred size, so we
+                // use max here and not average.
+                preferred: a.preferred.max(b.preferred),
+                max: match (a.max, b.max) {
+                    (Max::Finite(a), Max::Infinite) => Max::Finite(a),
+                    (Max::Infinite, Max::Finite(b)) => Max::Finite(b),
+                    // note: the maximum of an element can be always exceeded
+                    // when the element gets sized, which means that is must be
+                    // aligned inside its box, which the element decides how.
+                    (Max::Finite(a), Max::Finite(b)) => Max::Finite(a.max(b)),
+                    (Max::Infinite, Max::Infinite) => Max::Infinite,
+                },
+            }),
+        }
+    }
+
+    /// Layouts the linear constraint.
+    ///
+    /// For an unbounded Bound, this uses the preferred size.
+    ///
+    /// For an bounded Bound, this _always_ returns the bound's finite size.
+    ///
+    /// The rationale behind that is that the Bound is considered unchangeable,
+    /// meaning the element _must_ fit into, even if it gets overconstrained,
+    /// and this leaves the element a final say in the positioning, for examnple, it
+    /// might decide to comply to it by sizing itself below its minimum size, or
+    /// it might show only a part of itself.
+    pub fn layout(&self, bound: Bound) -> fps {
+        match bound {
+            Bound::Unbounded => self.effective_preferred(),
+            Bound::Bounded(length) => length,
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Max {
+    Finite(fps),
+    Infinite,
+}
+
+impl Max {
+    pub fn map<F>(&self, f: F) -> Max
+    where
+        F: Fn(fps) -> fps,
+    {
+        match *self {
+            Max::Finite(v) => Max::Finite(f(v)),
+            Max::Infinite => Max::Infinite,
+        }
     }
 }
