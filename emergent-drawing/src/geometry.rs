@@ -13,11 +13,11 @@ impl Vector {
 
 impl Point {
     pub fn left(&self) -> scalar {
-        self.1
+        self.0
     }
 
     pub fn top(&self) -> scalar {
-        self.0
+        self.1
     }
 
     pub fn x(&self) -> scalar {
