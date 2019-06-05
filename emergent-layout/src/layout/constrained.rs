@@ -1,12 +1,12 @@
-use crate::{constraints, length, Bound, CompletedAxes, Layout, Span};
+use crate::{constraints, length, Bound, CompletedAxes, Layout, Linear, Span};
 
 /// A layout that overrides the constraints of another layout.
-pub struct Constrain<'a> {
+pub struct Constrained<'a> {
     pub layout: &'a mut Layout,
     pub constraints: Vec<constraints::Linear>,
 }
 
-impl<'a> Layout for Constrain<'a> {
+impl<'a> Layout for Constrained<'a> {
     fn compute_constraints(&self, axis: usize) -> Option<constraints::Linear> {
         self.constraints.get(axis).cloned()
     }
@@ -22,5 +22,21 @@ impl<'a> Layout for Constrain<'a> {
 
     fn position(&mut self, spans: &[Span]) {
         self.layout.position(spans)
+    }
+}
+
+pub trait Constrain: Layout {
+    fn constrain(&mut self, constraints: &[Linear]) -> Constrained;
+}
+
+impl<T> Constrain for T
+where
+    T: Layout,
+{
+    fn constrain(&mut self, constraints: &[Linear]) -> Constrained {
+        Constrained {
+            layout: self,
+            constraints: constraints.to_vec(),
+        }
     }
 }

@@ -1,8 +1,11 @@
 mod border;
 pub use border::*;
 
-mod constrain;
-pub use constrain::*;
+mod constrained;
+pub use constrained::*;
+
+mod rect;
+pub use rect::*;
 
 mod text;
 pub use text::*;
