@@ -60,5 +60,4 @@ mod tests {
         canvas.draw(r, &paint);
         canvas.render();
     }
-
 }
