@@ -34,7 +34,7 @@ impl Linear {
         Linear {
             min: value,
             preferred: 0.0.into(),
-            max: Max::Finite(0.0.into()),
+            max: Max::Length(0.0.into()),
         }
     }
 
@@ -60,9 +60,9 @@ impl Linear {
                 min: a.min + b.min,
                 preferred: a.preferred + b.preferred,
                 max: match (a.max, b.max) {
-                    (Max::Finite(_), Max::Infinite) => Max::Infinite,
-                    (Max::Infinite, Max::Finite(_)) => Max::Infinite,
-                    (Max::Finite(a), Max::Finite(b)) => Max::Finite(a + b),
+                    (Max::Length(_), Max::Infinite) => Max::Infinite,
+                    (Max::Infinite, Max::Length(_)) => Max::Infinite,
+                    (Max::Length(a), Max::Length(b)) => Max::Length(a + b),
                     (Max::Infinite, Max::Infinite) => Max::Infinite,
                 },
             }),
@@ -79,12 +79,12 @@ impl Linear {
                 // use max here and not average.
                 preferred: a.preferred.max(b.preferred),
                 max: match (a.max, b.max) {
-                    (Max::Finite(a), Max::Infinite) => Max::Finite(a),
-                    (Max::Infinite, Max::Finite(b)) => Max::Finite(b),
+                    (Max::Length(a), Max::Infinite) => Max::Length(a),
+                    (Max::Infinite, Max::Length(b)) => Max::Length(b),
                     // note: the maximum of an element can be always exceeded
                     // when the element gets sized, which means that is must be
                     // aligned inside its box, which the element decides how.
-                    (Max::Finite(a), Max::Finite(b)) => Max::Finite(a.max(b)),
+                    (Max::Length(a), Max::Length(b)) => Max::Length(a.max(b)),
                     (Max::Infinite, Max::Infinite) => Max::Infinite,
                 },
             }),
@@ -112,7 +112,7 @@ impl Linear {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Max {
-    Finite(length),
+    Length(length),
     Infinite,
 }
 
@@ -122,7 +122,7 @@ impl Max {
         F: Fn(length) -> length,
     {
         match *self {
-            Max::Finite(v) => Max::Finite(f(v)),
+            Max::Length(v) => Max::Length(f(v)),
             Max::Infinite => Max::Infinite,
         }
     }
