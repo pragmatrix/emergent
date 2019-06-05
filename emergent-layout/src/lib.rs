@@ -28,7 +28,7 @@ pub trait Layout {
         completed_axes: &CompletedAxes,
         axis: usize,
         bound: Bound,
-    ) -> (fps, Option<usize>);
+    ) -> (length, Option<usize>);
 
     /// Positions this layout on all the axes.
     fn position(&mut self, spans: &[Span]);
@@ -40,7 +40,7 @@ pub trait Layout {
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Bound {
     Unbounded,
-    Bounded(fps),
+    Bounded(length),
 }
 
 pub trait LayoutExtensions: Layout {
@@ -118,7 +118,7 @@ impl Layout for Rect {
         completed: &CompletedAxes,
         axis: usize,
         bound: Bound,
-    ) -> (fps, Option<usize>) {
+    ) -> (length, Option<usize>) {
         let length = self.compute_constraints(axis).unwrap().layout(bound);
         self.set_length(axis, length);
         (length, completed.first_incomplete_except(axis))
@@ -134,7 +134,7 @@ impl Layout for Rect {
 
 trait RectHelper {
     fn set_pos(&mut self, axis: usize, pos: scalar);
-    fn set_length(&mut self, axis: usize, length: fps);
+    fn set_length(&mut self, axis: usize, length: length);
     fn set_span(&mut self, axis: usize, span: Span) {
         self.set_pos(axis, span.start());
         self.set_length(axis, span.size());
@@ -150,7 +150,7 @@ impl RectHelper for Rect {
         }
     }
 
-    fn set_length(&mut self, axis: usize, length: fps) {
+    fn set_length(&mut self, axis: usize, length: length) {
         match axis {
             0 => self.1 = Size(*length, self.height()),
             1 => self.1 = Size(self.width(), *length),
@@ -159,7 +159,7 @@ impl RectHelper for Rect {
     }
 }
 
-pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<fps> {
+pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<length> {
     let axes = bounds.len();
     let all_axes = 0..axes;
     let (bounded, unbounded): (Vec<usize>, Vec<usize>) = all_axes.partition(|axis| {
@@ -178,7 +178,7 @@ pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<fps> {
 
     let mut axis = *ordered.first().unwrap();
     let mut completed = CompletedAxes::new(axes);
-    let mut lengths: Vec<fps> = vec![0.0.into(); axes];
+    let mut lengths: Vec<length> = vec![0.0.into(); axes];
 
     loop {
         let (length, next_axis) = layout.layout(&completed, axis, bounds[axis]);

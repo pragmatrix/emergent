@@ -1,4 +1,4 @@
-use crate::{constraints, fps, Bound, CompletedAxes, Layout, Span};
+use crate::{constraints, length, Bound, CompletedAxes, Layout, Span};
 
 /// A layout that overrides the constraints of another layout.
 pub struct Constrain<'a> {
@@ -16,7 +16,7 @@ impl<'a> Layout for Constrain<'a> {
         completed: &CompletedAxes,
         axis: usize,
         bound: Bound,
-    ) -> (fps, Option<usize>) {
+    ) -> (length, Option<usize>) {
         self.layout.layout(completed, axis, bound)
     }
 

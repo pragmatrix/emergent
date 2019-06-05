@@ -1,5 +1,5 @@
 use crate::constraints::Linear;
-use crate::{constraints, fps, Bound, CompletedAxes, Layout, RectHelper, ResultRef, Span};
+use crate::{constraints, length, Bound, CompletedAxes, Layout, RectHelper, ResultRef, Span};
 use std::cell::Cell;
 use std::hash::Hash;
 
@@ -14,7 +14,7 @@ pub trait MeasureText {
     ///
     /// If the maximum length is None, the text should be layouted without
     /// imposed wrapping.
-    fn measure_text(&self, text: &Self::Text, max: Option<fps>) -> (fps, fps);
+    fn measure_text(&self, text: &Self::Text, max: Option<length>) -> (length, length);
 }
 
 /// Layout of text.
@@ -60,7 +60,7 @@ impl<'a, MT: MeasureText> Layout for Text<'a, MT> {
         completed: &CompletedAxes,
         axis: usize,
         bound: Bound,
-    ) -> (fps, Option<usize>) {
+    ) -> (length, Option<usize>) {
         if axis == self.main_axis {
             match bound {
                 Bound::Unbounded => {

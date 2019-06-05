@@ -1,4 +1,4 @@
-use crate::fps;
+use crate::length;
 use crate::Bound;
 
 /// Area constraints.
@@ -10,9 +10,9 @@ pub type Volume = [Linear; 3];
 /// Linear constraint.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Linear {
-    min: fps,
+    min: length,
     /// The additional length preferred over min.
-    preferred: fps,
+    preferred: length,
     /// The additional length the defines the maximum added to min + preferred.
     /// If not set, there is no maximum size.
     max: Max,
@@ -20,7 +20,7 @@ pub struct Linear {
 
 impl Linear {
     /// A linear constraint that just specifies a minimum size.
-    pub fn min(min: fps) -> Linear {
+    pub fn min(min: length) -> Linear {
         Linear {
             min,
             preferred: 0.0.into(),
@@ -30,7 +30,7 @@ impl Linear {
 
     /// A fixed size constraint.
     /// TODO: may rename to tight?
-    pub fn fixed(value: fps) -> Linear {
+    pub fn fixed(value: length) -> Linear {
         Linear {
             min: value,
             preferred: 0.0.into(),
@@ -41,7 +41,7 @@ impl Linear {
     /// The effective preferred size.
     ///
     /// Equals to min + preferred.
-    pub fn effective_preferred(&self) -> fps {
+    pub fn effective_preferred(&self) -> length {
         self.min + self.preferred
     }
 
@@ -102,7 +102,7 @@ impl Linear {
     /// and this leaves the element a final say in the positioning, for examnple, it
     /// might decide to comply to it by sizing itself below its minimum size, or
     /// it might show only a part of itself.
-    pub fn layout(&self, bound: Bound) -> fps {
+    pub fn layout(&self, bound: Bound) -> length {
         match bound {
             Bound::Unbounded => self.effective_preferred(),
             Bound::Bounded(length) => length,
@@ -112,14 +112,14 @@ impl Linear {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Max {
-    Finite(fps),
+    Finite(length),
     Infinite,
 }
 
 impl Max {
     pub fn map<F>(&self, f: F) -> Max
     where
-        F: Fn(fps) -> fps,
+        F: Fn(length) -> length,
     {
         match *self {
             Max::Finite(v) => Max::Finite(f(v)),

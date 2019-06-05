@@ -1,4 +1,4 @@
-use crate::{fps, Span};
+use crate::{length, Span};
 use emergent_drawing::Rect;
 use std::ops::Range;
 
@@ -10,7 +10,7 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn size(&self, axis: usize, range: Range<usize>) -> fps {
+    pub fn size(&self, axis: usize, range: Range<usize>) -> length {
         unimplemented!()
     }
 
