@@ -12,6 +12,9 @@ pub use span::*;
 use crate::constraints::Linear;
 use crate::layout::Constrain;
 
+/// A ResultRef is just a mutable Rectangle for now.
+pub type ResultRef<'a> = &'a mut Rect;
+
 pub trait Layout {
     /// Compute the constraints of the given axis.
     ///
@@ -57,52 +60,9 @@ impl<T: Layout> LayoutExtensions for T {
     }
 }
 
-/// A ResultRef is just a mutable Rectangle for now.
-type ResultRef<'a> = &'a mut Rect;
-
-/*
-/// A mut reference to either a Rect or a Grid.
-///
-/// This type is used as a placeholder that points to the result of a layout
-/// computation.
-pub enum ResultRef<'a> {
-    Rect(&'a mut Rect),
-    Grid(&'a mut Grid),
-}
-
-impl<'a> ResultRef<'a> {
-    pub fn set_span(&mut self, axis: usize, span: Span) {
-        match self {
-            Rect(rect) => {
-                rect.set_span(rect.0).0 = span.start;
-            }
-        }
-
-    }
-
-
-
-}
-
-*/
-
-/*
-impl<'a> From<&'a mut Rect> for ResultRef<'a> {
-    fn from(rect: &mut Rect) -> ResultRef {
-        ResultRef::Rect(rect)
-    }
-}
-
-impl<'a> From<&'a mut Grid> for ResultRef<'a> {
-    fn from(grid: &mut Grid) -> ResultRef {
-        ResultRef::Grid(grid)
-    }
-}
-*/
-
 /// A Rect as a layout.
 ///
-/// The size will stay fixed, and the position is set when positioned.
+/// The size of the rect acts as the fixed area constraint, and the position is set when positioned.
 impl Layout for Rect {
     fn compute_constraints(&self, axis: usize) -> Option<Linear> {
         let length = match axis {
@@ -160,21 +120,17 @@ impl RectHelper for Rect {
     }
 }
 
-pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<length> {
+pub fn layout<L>(layout: &mut L, bounds: &[Bound]) -> Vec<length>
+where
+    L: Layout,
+{
     let axes = bounds.len();
-    let all_axes = 0..axes;
-    let (bounded, unbounded): (Vec<usize>, Vec<usize>) = all_axes.partition(|axis| {
-        if let Bound::Bounded(_) = bounds[*axis] {
-            true
-        } else {
-            false
-        }
-    });
+    let (bounded, unbounded): (Vec<usize>, Vec<usize>) =
+        (0..axes).partition(|axis| bounds[*axis] != Bound::Unbounded);
 
     // if layout() does not return a new recommended axis, this is the default
     // order of the axes to be layouted, first all bounded then the unbounded
     // ones.
-
     let ordered: Vec<usize> = vec![bounded, unbounded].into_iter().flatten().collect();
 
     let mut axis = *ordered.first().unwrap();
@@ -205,7 +161,10 @@ pub fn layout<L: Layout>(layout: &mut L, bounds: &[Bound]) -> Vec<length> {
     lengths
 }
 
-pub fn layout_and_position<L: Layout>(layout: &mut L, bounds: &[Bound], positions: &[scalar]) {
+pub fn layout_and_position<L>(layout: &mut L, bounds: &[Bound], positions: &[scalar])
+where
+    L: Layout,
+{
     let lengths = self::layout(layout, bounds);
     let spans: Vec<Span> = positions
         .iter()
@@ -294,11 +253,10 @@ fn test_simple_rect_layout() {
     let constraints = [Linear::min(10.into()), Linear::min(20.into())];
     let mut r = Rect::default();
     let mut l = r.constrain(&constraints);
-    // LayoutAlgorithm::layout(&mut layout, &[Bound::Bounded(2.into()), Bound::Bounded(4.into())]);
     layout_and_position(
         &mut l,
         &[Bound::Bounded(2.into()), Bound::Bounded(4.into())],
-        &[1.0, 2.0],
+        &[1.0, 3.0],
     );
 
     assert_eq!(r, Rect(Point::from((1, 3)), Size::from((2, 4))));
