@@ -1,5 +1,5 @@
-use crate::length;
-use crate::Bound;
+use crate::{finite, length, span, Bound, Span};
+use std::cmp::Ordering;
 
 /// Area constraints.
 pub type Area = [Linear; 2];
@@ -13,8 +13,8 @@ pub struct Linear {
     min: length,
     /// The additional length preferred added to min.
     preferred: length,
-    /// The additional length the defines the maximum added to min + preferred.
-    /// If not set, there is no maximum size.
+    /// The additional length the defines the maximum added to min + preferred, or Infinite
+    /// when this element can be stretched to arbitrary lengths.
     max: Max,
 }
 
@@ -41,12 +41,12 @@ impl Linear {
     /// The effective preferred size.
     ///
     /// Equals to min + preferred.
-    pub fn effective_preferred(&self) -> length {
+    pub fn preferred_effective(&self) -> length {
         self.min + self.preferred
     }
 
     /// The effective maximum size.
-    pub fn effective_max(&self) -> Max {
+    pub fn max_effective(&self) -> Max {
         self.max.map(|m| self.min + self.preferred + m)
     }
 
@@ -63,7 +63,7 @@ impl Linear {
     /// it might show only a part of itself.
     pub fn layout(&self, bound: Bound) -> length {
         match bound {
-            Bound::Unbounded => self.effective_preferred(),
+            Bound::Unbounded => self.preferred_effective(),
             Bound::Bounded(length) => length,
         }
     }
@@ -117,10 +117,147 @@ impl Combine<Linear> for [Linear] {
     }
 }
 
+pub trait Place<T> {
+    fn place(&self, start: finite, bound: Bound) -> Vec<Span>;
+}
+
+impl Place<Linear> for [Linear] {
+    fn place(&self, start: finite, bound: Bound) -> Vec<Span> {
+        match bound {
+            // bounded, use minimum sizes.
+            Bound::Unbounded => self
+                .iter()
+                .scan(start, |cur, l| {
+                    let c = *cur;
+                    *cur = *cur + l.min;
+                    Some(span(c, l.min))
+                })
+                .collect(),
+            Bound::Bounded(length) => place_bounded(self, start, length),
+        }
+    }
+}
+
+pub trait Distribute<T> {
+    fn distribute(&mut self, space: T, weights: &[T]);
+}
+
+impl Distribute<length> for [length] {
+    /// Distribute space relatively defined by some weights.
+    fn distribute(&mut self, space: length, weights: &[length]) {
+        assert_eq!(self.len(), weights.len());
+        let all: length = weights.iter().cloned().sum();
+        for i in 0..self.len() {
+            self[i] += weights[i] * space / all
+        }
+    }
+}
+
+fn place_bounded(constraints: &[Linear], start: finite, bound: length) -> Vec<Span> {
+    let min: length = constraints.iter().map(|c| c.min).sum();
+    if bound <= min {
+        // bound is below or at the minimum size
+        // -> size all elements to their minimum risking a layout overflow.
+        // TODO: implement wrapping.
+        return to_spans(start, constraints.iter().map(|c| c.min)).collect();
+    }
+    // bound > min
+    let preferred: length = constraints.iter().map(|c| c.preferred_effective()).sum();
+    if bound <= preferred {
+        // bound is over min, but below preferred.
+        // so we distribute the remaining space over min.
+        // weight is preferred (delta from min to effective_preferred)
+        let weights: Vec<length> = constraints.iter().map(|c| c.preferred).collect();
+        let mut lengths: Vec<length> = constraints.iter().map(|c| c.min).collect();
+        lengths
+            .as_mut_slice()
+            .distribute(bound - min, weights.as_slice());
+        return to_spans(start, lengths.into_iter()).collect();
+    }
+    // bound > preferred
+    {
+        let balanced = compute_smallest_balanced_layout(constraints);
+        let balanced_all: length = balanced.iter().cloned().sum();
+        if bound <= balanced_all {
+            // distribution weights are the balanced layout lengths minus the preferred effective.
+            let mut lengths: Vec<length> = constraints
+                .iter()
+                .map(|c| c.preferred_effective())
+                .collect();
+            let weights: Vec<length> = (0..constraints.len())
+                .map(|i| balanced[i] - lengths[i])
+                .collect();
+            lengths
+                .as_mut_slice()
+                .distribute(bound - balanced_all, weights.as_slice());
+            return to_spans(start, lengths.into_iter()).collect();
+        }
+    }
+    // bound > smallest balanced layout
+
+    if let Max::Length(max_length) = constraints.iter().map(|c| c.max_effective()).max().unwrap() {
+        if bound <= max_length {
+            // bound is inside the maximum layout possible.
+            // So we need to compute a (balanced) layout with the remaining space available.
+            // TODO
+            return unimplemented!();
+        }
+
+        // bound is > max size
+        // TODO: Element Alignment!
+        return unimplemented!();
+    }
+
+    // there is no maximum size, compute a balanced layout with the remaining space available.
+    return unimplemented!();
+}
+
+/// Convert a starting point and a number of length's to spans.
+fn to_spans(start: finite, it: impl Iterator<Item = length>) -> impl Iterator<Item = Span> {
+    it.scan(start, |cur, l| {
+        let c = *cur;
+        *cur = *cur + l;
+        Some(span(c, l))
+    })
+}
+
+/// Compute the smallest possible balanced layout.
+///
+/// The balanced layout is a layout that sizes all elements to the preferred
+/// size of the largest element while also keeping their size below their max.
+fn compute_smallest_balanced_layout(constraints: &[Linear]) -> Vec<length> {
+    let max_preferred = constraints
+        .iter()
+        .map(|c| c.preferred_effective())
+        .max()
+        .unwrap();
+    constraints
+        .iter()
+        .map(|c| c.max_effective().limit(max_preferred))
+        .collect()
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Max {
     Length(length),
     Infinite,
+}
+
+impl PartialOrd for Max {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (*self, *other) {
+            (Max::Length(s), Max::Length(o)) => s.partial_cmp(&o),
+            (Max::Infinite, Max::Length(_)) => Some(Ordering::Greater),
+            (Max::Length(_), Max::Infinite) => Some(Ordering::Less),
+            (Max::Infinite, Max::Infinite) => Some(Ordering::Equal),
+        }
+    }
+}
+
+impl Ord for Max {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }
 
 impl Max {
@@ -131,6 +268,14 @@ impl Max {
         match *self {
             Max::Length(v) => Max::Length(f(v)),
             Max::Infinite => Max::Infinite,
+        }
+    }
+
+    /// Limit a length to the maximum.
+    pub fn limit(&self, l: length) -> length {
+        match *self {
+            Max::Length(s) => l.min(s),
+            Max::Infinite => l,
         }
     }
 }
