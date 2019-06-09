@@ -8,7 +8,7 @@ use crate::{
 pub trait Canvas<DT: DrawingTarget> {
     fn target(&mut self) -> &mut DT;
 
-    fn draw<IS: Into<Shape>>(&mut self, shape: IS, paint: &Paint) -> &mut Self {
+    fn draw(&mut self, shape: impl Into<Shape>, paint: &Paint) -> &mut Self {
         self.target().draw(&shape.into(), paint);
         self
     }
