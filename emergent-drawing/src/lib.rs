@@ -10,6 +10,8 @@ pub use drawing::*;
 mod drawing_target;
 pub use drawing_target::*;
 
+pub mod functions;
+
 mod geometry;
 pub use geometry::*;
 

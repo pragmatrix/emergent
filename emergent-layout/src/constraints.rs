@@ -368,7 +368,7 @@ impl Max {
 
 mod tests {
     use crate::constraints::{Linear, Max};
-    use emergent_drawing::{scalar, Canvas, DrawingCanvas, Line, Paint, PaintStyle, Rect};
+    use emergent_drawing::{functions::*, scalar, Canvas, DrawingCanvas, PaintStyle};
 
     #[test]
     fn visualized_constraints() {
@@ -388,9 +388,9 @@ mod tests {
         ];
 
         let mut canvas = DrawingCanvas::new();
-        let blue = Paint::new().color(0xff0000ff).clone();
-        let green = Paint::new().color(0xff00ff00).clone();
-        let red = Paint::new().color(0xffff0000).clone();
+        let blue = paint().color(0xff0000ff).clone();
+        let green = paint().color(0xff00ff00).clone();
+        let red = paint().color(0xffff0000).clone();
 
         let width = 64.0;
         let mut left = 0.0;
@@ -401,19 +401,15 @@ mod tests {
 
             let right = left + width;
 
-            let min_line = Line::from(((left, height - min).into(), (right, height - min).into()));
+            let min_line = line((left, height - min), (right, height - min));
             canvas.draw(min_line, &blue);
 
-            let preferred_line = Line::from((
-                (left, height - preferred).into(),
-                (right, height - preferred).into(),
-            ));
+            let preferred_line = line((left, height - preferred), (right, height - preferred));
             canvas.draw(preferred_line, &green);
 
             if let Max::Length(max) = constraint.max_effective() {
                 let max = *max;
-                let max_line =
-                    Line::from(((left, height - max).into(), (right, height - max).into()));
+                let max_line = line((left, height - max), (right, height - max));
                 canvas.draw(max_line, &red);
             }
 
@@ -422,12 +418,9 @@ mod tests {
 
         {
             let width_box = width * constraints.len() as scalar;
-            let r = Rect::from(((0, 0).into(), (width_box, height).into()));
+            let r = rect((0, 0), (width_box, height));
 
-            let black = Paint::new()
-                .color(0xff808080)
-                .style(PaintStyle::Stroke)
-                .clone();
+            let black = paint().color(0xff808080).style(PaintStyle::Stroke).clone();
 
             canvas.draw(r, &black);
         }
