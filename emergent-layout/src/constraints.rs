@@ -368,7 +368,7 @@ impl Max {
 
 mod tests {
     use crate::constraints::{Linear, Max};
-    use emergent_drawing::{scalar, Canvas, Color, DrawingCanvas, Line, Paint, PaintStyle, Rect};
+    use emergent_drawing::{scalar, Canvas, DrawingCanvas, Line, Paint, PaintStyle, Rect};
 
     #[test]
     fn visualized_constraints() {
@@ -388,14 +388,9 @@ mod tests {
         ];
 
         let mut canvas = DrawingCanvas::new();
-        let mut blue = &mut Paint::default();
-        blue.color = Some(Color(0xff0000ff));
-
-        let mut green = &mut Paint::default();
-        green.color = Some(Color(0xff00ff00));
-
-        let mut red = &mut Paint::default();
-        red.color = Some(Color(0xffff0000));
+        let blue = Paint::new().color(0xff0000ff).clone();
+        let green = Paint::new().color(0xff00ff00).clone();
+        let red = Paint::new().color(0xffff0000).clone();
 
         let width = 64.0;
         let mut left = 0.0;
@@ -429,9 +424,10 @@ mod tests {
             let width_box = width * constraints.len() as scalar;
             let r = Rect::from(((0, 0).into(), (width_box, height).into()));
 
-            let mut black = &mut Paint::default();
-            black.color = Some(Color(0xff808080));
-            black.style = Some(PaintStyle::Stroke);
+            let black = Paint::new()
+                .color(0xff808080)
+                .style(PaintStyle::Stroke)
+                .clone();
 
             canvas.draw(r, &black);
         }

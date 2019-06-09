@@ -1,6 +1,9 @@
 mod canvas;
 pub use canvas::*;
 
+mod color;
+pub use color::*;
+
 mod drawing;
 pub use drawing::*;
 
@@ -12,6 +15,9 @@ pub use geometry::*;
 
 mod outline;
 pub use outline::*;
+
+mod paint;
+pub use paint::*;
 
 mod rect;
 pub use rect::*;
