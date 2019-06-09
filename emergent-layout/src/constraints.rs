@@ -133,7 +133,8 @@ impl Place<Linear> for [Linear] {
                     Some(span(c, l.min))
                 })
                 .collect(),
-            Bound::Bounded(length) => place_bounded(self, start, length),
+            // TODO: support alignment.
+            Bound::Bounded(length) => place_bounded(self, start, length, Alignment::Start),
         }
     }
 }
@@ -153,7 +154,20 @@ impl Distribute<length> for [length] {
     }
 }
 
-fn place_bounded(constraints: &[Linear], start: finite, bound: length) -> Vec<Span> {
+pub enum Alignment {
+    Start,
+    End,
+    Center,
+    SpaceBetween,
+    SpaceAround,
+}
+
+fn place_bounded(
+    constraints: &[Linear],
+    start: finite,
+    bound: length,
+    alignment: Alignment,
+) -> Vec<Span> {
     let min: length = constraints.iter().map(|c| c.min).sum();
     if bound <= min {
         // bound is below or at the minimum size
@@ -161,7 +175,9 @@ fn place_bounded(constraints: &[Linear], start: finite, bound: length) -> Vec<Sp
         // TODO: implement wrapping.
         return to_spans(start, constraints.iter().map(|c| c.min)).collect();
     }
+
     // bound > min
+
     let preferred: length = constraints.iter().map(|c| c.preferred_effective()).sum();
     if bound <= preferred {
         // bound is over min, but below preferred.
@@ -174,7 +190,9 @@ fn place_bounded(constraints: &[Linear], start: finite, bound: length) -> Vec<Sp
             .distribute(bound - min, weights.as_slice());
         return to_spans(start, lengths.into_iter()).collect();
     }
+
     // bound > preferred
+
     {
         let balanced = compute_smallest_balanced_layout(constraints);
         let balanced_all: length = balanced.iter().cloned().sum();
@@ -197,14 +215,14 @@ fn place_bounded(constraints: &[Linear], start: finite, bound: length) -> Vec<Sp
 
     if let Max::Length(max_length) = constraints.iter().map(|c| c.max_effective()).max().unwrap() {
         if bound <= max_length {
-            // bound is inside the maximum layout possible.
+            // bound is below the maximum layout possible.
             // So we need to compute a (balanced) layout with the remaining space available.
             // TODO
             return unimplemented!();
         }
 
         // bound is > max size
-        // TODO: Element Alignment!
+        // TODO: use alignment to place the elements.
         return unimplemented!();
     }
 
@@ -236,6 +254,72 @@ fn compute_smallest_balanced_layout(constraints: &[Linear]) -> Vec<length> {
         .map(|c| c.max_effective().limit(max_preferred))
         .collect()
 }
+
+/// A segment that describes a length range that can be interpolated linearly.
+struct InterpolationSegment<'a> {
+    /// Beginning length of all the elements.
+    begin: length,
+    /// Ending length of all the elements, this is where the next segment starts.
+    ///
+    /// The last segment may be infinite.
+    end: Max,
+    /// The maximums of the elements for this range only.
+    ///
+    /// This does include the elements that are smaller in a layout with start length,
+    /// and does not include the elements that max is larger in a layout with end length.
+    max_constraints: &'a Vec<Max>,
+}
+
+impl<'a> InterpolationSegment<'a> {
+    pub fn layout(&self, l: length) -> Vec<length> {
+        assert!(l >= self.begin);
+        assert!(Max::Length(l) <= self.end);
+        unimplemented!()
+    }
+}
+
+struct InterpolationSegmentIterator<'a> {
+    constraints: &'a [Linear],
+    base: Vec<length>,
+    max_sorted: Vec<(Max, usize)>,
+    current_max_index: usize,
+}
+
+/*
+impl<'a> Iterator for InterpolationSegmentIterator<'a> {
+    type Item = InterpolationSegment<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_max_index == self.max_sorted.len() {
+            return None;
+        }
+    }
+}
+
+impl<'a> InterpolationSegmentIterator<'a> {
+    pub fn from_constraints(constraints: &'a [Linear]) -> Self {
+        let mut sorted_max = {
+            let mut v: Vec<(Max, usize)> = constraints
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (c.max_effective(), i))
+                .collect();
+            v.sort();
+            v
+        };
+
+        Self {
+            constraints,
+            sorted_max,
+            current: 0,
+        }
+    }
+}
+*/
+
+/// An interator, that returns linear interpolation steps over the contraints.
+///
+/// This is used to keep the layout blanced while repecting their max sizes.
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Max {
@@ -277,5 +361,80 @@ impl Max {
             Max::Length(s) => l.min(s),
             Max::Infinite => l,
         }
+    }
+}
+
+#[cfg(test)]
+
+mod tests {
+    use crate::constraints::{Linear, Max};
+    use emergent_drawing::{scalar, Canvas, Color, DrawingCanvas, Line, Paint, PaintStyle, Rect};
+
+    #[test]
+    fn visualized_constraints() {
+        let height = 256.0;
+
+        let constraints = [
+            Linear {
+                min: 10.0.into(),
+                preferred: 15.0.into(),
+                max: Max::Infinite,
+            },
+            Linear {
+                min: 20.0.into(),
+                preferred: 15.0.into(),
+                max: Max::Length(20.0.into()),
+            },
+        ];
+
+        let mut canvas = DrawingCanvas::new();
+        let mut blue = &mut Paint::default();
+        blue.color = Some(Color(0xff0000ff));
+
+        let mut green = &mut Paint::default();
+        green.color = Some(Color(0xff00ff00));
+
+        let mut red = &mut Paint::default();
+        red.color = Some(Color(0xffff0000));
+
+        let width = 64.0;
+        let mut left = 0.0;
+
+        for constraint in &constraints {
+            let min = *constraint.min;
+            let preferred = *constraint.preferred_effective();
+
+            let right = left + width;
+
+            let min_line = Line::from(((left, height - min).into(), (right, height - min).into()));
+            canvas.draw(min_line, &blue);
+
+            let preferred_line = Line::from((
+                (left, height - preferred).into(),
+                (right, height - preferred).into(),
+            ));
+            canvas.draw(preferred_line, &green);
+
+            if let Max::Length(max) = constraint.max_effective() {
+                let max = *max;
+                let max_line =
+                    Line::from(((left, height - max).into(), (right, height - max).into()));
+                canvas.draw(max_line, &red);
+            }
+
+            left += width;
+        }
+
+        {
+            let width_box = width * constraints.len() as scalar;
+            let r = Rect::from(((0, 0).into(), (width_box, height).into()));
+
+            let mut black = &mut Paint::default();
+            black.color = Some(Color(0xff808080));
+            black.style = Some(PaintStyle::Stroke);
+
+            canvas.draw(r, &black);
+        }
+        canvas.render();
     }
 }
