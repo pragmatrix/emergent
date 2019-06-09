@@ -161,22 +161,43 @@ pub struct Matrix([scalar; 9]);
 // Contains Option values to support optimal serialization if values do not diverge from their defaults.
 // TODO: we need some way to resolve that to a paint _with_ all values set, and specify a default.
 // ref: https://skia.org/user/api/SkPaint_Reference
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Paint {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub style: Option<PaintStyle>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<Color>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_width: Option<scalar>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_miter: Option<scalar>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_cap: Option<StrokeCap>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke_join: Option<StrokeJoin>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub blend_mode: Option<BlendMode>,
+    #[serde(
+        skip_serializing_if = "Paint::is_style_default",
+        default = "Paint::default_style"
+    )]
+    pub style: PaintStyle,
+    #[serde(
+        skip_serializing_if = "Paint::is_color_default",
+        default = "Paint::default_color"
+    )]
+    pub color: Color,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_width_default",
+        default = "Paint::default_stroke_width"
+    )]
+    pub stroke_width: scalar,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_miter_default",
+        default = "Paint::default_stroke_miter"
+    )]
+    pub stroke_miter: scalar,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_cap_default",
+        default = "Paint::default_stroke_cap"
+    )]
+    pub stroke_cap: StrokeCap,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_join_default",
+        default = "Paint::default_stroke_join"
+    )]
+    pub stroke_join: StrokeJoin,
+    #[serde(
+        skip_serializing_if = "Paint::is_blend_mode_default",
+        default = "Paint::default_blend_mode"
+    )]
+    pub blend_mode: BlendMode,
 }
 
 // https://developer.android.com/reference/android/graphics/PorterDuff.Mode

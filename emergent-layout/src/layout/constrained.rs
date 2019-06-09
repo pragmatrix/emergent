@@ -43,11 +43,10 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        layout_and_position, Bound, Color, Constrain, DrawingCanvas, Linear, Paint, Point, Rect,
-        Size,
-    };
-    use emergent_drawing::Canvas;
+    use crate::layout::Constrain;
+    use crate::{layout_and_position, Bound, Linear, Point, Rect, Size};
+    use emergent_drawing::functions::*;
+    use emergent_drawing::{Canvas, DrawingCanvas};
 
     #[test]
     fn test_contrained_layout() {
@@ -63,8 +62,7 @@ mod test {
         assert_eq!(r, Rect(Point::from((1, 3)), Size::from((2, 4))));
 
         let mut canvas = DrawingCanvas::new();
-        let mut paint = &mut Paint::default();
-        paint.color = Some(Color(0xff0000f0));
+        let paint = paint().color(0xff0000f0).clone();
         canvas.draw(r, &paint);
         canvas.render();
     }

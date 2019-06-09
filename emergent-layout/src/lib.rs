@@ -1,4 +1,4 @@
-use emergent_drawing::{scalar, DrawingCanvas, Point, Rect, Size};
+use emergent_drawing::{scalar, Point, Rect, Size};
 
 pub mod constraints;
 mod grid;
@@ -10,7 +10,7 @@ mod span;
 pub use span::*;
 
 use crate::constraints::{Combine, Linear};
-use crate::layout::Constrain;
+use std::convert::identity;
 
 /// A ResultRef is just a mutable Rectangle for now.
 pub type ResultRef<'a> = &'a mut Rect;
@@ -188,16 +188,16 @@ impl CompletedAxes {
 }
 
 #[cfg(test)]
-use emergent_drawing::{Canvas, Color, Paint, Radius, RoundedRect};
-use std::convert::identity;
-use std::ops::Range;
+mod tests {
+    use emergent_drawing::functions::*;
+    use emergent_drawing::{Canvas, DrawingCanvas, Radius, RoundedRect};
 
-#[test]
-fn draw_circle() {
-    let mut canvas = DrawingCanvas::new();
-    let mut paint = &mut Paint::default();
-    paint.color = Some(Color(0xff0000f0));
-    let rect = Rect::from(((0, 0).into(), (200, 100).into()));
-    canvas.draw(RoundedRect::from((rect, Radius(10.0))), &paint);
-    canvas.render();
+    #[test]
+    fn draw_circle() {
+        let mut canvas = DrawingCanvas::new();
+        let paint = paint().color(0xff0000f0).clone();
+        let rect = rect((0, 0), (200, 100));
+        canvas.draw(RoundedRect::from((rect, Radius(10.0))), &paint);
+        canvas.render();
+    }
 }

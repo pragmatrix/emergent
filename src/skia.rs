@@ -271,22 +271,13 @@ impl PaintSync {
     // TODO: resolve the individual defaults and store them locally.
     fn apply_paint(paint: &mut Paint, dp: &drawing::Paint) {
         // TODO: we _do_ know which values have been changed, so probably we should apply only that.
-        paint.set_style(dp.style.unwrap_or(drawing::PaintStyle::Fill).to_skia());
-        // TODO: specify the default on the drawing:: side.
-        paint.set_color(dp.color.map(|c| c.to_skia()).unwrap_or(Color::BLACK));
-        paint.set_stroke_width(dp.stroke_width.unwrap_or(0.0));
-        paint.set_stroke_miter(dp.stroke_miter.unwrap_or(4.0));
-        paint.set_stroke_cap(dp.stroke_cap.unwrap_or(drawing::StrokeCap::Butt).to_skia());
-        paint.set_stroke_join(
-            dp.stroke_join
-                .unwrap_or(drawing::StrokeJoin::Miter)
-                .to_skia(),
-        );
-        paint.set_blend_mode(
-            dp.blend_mode
-                .unwrap_or(drawing::BlendMode::SourceOver)
-                .to_skia(),
-        );
+        paint.set_style(dp.style.to_skia());
+        paint.set_color(dp.color.to_skia());
+        paint.set_stroke_width(dp.stroke_width);
+        paint.set_stroke_miter(dp.stroke_miter);
+        paint.set_stroke_cap(dp.stroke_cap.to_skia());
+        paint.set_stroke_join(dp.stroke_join.to_skia());
+        paint.set_blend_mode(dp.blend_mode.to_skia());
     }
 }
 
