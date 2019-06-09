@@ -393,32 +393,35 @@ mod tests {
         let red = paint().color(0xffff0000).clone();
 
         let width = 64.0;
-        let mut left = 0.0;
+        let left = 512.0;
+        let element_height = 32.0;
 
-        for constraint in &constraints {
+        let constraint_marker_size = 8.0;
+
+        for (i, constraint) in constraints.iter().enumerate() {
             let min = *constraint.min;
             let preferred = *constraint.preferred_effective();
 
-            let right = left + width;
+            let top = i as scalar * element_height;
+            let bottom = top + constraint_marker_size;
+            let range = (top, bottom);
 
-            let min_line = line((left, height - min), (right, height - min));
+            let min_line = line_v(left + min, range);
             canvas.draw(min_line, &blue);
 
-            let preferred_line = line((left, height - preferred), (right, height - preferred));
+            let preferred_line = line_v(left + preferred, range);
             canvas.draw(preferred_line, &green);
 
             if let Max::Length(max) = constraint.max_effective() {
                 let max = *max;
-                let max_line = line((left, height - max), (right, height - max));
+                let max_line = line_v(left + max, range);
                 canvas.draw(max_line, &red);
             }
-
-            left += width;
         }
 
         {
             let width_box = width * constraints.len() as scalar;
-            let r = rect((0, 0), (width_box, height));
+            let r = rect((512, 0), (width_box, height));
 
             let black = paint().color(0xff808080).style(PaintStyle::Stroke).clone();
 
