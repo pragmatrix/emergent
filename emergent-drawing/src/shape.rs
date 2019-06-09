@@ -2,6 +2,10 @@ use crate::{
     scalar, Arc, Circle, Line, Oval, Path, Point, Polygon, Radius, Rect, RoundedRect, Shape,
 };
 
+//
+// Shape
+//
+
 impl From<Point> for Shape {
     fn from(point: Point) -> Self {
         Shape::Point(point)
@@ -53,6 +57,22 @@ impl From<Arc> for Shape {
 impl From<Path> for Shape {
     fn from(path: Path) -> Self {
         Shape::Path(path)
+    }
+}
+
+//
+// Line
+//
+
+impl From<(Point, Point)> for Line {
+    fn from((p1, p2): (Point, Point)) -> Self {
+        Line(p1, p2)
+    }
+}
+
+impl From<(scalar, scalar, scalar, scalar)> for Line {
+    fn from((p1x, p1y, p2x, p2y): (scalar, scalar, scalar, scalar)) -> Self {
+        Line::from(((p1x, p1y).into(), (p2x, p2y).into()))
     }
 }
 
