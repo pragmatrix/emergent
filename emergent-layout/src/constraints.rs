@@ -392,41 +392,70 @@ mod tests {
         let green = paint().color(0xff00ff00).clone();
         let red = paint().color(0xffff0000).clone();
 
-        let width = 64.0;
         let left = 512.0;
-        let element_height = 32.0;
 
-        let constraint_marker_size = 8.0;
-
-        for (i, constraint) in constraints.iter().enumerate() {
-            let min = *constraint.min;
-            let preferred = *constraint.preferred_effective();
-
-            let top = i as scalar * element_height;
-            let bottom = top + constraint_marker_size;
-            let range = (top, bottom);
-
-            let min_line = line_v(left + min, range);
-            canvas.draw(min_line, &blue);
-
-            let preferred_line = line_v(left + preferred, range);
-            canvas.draw(preferred_line, &green);
-
-            if let Max::Length(max) = constraint.max_effective() {
-                let max = *max;
-                let max_line = line_v(left + max, range);
-                canvas.draw(max_line, &red);
-            }
-        }
+        /*
+        let width = 64.0;
 
         {
             let width_box = width * constraints.len() as scalar;
             let r = rect((512, 0), (width_box, height));
-
             let black = paint().color(0xff808080).style(PaintStyle::Stroke).clone();
-
             canvas.draw(r, &black);
         }
+        */
+
+        let grey = paint().color(0xff808080).style(PaintStyle::Stroke).clone();
+
+        let v_spacing = 8.0;
+        let box_height = 16.0;
+        let constraint_marker_height = box_height / 2.0;
+
+        for (layout_index, bound) in (0..75).step_by(5).enumerate() {
+            let spans = place_bounded(
+                &constraints,
+                0.0.into(),
+                (bound as scalar).into(),
+                Alignment::SpaceBetween,
+            );
+
+            let top = layout_index as scalar * (v_spacing + box_height);
+
+            dbg!(&spans);
+
+            for (i, span) in spans.iter().enumerate() {
+                let bottom = top + box_height;
+                dbg!((top, bottom));
+                let left = left + *span.begin();
+                let rect = rect(point(left, top), size(*span.length(), box_height));
+                canvas.draw(rect, &grey);
+
+                let constraint = constraints[i];
+                let length = span.length();
+                let constraint_marker_range = (top, top + constraint_marker_height);
+
+                if constraint.min <= length {
+                    let value = *constraint.min;
+                    let marker = line_v(left + value, constraint_marker_range);
+                    canvas.draw(marker, &blue);
+                }
+
+                if constraint.preferred_effective() <= length {
+                    let value = *constraint.preferred_effective();
+                    let marker = line_v(left + value, constraint_marker_range);
+                    canvas.draw(marker, &green);
+                }
+
+                if let Max::Length(max) = constraint.max_effective() {
+                    if max <= length {
+                        let value = *max;
+                        let marker = line_v(left + value, constraint_marker_range);
+                        canvas.draw(marker, &red);
+                    }
+                }
+            }
+        }
+
         canvas.render();
     }
 }
