@@ -19,11 +19,15 @@ impl Span {
         span(0.0, 0.0)
     }
 
-    pub fn start(&self) -> finite {
+    pub fn begin(&self) -> finite {
         self.0
     }
 
-    pub fn size(&self) -> length {
+    pub fn length(&self) -> length {
         self.1
+    }
+
+    pub fn end(&self) -> finite {
+        self.begin() + self.length()
     }
 }

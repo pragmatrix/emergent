@@ -48,16 +48,16 @@ pub enum Bound {
 }
 
 trait RectHelper {
-    fn set_pos(&mut self, axis: usize, pos: finite);
+    fn set_begin(&mut self, axis: usize, pos: finite);
     fn set_length(&mut self, axis: usize, length: length);
     fn set_span(&mut self, axis: usize, span: Span) {
-        self.set_pos(axis, span.start());
-        self.set_length(axis, span.size());
+        self.set_begin(axis, span.begin());
+        self.set_length(axis, span.length());
     }
 }
 
 impl RectHelper for Rect {
-    fn set_pos(&mut self, axis: usize, pos: finite) {
+    fn set_begin(&mut self, axis: usize, pos: finite) {
         match axis {
             0 => self.0 = Point(*pos, self.top()),
             1 => self.0 = Point(self.left(), *pos),

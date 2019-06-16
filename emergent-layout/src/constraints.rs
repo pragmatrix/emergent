@@ -195,8 +195,8 @@ fn place_bounded(
 
     {
         let balanced = compute_smallest_balanced_layout(constraints);
-        let balanced_all: length = balanced.iter().cloned().sum();
-        if bound <= balanced_all {
+        let balanced_length: length = balanced.iter().cloned().sum();
+        if bound <= balanced_length {
             // distribution weights are the balanced layout lengths minus the preferred effective.
             let mut lengths: Vec<length> = constraints
                 .iter()
@@ -207,10 +207,11 @@ fn place_bounded(
                 .collect();
             lengths
                 .as_mut_slice()
-                .distribute(bound - balanced_all, weights.as_slice());
+                .distribute(balanced_length - bound, weights.as_slice());
             return to_spans(start, lengths.into_iter()).collect();
         }
     }
+
     // bound > smallest balanced layout
 
     if let Max::Length(max_length) = constraints.iter().map(|c| c.max_effective()).max().unwrap() {
@@ -255,7 +256,7 @@ fn compute_smallest_balanced_layout(constraints: &[Linear]) -> Vec<length> {
         .collect()
 }
 
-/// A segment that describes a length range that can be interpolated linearly.
+/// A segment that describes a length range that can be interpolated linearily.
 struct InterpolationSegment<'a> {
     /// Beginning length of all the elements.
     begin: length,
@@ -367,7 +368,7 @@ impl Max {
 #[cfg(test)]
 
 mod tests {
-    use crate::constraints::{Linear, Max};
+    use crate::constraints::{place_bounded, Alignment, Linear, Max};
     use emergent_drawing::{functions::*, scalar, Canvas, DrawingCanvas, PaintStyle};
 
     #[test]
