@@ -366,7 +366,6 @@ impl Max {
 }
 
 #[cfg(test)]
-
 mod tests {
     use crate::constraints::{place_bounded, Alignment, Linear, Max};
     use emergent_drawing::{functions::*, scalar, Canvas, DrawingCanvas, PaintStyle};
@@ -421,15 +420,34 @@ mod tests {
             );
 
             let top = layout_index as scalar * (v_spacing + box_height);
+            let bottom = top + box_height;
 
             dbg!(&spans);
 
+            // draw the top and bottom lines
+            {
+                let span = crate::spans::span(&spans).unwrap();
+                let range = (left + *span.begin(), left + *span.end());
+                let top_line = line_h(top, range);
+                let bottom_line = line_h(bottom, range);
+                canvas.draw(top_line, &grey);
+                canvas.draw(bottom_line, &grey);
+            }
+
+            // draw the vertical separators of all spans.
+            {
+                let positions = crate::spans::positions(&spans);
+                for position in positions {
+                    let left = left + *position;
+                    let line = line_v(left, (top, bottom));
+                    canvas.draw(line, &grey);
+                }
+            }
+
+            // draw the constraint markers
             for (i, span) in spans.iter().enumerate() {
-                let bottom = top + box_height;
                 dbg!((top, bottom));
                 let left = left + *span.begin();
-                let rect = rect(point(left, top), size(*span.length(), box_height));
-                canvas.draw(rect, &grey);
 
                 let constraint = constraints[i];
                 let length = span.length();

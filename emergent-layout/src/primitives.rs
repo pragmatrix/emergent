@@ -142,6 +142,12 @@ impl From<scalar> for length {
     }
 }
 
+impl From<finite> for length {
+    fn from(f: finite) -> Self {
+        Self::from(*f)
+    }
+}
+
 impl From<usize> for length {
     fn from(v: usize) -> Self {
         length::from(v as scalar)
