@@ -23,12 +23,6 @@ impl Deref for finite {
     }
 }
 
-impl DerefMut for finite {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 impl From<scalar> for finite {
     fn from(v: scalar) -> Self {
         assert!(v.is_finite());
@@ -129,12 +123,7 @@ impl Deref for length {
     }
 }
 
-impl DerefMut for length {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
+// TODO: should we support TryFrom?
 impl From<scalar> for length {
     fn from(s: scalar) -> Self {
         assert!(s.is_finite() && !s.is_sign_negative());
