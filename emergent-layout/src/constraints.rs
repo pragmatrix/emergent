@@ -368,6 +368,7 @@ impl Max {
 #[cfg(test)]
 mod tests {
     use crate::constraints::{place_bounded, Alignment, Linear, Max};
+    use crate::finite;
     use emergent_drawing::{functions::*, scalar, Canvas, DrawingCanvas, PaintStyle};
 
     #[test]
@@ -391,6 +392,7 @@ mod tests {
         let blue = paint().color(0xff0000ff).clone();
         let green = paint().color(0xff00ff00).clone();
         let red = paint().color(0xffff0000).clone();
+        let light_grey = paint().color(0xffd0d0d0).clone();
 
         let left = 512.0;
 
@@ -410,6 +412,7 @@ mod tests {
         let v_spacing = 8.0;
         let box_height = 16.0;
         let constraint_marker_height = box_height / 2.0;
+        let mut previous_positions: Option<Vec<finite>> = None;
 
         for (layout_index, bound) in (0..75).step_by(5).enumerate() {
             let spans = place_bounded(
@@ -434,15 +437,35 @@ mod tests {
                 canvas.draw(bottom_line, &grey);
             }
 
+            let positions: Vec<finite> = crate::spans::positions(&spans).collect();
+
+            // draw the connector lines from the previous layout.
+
+            match previous_positions {
+                Some(previous_positions) => {
+                    let previous_top = top - v_spacing;
+                    for (i, pos) in previous_positions.iter().enumerate() {
+                        let current_position = positions[i];
+                        let line = line(
+                            (left + **pos, previous_top),
+                            (left + *current_position, top),
+                        );
+                        canvas.draw(line, &light_grey);
+                    }
+                }
+                None => {}
+            }
+
             // draw the vertical separators of all spans.
             {
-                let positions = crate::spans::positions(&spans);
-                for position in positions {
-                    let left = left + *position;
+                for position in &positions {
+                    let left = left + **position;
                     let line = line_v(left, (top, bottom));
                     canvas.draw(line, &grey);
                 }
             }
+
+            previous_positions = Some(positions);
 
             // draw the constraint markers
             for (i, span) in spans.iter().enumerate() {
