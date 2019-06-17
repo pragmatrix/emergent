@@ -1,7 +1,5 @@
 //! Function based API to specify drawings.
-use crate::drawing::{
-    BlendMode, Clip, Draw, Drawing, Paint, Polygon, Rect, Shape, Size, Transformation,
-};
+use crate::drawing::{BlendMode, Clip, Draw, Drawing, Paint, Shape, Transformation};
 use std::ops::{Deref, DerefMut};
 
 /// A drawing target is a function based API for drawing commands.
@@ -98,7 +96,7 @@ impl DrawTo for Draw {
                 drawing.draw_to(target.target)
             }
             Draw::Transformed(transform, drawing) => {
-                let mut target = target.transform(transform);
+                let target = target.transform(transform);
                 drawing.draw_to(target.target);
             }
         }

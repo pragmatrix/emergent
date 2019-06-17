@@ -6,9 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Drawing(pub Vec<Draw>);
 
-// TODO: Drawing is quite misleading here, basically this is a DrawingCommand
-// or a DrawingOperation, because Clip() and Transform() leak state.
-// What I may accept as a pure drawing is a nested application of Clip &| Transform.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Draw {
     /// Fill that current area with the given paint.
@@ -34,7 +31,6 @@ pub enum Draw {
 // Shapes
 //
 
-// TODO: can't we _just_ use a Trait Shape here?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Shape {
     Point(Point),
@@ -61,8 +57,8 @@ pub enum Shape {
 pub struct Line(pub Point, pub Point);
 
 /// A rectangle, defined by a point and a size.
-// TODO: should we separate Rect as a mathematic tool from
-// the Rectangle Shape geometric form?
+// TODO: should we separate Rect as a mathematical tool from
+// the rectangle shapet treated as a geometric form?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Rect(pub Point, pub Size);
 
@@ -311,13 +307,13 @@ fn test_serialize() {
     let shapes = Draw::Shapes(
         vec![Shape::Line(Line(Point(10.0, 1.0), Point(11.0, 1.0)))],
         Paint {
-            style: None,
-            color: None,
-            stroke_width: None,
-            stroke_miter: None,
-            stroke_cap: None,
-            stroke_join: None,
-            blend_mode: None,
+            style: PaintStyle::Stroke,
+            color: Color::from(0xff000000),
+            stroke_width: 1.0,
+            stroke_miter: 4.0,
+            stroke_cap: StrokeCap::Butt,
+            stroke_join: StrokeJoin::Miter,
+            blend_mode: BlendMode::SourceOver,
         },
     );
 
