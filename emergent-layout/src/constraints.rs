@@ -134,7 +134,7 @@ impl Place<Linear> for [Linear] {
                 })
                 .collect(),
             // TODO: support alignment.
-            Bound::Bounded(length) => place_bounded(self, start, length, Alignment::Start),
+            Bound::Bounded(length) => place_bounded(self, start, length, Alignment::Start).1,
         }
     }
 }
@@ -162,18 +162,29 @@ pub enum Alignment {
     SpaceAround,
 }
 
+pub enum LayoutMode {
+    ZeroToMin,
+    MinToPreferred,
+    PreferredToBalanced,
+    BalancedToMax,
+    MaxToInfinite,
+}
+
 fn place_bounded(
     constraints: &[Linear],
     start: finite,
     bound: length,
     alignment: Alignment,
-) -> Vec<Span> {
+) -> (LayoutMode, Vec<Span>) {
     let min: length = constraints.iter().map(|c| c.min).sum();
     if bound <= min {
         // bound is below or at the minimum size
         // -> size all elements to their minimum risking a layout overflow.
         // TODO: implement wrapping.
-        return to_spans(start, constraints.iter().map(|c| c.min)).collect();
+        return (
+            LayoutMode::ZeroToMin,
+            to_spans(start, constraints.iter().map(|c| c.min)).collect(),
+        );
     }
 
     // bound > min
@@ -188,13 +199,18 @@ fn place_bounded(
         lengths
             .as_mut_slice()
             .distribute(bound - min, weights.as_slice());
-        return to_spans(start, lengths.into_iter()).collect();
+        return (
+            LayoutMode::MinToPreferred,
+            to_spans(start, lengths.into_iter()).collect(),
+        );
     }
 
     // bound > preferred
 
+    let balanced = compute_smallest_balanced_layout(constraints);
+    let balanced_length: length = balanced.iter().cloned().sum();
+
     {
-        let balanced = compute_smallest_balanced_layout(constraints);
         let balanced_length: length = balanced.iter().cloned().sum();
         if bound <= balanced_length {
             // distribution weights are the balanced layout lengths minus the preferred effective.
@@ -208,7 +224,10 @@ fn place_bounded(
             lengths
                 .as_mut_slice()
                 .distribute(balanced_length - bound, weights.as_slice());
-            return to_spans(start, lengths.into_iter()).collect();
+            return (
+                LayoutMode::PreferredToBalanced,
+                to_spans(start, lengths.into_iter()).collect(),
+            );
         }
     }
 
@@ -219,6 +238,7 @@ fn place_bounded(
             // bound is below the maximum layout possible.
             // So we need to compute a (balanced) layout with the remaining space available.
             // TODO
+            // distribute_atop(constraints, &balanced, bound - balanced_length);
             return unimplemented!();
         }
 
@@ -252,41 +272,62 @@ fn compute_smallest_balanced_layout(constraints: &[Linear]) -> Vec<length> {
         .unwrap();
     constraints
         .iter()
-        .map(|c| c.max_effective().limit(max_preferred))
+        .map(|c| c.max_effective().limit_to(max_preferred))
         .collect()
 }
 
+/// Distribute space on top of a base layout.
+
+/*
+fn distribute_atop(constraints: &[Linear], base_layout: &[length], space: length) {
+
+
+
+}
+*/
+
+/*
+
+
+
 /// A segment that describes a length range that can be interpolated linearily.
 struct InterpolationSegment<'a> {
-    /// Beginning length of all the elements.
+    /// Beginning sum of the length of all the elements.
     begin: length,
-    /// Ending length of all the elements, this is where the next segment starts.
+    /// Ending sum length of all the elements, this is where the next segment starts.
     ///
     /// The last segment may be infinite.
     end: Max,
-    /// The maximums of the elements for this range only.
+    /// The base layout representing the beginning of this segment.
+    base: &'a Vec<length>,
+    /// The weights for the elements of this segment.
     ///
-    /// This does include the elements that are smaller in a layout with start length,
-    /// and does not include the elements that max is larger in a layout with end length.
-    max_constraints: &'a Vec<Max>,
+    /// 0 for elements that can not get any larger.
+    weights: &'a Vec<length>,
 }
 
 impl<'a> InterpolationSegment<'a> {
     pub fn layout(&self, l: length) -> Vec<length> {
         assert!(l >= self.begin);
         assert!(Max::Length(l) <= self.end);
-        unimplemented!()
+        let to_distribute = l - self.begin;
+        // weights are 1 for all the elements that can be resized.
+        let mut lengths = self.base.clone();
+        lengths
+            .as_mut_slice()
+            .distribute(to_distribute, self.weights);
+        lengths
     }
 }
 
 struct InterpolationSegmentIterator<'a> {
     constraints: &'a [Linear],
-    base: Vec<length>,
     max_sorted: Vec<(Max, usize)>,
     current_max_index: usize,
+    base: Vec<length>,
+    weights: Vec<length>,
 }
 
-/*
 impl<'a> Iterator for InterpolationSegmentIterator<'a> {
     type Item = InterpolationSegment<'a>;
 
@@ -357,7 +398,7 @@ impl Max {
     }
 
     /// Limit a length to the maximum.
-    pub fn limit(&self, l: length) -> length {
+    pub fn limit_to(&self, l: length) -> length {
         match *self {
             Max::Length(s) => l.min(s),
             Max::Infinite => l,
@@ -415,7 +456,7 @@ mod tests {
         let mut previous_positions: Option<Vec<finite>> = None;
 
         for (layout_index, bound) in (0..75).step_by(5).enumerate() {
-            let spans = place_bounded(
+            let (mode, spans) = place_bounded(
                 &constraints,
                 0.0.into(),
                 (bound as scalar).into(),
