@@ -1,14 +1,13 @@
+///! Vulkan <-> Skia <-> emergent::drawing interop.
 use crate::frame::Frame;
-///! Vulkan <-> Skia interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use emergent_drawing as drawing;
-use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape};
+use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape, Text};
 use skia_safe::gpu::vk;
 use skia_safe::{
-    gpu, scalar, BlendMode, Canvas, CanvasPointMode, Color, Paint, PaintCap, PaintJoin, PaintStyle,
-    Point, RRect, Rect, Size, Vector,
+    font_style, gpu, scalar, BlendMode, Canvas, CanvasPointMode, Color, ColorType, Font, FontStyle,
+    Paint, PaintCap, PaintJoin, PaintStyle, Point, RRect, Rect, Size, Surface, Typeface, Vector,
 };
-use skia_safe::{ColorType, Surface};
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
 use std::os::raw::c_char;
