@@ -1,5 +1,5 @@
 use crate::{
-    scalar, Arc, Circle, Line, Oval, Path, Point, Polygon, Radius, Rect, RoundedRect, Shape,
+    scalar, Arc, Circle, Line, Oval, Path, Point, Polygon, Radius, Rect, RoundedRect, Shape, Text,
 };
 
 //
@@ -57,6 +57,12 @@ impl From<Arc> for Shape {
 impl From<Path> for Shape {
     fn from(path: Path) -> Self {
         Shape::Path(path)
+    }
+}
+
+impl From<Text> for Shape {
+    fn from(text: Text) -> Self {
+        Shape::Text(text)
     }
 }
 

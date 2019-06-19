@@ -159,6 +159,7 @@ impl DrawingSurface for skia_safe::Surface {
 struct CanvasDrawingTarget<'canvas> {
     canvas: &'canvas mut Canvas,
     paint: PaintSync,
+    font: Option<FontSync>,
 }
 
 impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
@@ -203,6 +204,11 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Shape::Path(_) => unimplemented!(),
             Shape::Image(_) => unimplemented!(),
             Shape::ImageRect(_, _, _) => unimplemented!(),
+            Shape::Text(drawing::Text(point, text, font)) => {
+                let font = FontSync::resolve_opt(&mut self.font, font);
+                self.canvas
+                    .draw_str(&text, point.to_skia(), &font, self.paint.resolve(paint));
+            }
         }
     }
 
@@ -238,7 +244,16 @@ impl<'a> CanvasDrawingTarget<'a> {
         Self {
             canvas,
             paint: PaintSync::from_paint(drawing_paint),
+            font: None,
         }
+    }
+
+    fn resolve_font(&mut self, font: &drawing::Font) -> &Font {
+        if self.font.is_none() {
+            self.font = Some(FontSync::from_font(font));
+        };
+
+        self.font.as_mut().unwrap().resolve(font)
     }
 }
 
@@ -277,6 +292,56 @@ impl PaintSync {
         paint.set_stroke_cap(dp.stroke_cap.to_skia());
         paint.set_stroke_join(dp.stroke_join.to_skia());
         paint.set_blend_mode(dp.blend_mode.to_skia());
+    }
+}
+
+struct FontSync {
+    drawing_font: drawing::Font,
+    typeface: Typeface,
+    font: Font,
+}
+
+impl FontSync {
+    pub fn from_font(font: &drawing::Font) -> FontSync {
+        let (typeface, sk_font) = Self::create_typeface_and_font(font);
+        let sk_font = Font::from_typeface_with_size(&typeface, *font.size());
+        Self {
+            drawing_font: font.clone(),
+            typeface,
+            font: sk_font,
+        }
+    }
+
+    pub fn resolve_opt<'a>(fso: &'a mut Option<FontSync>, font: &drawing::Font) -> &'a Font {
+        match fso {
+            None => {
+                *fso = Some(Self::from_font(font));
+                fso.as_mut().unwrap().resolve(font)
+            }
+
+            Some(fs) => fs.resolve(font),
+        }
+    }
+
+    pub fn resolve(&mut self, font: &drawing::Font) -> &Font {
+        if font.name() != self.drawing_font.name() || font.style() != self.drawing_font.style() {
+            let (tf, f) = Self::create_typeface_and_font(font);
+            self.typeface = tf;
+            self.font = f;
+            self.drawing_font = font.clone();
+        } else if font.size() != self.drawing_font.size() {
+            self.font = Font::from_typeface_with_size(&self.typeface, *font.size());
+            // TODO: _that_ looks scary.
+            self.drawing_font.2 = font.size()
+        }
+
+        &self.font
+    }
+
+    pub fn create_typeface_and_font(font: &drawing::Font) -> (Typeface, Font) {
+        let typeface = Typeface::from_name(font.name(), font.style().to_skia()).unwrap_or_default();
+        let sk_font = Font::from_typeface_with_size(&typeface, *font.size());
+        (typeface, sk_font)
     }
 }
 
@@ -401,6 +466,38 @@ impl ToSkia<PaintJoin> for drawing::StrokeJoin {
             drawing::StrokeJoin::Miter => PaintJoin::Miter,
             drawing::StrokeJoin::Round => PaintJoin::Round,
             drawing::StrokeJoin::Bevel => PaintJoin::Bevel,
+        }
+    }
+}
+
+impl ToSkia<FontStyle> for drawing::font::Style {
+    fn to_skia(&self) -> FontStyle {
+        FontStyle::new(
+            self.weight().to_skia(),
+            self.width().to_skia(),
+            self.slant().to_skia(),
+        )
+    }
+}
+
+impl ToSkia<font_style::Weight> for drawing::font::Weight {
+    fn to_skia(&self) -> font_style::Weight {
+        font_style::Weight::from(**self as i32)
+    }
+}
+
+impl ToSkia<font_style::Width> for drawing::font::Width {
+    fn to_skia(&self) -> font_style::Width {
+        font_style::Width::from(**self as i32)
+    }
+}
+
+impl ToSkia<font_style::Slant> for drawing::font::Slant {
+    fn to_skia(&self) -> font_style::Slant {
+        match self {
+            drawing::font::Slant::Upright => font_style::Slant::Upright,
+            drawing::font::Slant::Italic => font_style::Slant::Italic,
+            drawing::font::Slant::Oblique => font_style::Slant::Oblique,
         }
     }
 }

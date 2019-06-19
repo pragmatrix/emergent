@@ -162,6 +162,7 @@ pub enum Alignment {
     SpaceAround,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum LayoutMode {
     ZeroToMin,
     MinToPreferred,
@@ -454,6 +455,7 @@ mod tests {
         let box_height = 16.0;
         let constraint_marker_height = box_height / 2.0;
         let mut previous_positions: Option<Vec<finite>> = None;
+        let font = font("FiraCode", 10.0);
 
         for (layout_index, bound) in (0..75).step_by(5).enumerate() {
             let (mode, spans) = place_bounded(
@@ -467,10 +469,20 @@ mod tests {
             let bottom = top + box_height;
 
             dbg!(&spans);
+            let span = crate::spans::span(&spans).unwrap();
+
+            // draw mode as text to the right.
+            {
+                let spacing = 8.0;
+                let mode_str = format!("{:?}", mode);
+                let pos = (left + *span.end() + spacing, bottom);
+                let text = text(pos, mode_str, &font);
+                canvas.draw(text, &grey);
+            }
 
             // draw the top and bottom lines
+
             {
-                let span = crate::spans::span(&spans).unwrap();
                 let range = (left + *span.begin(), left + *span.end());
                 let top_line = line_h(top, range);
                 let bottom_line = line_h(bottom, range);

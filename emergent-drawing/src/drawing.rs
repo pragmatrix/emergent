@@ -46,6 +46,7 @@ pub enum Shape {
     Image(ImageId),
     ImageRect(ImageId, Option<Rect>, Rect),
     // ImageNine?
+    Text(Text),
 }
 
 //
@@ -87,6 +88,18 @@ pub struct UseCenter(pub bool);
 // An Arc, described by an oval, start angle, and sweep angle.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
+
+//
+// Font & Text
+//
+
+/// Text, described by a location, a string, and the font.
+// TODO: can we share fonts?
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Text(pub Point, pub String, pub Font);
+
+pub mod font;
+pub use font::Font;
 
 //
 // States
