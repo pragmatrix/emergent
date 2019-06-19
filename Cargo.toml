@@ -62,7 +62,7 @@ shh = "1.0.0"
 
 cargo-watch = "7.2.1"
 clap = "2.33.0"
-watchexec = "1.10.1"
+watchexec = "=1.10.1"
 
 [replace]
 # needed to parameterize the TestWatcher.
