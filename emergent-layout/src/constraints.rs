@@ -190,8 +190,8 @@ fn place_bounded(
 
     // bound > min
 
-    let preferred: length = constraints.iter().map(|c| c.preferred_effective()).sum();
-    if bound <= preferred {
+    let preferred_length: length = constraints.iter().map(|c| c.preferred_effective()).sum();
+    if bound <= preferred_length {
         // bound is over min, but below preferred.
         // so we distribute the remaining space over min.
         // weight is preferred (delta from min to effective_preferred)
@@ -212,7 +212,6 @@ fn place_bounded(
     let balanced_length: length = balanced.iter().cloned().sum();
 
     {
-        let balanced_length: length = balanced.iter().cloned().sum();
         if bound <= balanced_length {
             // distribution weights are the balanced layout lengths minus the preferred effective.
             let mut lengths: Vec<length> = constraints
@@ -224,7 +223,7 @@ fn place_bounded(
                 .collect();
             lengths
                 .as_mut_slice()
-                .distribute(balanced_length - bound, weights.as_slice());
+                .distribute(bound - preferred_length, weights.as_slice());
             return (
                 LayoutMode::PreferredToBalanced,
                 to_spans(start, lengths.into_iter()).collect(),
