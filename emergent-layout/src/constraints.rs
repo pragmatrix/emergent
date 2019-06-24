@@ -414,8 +414,6 @@ mod tests {
 
     #[test]
     fn visualized_constraints() {
-        let height = 256.0;
-
         let constraints = [
             Linear {
                 min: 10.0.into(),
@@ -437,24 +435,14 @@ mod tests {
 
         let left = 512.0;
 
-        /*
-        let width = 64.0;
-
-        {
-            let width_box = width * constraints.len() as scalar;
-            let r = rect((512, 0), (width_box, height));
-            let black = paint().color(0xff808080).style(PaintStyle::Stroke).clone();
-            canvas.draw(r, &black);
-        }
-        */
-
-        let grey = paint().color(0xff808080).style(PaintStyle::Stroke).clone();
+        let grey = paint().color(0xff808080).clone();
+        let black = paint().clone();
 
         let v_spacing = 8.0;
         let box_height = 16.0;
         let constraint_marker_height = box_height / 2.0;
         let mut previous_positions: Option<Vec<finite>> = None;
-        let font = font("FiraCode", 10.0);
+        let font = font("", 12.0);
 
         for (layout_index, bound) in (0..75).step_by(5).enumerate() {
             let (mode, spans) = place_bounded(
@@ -473,10 +461,10 @@ mod tests {
             // draw mode as text to the right.
             {
                 let spacing = 8.0;
-                let mode_str = format!("{:?}", mode);
+                let mode_str = format!("{} -> {}, {:?}", bound, *span.length(), mode);
                 let pos = (left + *span.end() + spacing, bottom);
                 let text = text(pos, mode_str, &font);
-                canvas.draw(text, &grey);
+                canvas.draw(text, &black);
             }
 
             // draw the top and bottom lines
