@@ -5,7 +5,7 @@ use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, MulAssign, Sub, SubAss
 
 /// A finite, non-NaN scalar.
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Default, Debug)]
 pub struct finite(scalar);
 
 impl Eq for finite {}
@@ -105,7 +105,7 @@ impl finite {
 
 /// A finite, positive, non-NaN scalar.
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Default, Debug)]
 pub struct length(scalar);
 
 impl Eq for length {}

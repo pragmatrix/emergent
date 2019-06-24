@@ -168,7 +168,7 @@ pub enum LayoutMode {
     MinToPreferred,
     PreferredToBalanced,
     BalancedToMax,
-    MaxToInfinite,
+    BalancedToInfinite,
 }
 
 fn place_bounded(
@@ -237,9 +237,11 @@ fn place_bounded(
         if bound <= max_length {
             // bound is below the maximum layout possible.
             // So we need to compute a (balanced) layout with the remaining space available.
-            // TODO
-            // distribute_atop(constraints, &balanced, bound - balanced_length);
-            return unimplemented!();
+            let lengths = distribute_over_smallest_balanced(&constraints, bound - balanced_length);
+            return (
+                LayoutMode::BalancedToMax,
+                to_spans(start, lengths.into_iter()).collect(),
+            );
         }
 
         // bound is > max size
@@ -247,8 +249,11 @@ fn place_bounded(
         return unimplemented!();
     }
 
-    // there is no maximum size, compute a balanced layout with the remaining space available.
-    return unimplemented!();
+    let lengths = distribute_over_smallest_balanced(&constraints, bound - balanced_length);
+    return (
+        LayoutMode::BalancedToInfinite,
+        to_spans(start, lengths.into_iter()).collect(),
+    );
 }
 
 /// Convert a starting point and a number of length's to spans.
@@ -276,88 +281,85 @@ fn compute_smallest_balanced_layout(constraints: &[Linear]) -> Vec<length> {
         .collect()
 }
 
-/// Distribute space on top of a base layout.
+/// Distribute space over the smallest balanced layout.
+fn distribute_over_smallest_balanced(
+    constraints: &[Linear],
+    mut to_distribute: length,
+) -> Vec<length> {
+    let lengths = constraints.len();
+    // the elements that cannot get any larger.
+    let mut at_max = vec![false; lengths];
+    let mut resizable = lengths;
 
-/*
-fn distribute_atop(constraints: &[Linear], base_layout: &[length], space: length) {
+    let mut current_length = constraints
+        .iter()
+        .map(|c| c.preferred_effective())
+        .max()
+        .unwrap();
 
+    // The current layout.
+    let mut layout = vec![length::default(); lengths];
 
-
-}
-*/
-
-/*
-
-
-
-/// A segment that describes a length range that can be interpolated linearily.
-struct InterpolationSegment<'a> {
-    /// Beginning sum of the length of all the elements.
-    begin: length,
-    /// Ending sum length of all the elements, this is where the next segment starts.
-    ///
-    /// The last segment may be infinite.
-    end: Max,
-    /// The base layout representing the beginning of this segment.
-    base: &'a Vec<length>,
-    /// The weights for the elements of this segment.
-    ///
-    /// 0 for elements that can not get any larger.
-    weights: &'a Vec<length>,
-}
-
-impl<'a> InterpolationSegment<'a> {
-    pub fn layout(&self, l: length) -> Vec<length> {
-        assert!(l >= self.begin);
-        assert!(Max::Length(l) <= self.end);
-        let to_distribute = l - self.begin;
-        // weights are 1 for all the elements that can be resized.
-        let mut lengths = self.base.clone();
-        lengths
-            .as_mut_slice()
-            .distribute(to_distribute, self.weights);
-        lengths
+    // compute the smallest balanced layout (TODO: we already computed that, recycle!).
+    for (i, c) in constraints.iter().enumerate() {
+        if c.max_effective() < Max::Length(current_length) {
+            at_max[i] = true;
+            resizable -= 1;
+            layout[i] = c.max_effective().limit_to(current_length)
+        } else {
+            layout[i] = current_length;
+        }
     }
-}
 
-struct InterpolationSegmentIterator<'a> {
-    constraints: &'a [Linear],
-    max_sorted: Vec<(Max, usize)>,
-    current_max_index: usize,
-    base: Vec<length>,
-    weights: Vec<length>,
-}
+    // build a list of max values that are next to consider.
+    let mut max_limits: Vec<(length, usize)> = {
+        let mut max: Vec<(length, usize)> = constraints
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| !at_max[*i])
+            .filter_map(|(i, c)| c.max_effective().length().map(|l| (l, i)))
+            .collect();
+        max.sort();
+        max
+    };
 
-impl<'a> Iterator for InterpolationSegmentIterator<'a> {
-    type Item = InterpolationSegment<'a>;
+    let mut current_limit_index = 0;
+    while to_distribute > 0.0.into() {
+        if current_limit_index == max_limits.len() {
+            if resizable != 0 {
+                // distribute the rest to the ones resizable which can grow infinitely.
+                distribute_equally(&mut layout, &at_max, to_distribute / resizable.into());
+            }
+            break;
+        }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current_max_index == self.max_sorted.len() {
-            return None;
+        let (next_max, next_max_i) = max_limits[current_limit_index];
+        debug_assert!(!at_max[next_max_i]);
+        debug_assert!(next_max >= current_length);
+
+        if next_max > current_length {
+            let distribute_now = to_distribute.min(next_max - current_length);
+            distribute_equally(&mut layout, &at_max, distribute_now / resizable.into());
+            to_distribute -= distribute_now;
+            current_length += distribute_now;
+        }
+
+        at_max[next_max_i] = true;
+        resizable -= 1;
+        current_limit_index += 1;
+    }
+
+    return layout;
+
+    fn distribute_equally(layout: &mut Vec<length>, at_max: &[bool], length: length) {
+        debug_assert_eq!(layout.len(), at_max.len());
+        for (i, at_max) in at_max.iter().enumerate() {
+            if !at_max {
+                layout[i] += length
+            }
         }
     }
 }
-
-impl<'a> InterpolationSegmentIterator<'a> {
-    pub fn from_constraints(constraints: &'a [Linear]) -> Self {
-        let mut sorted_max = {
-            let mut v: Vec<(Max, usize)> = constraints
-                .iter()
-                .enumerate()
-                .map(|(i, c)| (c.max_effective(), i))
-                .collect();
-            v.sort();
-            v
-        };
-
-        Self {
-            constraints,
-            sorted_max,
-            current: 0,
-        }
-    }
-}
-*/
 
 /// An interator, that returns linear interpolation steps over the contraints.
 ///
@@ -404,6 +406,13 @@ impl Max {
             Max::Infinite => l,
         }
     }
+
+    pub fn length(&self) -> Option<length> {
+        match *self {
+            Max::Length(l) => Some(l),
+            Max::Infinite => None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -444,7 +453,7 @@ mod tests {
         let mut previous_positions: Option<Vec<finite>> = None;
         let font = font("", 12.0);
 
-        for (layout_index, bound) in (0..75).step_by(5).enumerate() {
+        for (layout_index, bound) in (0..=100).step_by(5).enumerate() {
             let (mode, spans) = place_bounded(
                 &constraints,
                 0.0.into(),
