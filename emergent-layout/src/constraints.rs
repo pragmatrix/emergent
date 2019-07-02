@@ -312,7 +312,7 @@ fn distribute_over_smallest_balanced(
     }
 
     // build a list of max values that are next to consider.
-    let mut max_limits: Vec<(length, usize)> = {
+    let max_limits: Vec<(length, usize)> = {
         let mut max: Vec<(length, usize)> = constraints
             .iter()
             .enumerate()
@@ -453,7 +453,7 @@ mod tests {
         let mut previous_positions: Option<Vec<finite>> = None;
         let font = font("", 12.0);
 
-        for (layout_index, bound) in (0..=100).step_by(5).enumerate() {
+        for (layout_index, bound) in (0..=120).step_by(5).enumerate() {
             let (mode, spans) = place_bounded(
                 &constraints,
                 0.0.into(),
@@ -523,24 +523,24 @@ mod tests {
 
                 let constraint = constraints[i];
                 let length = span.length();
-                let constraint_marker_range = (top, top + constraint_marker_height);
+                let constraint_marker_vrange = (top, top + constraint_marker_height);
 
-                if constraint.min <= length {
+                if length >= constraint.min {
                     let value = *constraint.min;
-                    let marker = line_v(left + value, constraint_marker_range);
+                    let marker = line_v(left + value, constraint_marker_vrange);
                     canvas.draw(marker, &blue);
                 }
 
-                if constraint.preferred_effective() <= length {
+                if length >= constraint.preferred_effective() {
                     let value = *constraint.preferred_effective();
-                    let marker = line_v(left + value, constraint_marker_range);
+                    let marker = line_v(left + value, constraint_marker_vrange);
                     canvas.draw(marker, &green);
                 }
 
                 if let Max::Length(max) = constraint.max_effective() {
-                    if max <= length {
+                    if length >= max {
                         let value = *max;
-                        let marker = line_v(left + value, constraint_marker_range);
+                        let marker = line_v(left + value, constraint_marker_vrange);
                         canvas.draw(marker, &red);
                     }
                 }
