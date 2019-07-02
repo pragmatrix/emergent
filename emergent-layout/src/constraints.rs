@@ -292,7 +292,7 @@ fn distribute_over_smallest_balanced(
     let mut resizable = lengths;
 
     // The current base length is the length we apply to each element.
-    let mut current_length = constraints
+    let mut current_base_length = constraints
         .iter()
         .map(|c| c.preferred_effective())
         .max()
@@ -303,12 +303,12 @@ fn distribute_over_smallest_balanced(
 
     // compute the smallest balanced layout (TODO: we already computed that, recycle!).
     for (i, c) in constraints.iter().enumerate() {
-        if c.max_effective() < Max::Length(current_length) {
+        if c.max_effective() < Max::Length(current_base_length) {
             at_max[i] = true;
             resizable -= 1;
-            layout[i] = c.max_effective().limit_to(current_length)
+            layout[i] = c.max_effective().limit_to(current_base_length)
         } else {
-            layout[i] = current_length;
+            layout[i] = current_base_length;
         }
     }
 
@@ -336,13 +336,14 @@ fn distribute_over_smallest_balanced(
 
         let (next_max, next_max_i) = max_limits[current_limit_index];
         debug_assert!(!at_max[next_max_i]);
-        debug_assert!(next_max >= current_length);
+        debug_assert!(next_max >= current_base_length);
 
-        if next_max > current_length {
-            let distribute_now = to_distribute.min((next_max - current_length) * resizable.into());
+        if next_max > current_base_length {
+            let distribute_now =
+                to_distribute.min((next_max - current_base_length) * resizable.into());
             distribute_equally(&mut layout, &at_max, distribute_now / resizable.into());
             to_distribute -= distribute_now;
-            current_length += distribute_now;
+            current_base_length += distribute_now;
         }
 
         at_max[next_max_i] = true;
