@@ -291,6 +291,7 @@ fn distribute_over_smallest_balanced(
     let mut at_max = vec![false; lengths];
     let mut resizable = lengths;
 
+    // The current base length is the length we apply to each element.
     let mut current_length = constraints
         .iter()
         .map(|c| c.preferred_effective())
@@ -338,7 +339,7 @@ fn distribute_over_smallest_balanced(
         debug_assert!(next_max >= current_length);
 
         if next_max > current_length {
-            let distribute_now = to_distribute.min(next_max - current_length);
+            let distribute_now = to_distribute.min((next_max - current_length) * resizable.into());
             distribute_equally(&mut layout, &at_max, distribute_now / resizable.into());
             to_distribute -= distribute_now;
             current_length += distribute_now;
