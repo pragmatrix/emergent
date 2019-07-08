@@ -492,20 +492,17 @@ mod tests {
 
             // draw the connector lines from the previous layout.
 
-            match previous_positions {
-                Some(previous_positions) => {
-                    let previous_top = top - v_spacing;
-                    for (i, pos) in previous_positions.iter().enumerate() {
-                        let current_position = positions[i];
-                        let line = line(
-                            (left + **pos, previous_top),
-                            (left + *current_position, top),
-                        );
-                        canvas.draw(line, &light_grey);
-                    }
+            if let Some(previous_positions) = previous_positions {
+                let previous_top = top - v_spacing;
+                for (i, pos) in previous_positions.iter().enumerate() {
+                    let current_position = positions[i];
+                    let line = line(
+                        (left + **pos, previous_top),
+                        (left + *current_position, top),
+                    );
+                    canvas.draw(line, &light_grey);
                 }
-                None => {}
-            }
+            };
 
             // draw the vertical separators of all spans.
             {
