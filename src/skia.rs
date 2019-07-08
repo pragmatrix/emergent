@@ -1,12 +1,15 @@
 ///! Vulkan <-> Skia <-> emergent::drawing interop.
 use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
+use core::borrow::BorrowMut;
 use emergent_drawing as drawing;
 use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape, Text};
 use skia_safe::gpu::vk;
+use skia_safe::utils::{look_at, perspective, View3D};
 use skia_safe::{
     font_style, gpu, scalar, BlendMode, Canvas, CanvasPointMode, Color, ColorType, Font, FontStyle,
-    Paint, PaintCap, PaintJoin, PaintStyle, Point, RRect, Rect, Size, Surface, Typeface, Vector,
+    Matrix, Matrix44, Paint, PaintCap, PaintJoin, PaintStyle, Point, RRect, Rect, Size, Surface,
+    Typeface, Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
@@ -212,24 +215,18 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         }
     }
 
-    fn paint(&mut self) -> drawing::DrawingScope<Self> {
+    fn paint(&mut self, f: impl FnOnce(&mut Self)) {
         self.canvas.save();
-        drawing::DrawingScope::from_index(self, 0)
-    }
-
-    fn clip(&mut self, clip: &drawing::Clip) -> drawing::DrawingScope<Self> {
-        unimplemented!()
-    }
-
-    fn transform(
-        &mut self,
-        transformation: &drawing::Transformation,
-    ) -> drawing::DrawingScope<Self> {
-        unimplemented!()
-    }
-
-    fn drop_scope(&mut self, begin: usize) {
+        f(self);
         self.canvas.restore();
+    }
+
+    fn clip(&mut self, clip: &drawing::Clip, f: impl FnOnce(&mut Self)) {
+        unimplemented!()
+    }
+
+    fn transform(&mut self, transformation: &drawing::Transformation, f: impl FnOnce(&mut Self)) {
+        unimplemented!()
     }
 }
 

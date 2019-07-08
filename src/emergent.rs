@@ -93,22 +93,6 @@ impl View<Frame> for Emergent {
             // TODO: add a nice paintings combinator.
             drawing.0.extend(render_capture(capture).0)
         }
-        /*
-                let size = self.window_size;
-
-                let (w, h): (scalar, scalar) = (size.0 as _, size.1 as _);
-                let (x, y) = (w / 2.0, h / 2.0);
-                let r = w.min(h) / 2.0;
-
-                let paint = Paint::default();
-                Frame {
-                    size,
-                    painting: Painting(vec![Drawing::Draw(
-                        vec![Shape::Circle(Circle((x, y).into(), r.into()))],
-                        paint,
-                    )]),
-                }
-        */
 
         Frame {
             size: self.window_size,
