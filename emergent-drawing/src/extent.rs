@@ -1,6 +1,6 @@
 use crate::{scalar, Vector};
 use serde::{Deserialize, Serialize};
-use std::ops::{Mul, MulAssign};
+use std::ops::{Div, DivAssign, Mul, MulAssign};
 
 /// An extent, 0 or positive width / height.
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
@@ -25,7 +25,7 @@ impl Extent {
 //
 
 impl MulAssign<scalar> for Extent {
-    fn mul_assign(&mut self, rhs: f32) {
+    fn mul_assign(&mut self, rhs: scalar) {
         assert!(rhs >= 0.0);
         self.0 *= rhs;
         self.1 *= rhs;
@@ -34,8 +34,24 @@ impl MulAssign<scalar> for Extent {
 
 impl Mul<scalar> for Extent {
     type Output = Self;
-    fn mul(mut self, rhs: f32) -> Self {
+    fn mul(mut self, rhs: scalar) -> Self {
         self *= rhs;
+        self
+    }
+}
+
+impl DivAssign<scalar> for Extent {
+    fn div_assign(&mut self, rhs: scalar) {
+        assert!(rhs >= 0.0);
+        self.0 /= rhs;
+        self.1 /= rhs;
+    }
+}
+
+impl Div<scalar> for Extent {
+    type Output = Self;
+    fn div(mut self, rhs: scalar) -> Self {
+        self /= rhs;
         self
     }
 }

@@ -1,8 +1,12 @@
 use crate::font::Style;
-use crate::{font, scalar, Font, Line, Paint, Point, Rect, Text, Vector};
+use crate::{font, scalar, Extent, Font, Line, Paint, Point, Rect, Text, Vector};
 
 pub fn point(x: scalar, y: scalar) -> Point {
     Point(x, y)
+}
+
+pub fn extent(width: scalar, height: scalar) -> Extent {
+    Extent::from((width, height))
 }
 
 pub fn line(p1: impl Into<Point>, p2: impl Into<Point>) -> Line {

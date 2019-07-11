@@ -245,11 +245,9 @@ pub enum StrokeJoin {
     Bevel,
 }
 
-// TODO: ????
+// TODO: What should an Image be / refer to? A file, a http:// URL?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct ImageId(String);
-
-// TODO: ImageId / ImageRect
 
 #[test]
 fn test_serialize() {

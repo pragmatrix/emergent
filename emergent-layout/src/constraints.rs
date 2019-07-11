@@ -221,7 +221,6 @@ fn place_bounded(
             let weights: Vec<length> = (0..constraints.len())
                 .map(|i| balanced[i] - lengths[i])
                 .collect();
-            dbg!(&weights);
             lengths
                 .as_mut_slice()
                 .distribute(bound - preferred_length, weights.as_slice());

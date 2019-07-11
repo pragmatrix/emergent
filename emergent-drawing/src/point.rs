@@ -21,7 +21,6 @@ impl Point {
 
 impl Sub<Point> for Point {
     type Output = Vector;
-
     fn sub(self, rhs: Point) -> Vector {
         Vector::from((rhs.left() - self.left(), rhs.top() - self.top()))
     }

@@ -1,7 +1,8 @@
 use crate::scalar;
 use serde::{Deserialize, Serialize};
+use std::ops::Neg;
 
-/// A outset area around a rectangle.
+/// An outset area around a rectangle.
 ///
 /// Previously named Padding, then renamed to precisely specify that
 /// - for an actual outset - all values have to be positive. For an inset,
@@ -31,15 +32,19 @@ impl Outset {
     }
 }
 
+//
+// From
+//
+
 impl From<scalar> for Outset {
-    fn from(padding: scalar) -> Self {
-        Self::from((padding, padding))
+    fn from(outset: scalar) -> Self {
+        Self::from((outset, outset))
     }
 }
 
 impl From<(scalar, scalar)> for Outset {
-    fn from((padding_h, padding_v): (scalar, scalar)) -> Self {
-        Self([padding_h, padding_v, padding_h, padding_v])
+    fn from((outset_h, outset_v): (scalar, scalar)) -> Self {
+        Self([outset_h, outset_v, outset_h, outset_v])
     }
 }
 
@@ -52,5 +57,12 @@ impl From<[scalar; 4]> for Outset {
 impl From<(scalar, scalar, scalar, scalar)> for Outset {
     fn from((left, top, right, bottom): (scalar, scalar, scalar, scalar)) -> Self {
         Self::new(left, top, right, bottom)
+    }
+}
+
+impl Neg for Outset {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Outset::new(-self.left(), -self.top(), -self.right(), -self.bottom())
     }
 }

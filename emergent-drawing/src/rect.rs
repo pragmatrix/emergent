@@ -1,11 +1,8 @@
 use crate::{scalar, Bounds, Outset, Point, Vector};
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-/// A rectangle, defined by two points.
-///
-/// Note that the first point might not be the top left corner. I.e. the Rect is
-/// not necessarily normalized.
+/// A rectangle, defined by a point and a vector.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Rect(pub Point, pub Vector);
 
@@ -108,11 +105,14 @@ impl Rect {
 
 impl AddAssign<Outset> for Rect {
     fn add_assign(&mut self, rhs: Outset) {
-        // Outset is added edge-relative to the rect, meaning
+        // Outset is applied edge-relative to the rect, meaning
         // that when the size in one dimension is negative, the same edge is
         // used but extended in the other direction.
-        // In other words, the left edge stays the left edge, even if it's
-        // on the other side, because of a negative horizontal size of the rect.
+        // For example: The left edge stays the left edge, even if it's
+        // on the other side because of a negative horizontal size of the rect, so
+        // positive out-sets _always_ make the area of the rect larger.
+        // This makes sure that applying an outset to a rect is the same as
+        // flipping the rect, adding the outset, and flipping it back.
         let sz = self.size();
         let h_dir = sz.x().signum();
         let v_dir = sz.y().signum();
@@ -129,6 +129,20 @@ impl Add<Outset> for Rect {
     type Output = Rect;
     fn add(mut self, rhs: Outset) -> Self::Output {
         self += rhs;
+        self
+    }
+}
+
+impl SubAssign<Outset> for Rect {
+    fn sub_assign(&mut self, rhs: Outset) {
+        *self += -rhs;
+    }
+}
+
+impl Sub<Outset> for Rect {
+    type Output = Self;
+    fn sub(mut self, rhs: Outset) -> Self::Output {
+        self -= rhs;
         self
     }
 }
