@@ -152,6 +152,19 @@ impl DrawingSurface for skia_safe::Surface {
         let canvas = self.canvas();
         canvas.clear(Color::WHITE);
 
+        // let matrix44la = look_at((0.3, 0.5, 1.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0));
+        // let matrix44 = perspective(1.0, 4.0, std::f32::consts::PI / 5.0);
+        // dbg!(matrix44.has_perspective());
+        // let result = matrix44la * matrix44;
+        // dbg!(result.has_perspective());
+
+        let mut view = View3D::default();
+        // view.rotate_y(10.0);
+        // view.rotate_x(10.0);
+
+        view.apply_to_canvas(canvas.borrow_mut());
+        canvas.scale((2.0, 2.0));
+
         let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas);
         frame.drawing.draw_to(drawing_target);
 
@@ -205,8 +218,7 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             }
             Shape::Arc(_) => unimplemented!(),
             Shape::Path(_) => unimplemented!(),
-            Shape::Image(_) => unimplemented!(),
-            Shape::ImageRect(_, _, _) => unimplemented!(),
+            Shape::Image(_, _, _) => unimplemented!(),
             Shape::Text(drawing::Text(point, text, font)) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
                 self.canvas
@@ -376,9 +388,9 @@ impl ToSkia<Vec<Point>> for Vec<drawing::Point> {
     }
 }
 
-impl ToSkia<Size> for drawing::Size {
+impl ToSkia<Size> for drawing::Vector {
     fn to_skia(&self) -> Size {
-        let drawing::Size(width, height) = *self;
+        let drawing::Vector(width, height) = *self;
         Size::from((width, height))
     }
 }

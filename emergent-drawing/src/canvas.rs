@@ -1,7 +1,6 @@
 //! Usability optimized drawing functions and wrappers.
 
-use crate::drawing_target::DrawingTarget;
-use crate::{Paint, Shape};
+use crate::{DrawingTarget, Paint, Shape};
 
 pub trait Canvas<DT: DrawingTarget> {
     fn target(&mut self) -> &mut DT;

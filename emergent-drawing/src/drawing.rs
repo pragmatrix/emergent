@@ -1,7 +1,11 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
+use crate::{Path, Point, Rect, Vector};
 use serde::{Deserialize, Serialize};
+
+pub mod font;
+pub use font::Font;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Drawing(pub Vec<Draw>);
@@ -43,8 +47,7 @@ pub enum Shape {
     Circle(Circle),
     Arc(Arc),
     Path(Path),
-    Image(ImageId),
-    ImageRect(ImageId, Option<Rect>, Rect),
+    Image(ImageId, Option<Rect>, Rect),
     // ImageNine?
     Text(Text),
 }
@@ -56,12 +59,6 @@ pub enum Shape {
 /// A line defined by two points.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Line(pub Point, pub Point);
-
-/// A rectangle, defined by a point and a size.
-// TODO: should we separate Rect as a mathematical tool from
-// the rectangle shapet treated as a geometric form?
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Rect(pub Point, pub Size);
 
 /// A rounded rectangle.
 // TODO: Optimize representation for simple cases?
@@ -78,6 +75,8 @@ pub struct Circle(pub Point, pub Radius);
 pub struct Oval(pub Rect);
 
 /// A Polygon, closed when used as a shape, open when added to a path.
+// TODO: should a minimum number of ponts be constrained
+//       (this is critical for computing bounds())
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Polygon(pub Vec<Point>);
 
@@ -97,9 +96,6 @@ pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
 // TODO: can we share fonts?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Text(pub Point, pub String, pub Font);
-
-pub mod font;
-pub use font::Font;
 
 //
 // States
@@ -128,20 +124,6 @@ pub enum Clip {
 // TODO: consider f64 here.
 #[allow(non_camel_case_types)]
 pub type scalar = f32;
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Point(pub scalar, pub scalar);
-
-// TODO: replace size by Vector?
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Size(pub scalar, pub scalar);
-
-/// A padding area around a rectangle.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Padding(pub [scalar; 4]);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Vector(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Angle(pub scalar);
@@ -267,52 +249,6 @@ pub enum StrokeJoin {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct ImageId(String);
 
-//
-// Path
-//
-
-// TODO: add path combinators!
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Path {
-    fill_type: PathFillType,
-    matrix: Matrix,
-    verbs: Vec<PathVerb>,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum PathFillType {
-    Winding,
-    EvenOdd, // TODO: Inverse?
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum PathDirection {
-    CW,
-    CCW,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct ForceMoveTo(pub bool);
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum PathVerb {
-    MoveTo(Point),
-    LineTo(Point),
-    QuadTo(Point, Point),
-    ConicTo(Point, Point, scalar),
-    CubicTo(Point, Point, Point),
-    ArcTo(Arc, ForceMoveTo),
-    Close,
-    // is the direction and / or index too much?
-    AddRect(Rect, Option<(PathDirection, usize)>),
-    AddOval(Oval, Option<(PathDirection, usize)>),
-    AddCircle(Circle, Option<PathDirection>),
-    AddArc(Arc),
-    AddRoundedRect(RoundedRect, Option<PathDirection>),
-    AddOpenPolygon(Polygon),
-    // TODO: Do we need to support adding paths?
-}
-
 // TODO: ImageId / ImageRect
 
 #[test]
@@ -333,7 +269,7 @@ fn test_serialize() {
     println!("{}", serde_json::to_string(&shapes).unwrap());
 
     let drawing = Draw::Clipped(
-        Clip::Rect(Rect(Point(10.0, 1.0), Size(10.0, 1.0))),
+        Clip::Rect(Rect::from((Point(10.0, 1.0), Vector(10.0, 1.0)))),
         Drawing(vec![shapes]),
     );
 

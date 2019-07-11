@@ -1,72 +1,98 @@
-use crate::{scalar, Padding, Point, Rect, Size};
-use std::ops::Add;
+use crate::{scalar, Bounds, Outset, Point, Vector};
+use serde::{Deserialize, Serialize};
+use std::ops::{Add, AddAssign};
+
+/// A rectangle, defined by two points.
+///
+/// Note that the first point might not be the top left corner. I.e. the Rect is
+/// not necessarily normalized.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
+pub struct Rect(pub Point, pub Vector);
 
 impl Rect {
+    pub fn from_points(lt: Point, rb: Point) -> Rect {
+        Rect::from((lt, rb - lt))
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.size().is_empty()
+        self.size().is_zero()
     }
 
-    pub fn left(&self) -> scalar {
-        self.left_top().left()
-    }
-
-    pub fn top(&self) -> scalar {
-        self.left_top().top()
-    }
-
-    pub fn width(&self) -> scalar {
-        self.size().width()
-    }
-
-    pub fn height(&self) -> scalar {
-        self.size().height()
-    }
-
-    pub fn right(&self) -> scalar {
-        self.left() + self.width()
-    }
-
-    pub fn bottom(&self) -> scalar {
-        self.top() + self.height()
-    }
-
-    pub fn size(&self) -> Size {
-        self.1
-    }
-
+    /// The point at the left / top corner of the rectangle,
+    /// if the width / height is positive.
     pub fn left_top(&self) -> Point {
         self.0
     }
 
+    /// The point at the right / top corner of the rectangle,
     pub fn right_top(&self) -> Point {
-        self.left_top() + Size::from((self.width(), 0.0))
+        (self.right(), self.top()).into()
     }
 
+    /// The point at the right / bottom corner of the rectangle,
+    /// if the width / height is positive.
     pub fn right_bottom(&self) -> Point {
         self.left_top() + self.size()
     }
 
+    /// The point at the left / bottom corner of the rectangle.
     pub fn left_bottom(&self) -> Point {
-        self.left_top() + Size::from((0.0, self.height()))
+        (self.left(), self.bottom()).into()
+    }
+
+    /// The left edge of the rectangle (or the right if width is negative).
+    pub fn left(&self) -> scalar {
+        self.0.left()
+    }
+
+    /// The top edge of the rectangle (or the bottom if height is negative).
+    pub fn top(&self) -> scalar {
+        self.0.top()
+    }
+
+    /// The right edge of the rectangle (or the left if width is negative).
+    pub fn right(&self) -> scalar {
+        self.left() + self.width()
+    }
+
+    /// The bottom edge of the rectangle (or the top if height is negative).
+    pub fn bottom(&self) -> scalar {
+        self.top() + self.height()
+    }
+
+    /// The width, may be negative.
+    pub fn width(&self) -> scalar {
+        self.size().x()
+    }
+
+    /// The height, may be negative.
+    pub fn height(&self) -> scalar {
+        self.size().y()
+    }
+
+    pub fn size(&self) -> Vector {
+        self.1
     }
 
     pub fn center(&self) -> Point {
-        self.left_top() + self.size() * 0.5
+        self.0 + (self.size() * 0.5)
     }
 
     // Returns a rectangle that encloses two other rectangles.
-    // This function _does_ include empty rectangles into the
-    // resulting rectangle.
+    // This function _does_ treat the location of empty rectangles
+    // as a point inside the bounds.
     pub fn union(a: &Rect, b: &Rect) -> Rect {
-        Self::from_points_as_bounds(&[
+        Bounds::from_points(&[
             a.left_top(),
             a.right_bottom(),
             b.left_top(),
             b.right_bottom(),
         ])
         .unwrap()
+        .into()
     }
 
+    // If the size vector is positive, returns 4 points in the following order:
     // 0--1
     // |  |
     // 3--2
@@ -78,51 +104,43 @@ impl Rect {
             self.left_bottom(),
         ]
     }
+}
 
-    // 0 points -> No Rect representation.
-    // 1 point -> A zero sized rectangle at the point's position.
-    pub fn from_points_as_bounds(points: &[Point]) -> Option<Self> {
-        if points.is_empty() {
-            return None;
-        }
-
-        let p1 = points[0];
-        let mut left = p1.left();
-        let mut top = p1.top();
-        let mut right = left;
-        let mut bottom = top;
-        points[1..].iter().for_each(|p| {
-            let (x, y) = (p.x(), p.y());
-            left = left.min(x);
-            top = top.min(y);
-            right = right.max(x);
-            bottom = bottom.max(y);
-        });
-        Some(Rect::from((
-            Point::from((left, top)),
-            Size::from((right - left, bottom - top)),
-        )))
+impl AddAssign<Outset> for Rect {
+    fn add_assign(&mut self, rhs: Outset) {
+        // Outset is added edge-relative to the rect, meaning
+        // that when the size in one dimension is negative, the same edge is
+        // used but extended in the other direction.
+        // In other words, the left edge stays the left edge, even if it's
+        // on the other side, because of a negative horizontal size of the rect.
+        let sz = self.size();
+        let h_dir = sz.x().signum();
+        let v_dir = sz.y().signum();
+        let l = rhs.left() * h_dir;
+        let t = rhs.top() * v_dir;
+        let r = rhs.right() * h_dir;
+        let b = rhs.bottom() * v_dir;
+        self.0 -= Vector::from((l, t));
+        self.1 += Vector::from((r, b));
     }
 }
 
-impl Add<Padding> for Rect {
-    type Output = Self;
-    fn add(self, rhs: Padding) -> Self {
-        let (p1, p2) = (self.left_top(), self.right_bottom());
-        let (p1, p2) = (p1 - rhs.left_top(), p2 + rhs.right_bottom());
-        Rect::from((p1, (p2 - p1).into()))
+impl Add<Outset> for Rect {
+    type Output = Rect;
+    fn add(mut self, rhs: Outset) -> Self::Output {
+        self += rhs;
+        self
     }
 }
 
-impl From<(Point, Size)> for Rect {
-    fn from((p, s): (Point, Size)) -> Self {
-        Rect(p, s)
+impl From<Bounds> for Rect {
+    fn from(b: Bounds) -> Self {
+        Rect::from((b.left_top(), b.extent().into()))
     }
 }
 
-// TODO: is this needed?
-impl From<(scalar, scalar, scalar, scalar)> for Rect {
-    fn from((l, t, w, h): (scalar, scalar, scalar, scalar)) -> Self {
-        Self((l, t).into(), (w, h).into())
+impl From<(Point, Vector)> for Rect {
+    fn from((p, size): (Point, Vector)) -> Self {
+        Rect(p, size)
     }
 }

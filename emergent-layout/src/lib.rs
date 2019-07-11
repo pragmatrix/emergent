@@ -1,4 +1,4 @@
-use emergent_drawing::{scalar, Point, Rect, Size};
+use emergent_drawing::{scalar, Point, Rect, Vector};
 
 pub mod constraints;
 mod grid;
@@ -68,8 +68,8 @@ impl RectHelper for Rect {
 
     fn set_length(&mut self, axis: usize, length: length) {
         match axis {
-            0 => self.1 = Size(*length, self.height()),
-            1 => self.1 = Size(self.width(), *length),
+            0 => self.1 = Vector(*length, self.height()),
+            1 => self.1 = Vector(self.width(), *length),
             _ => {}
         }
     }

@@ -1,3 +1,6 @@
+mod bounds;
+pub use bounds::*;
+
 mod canvas;
 pub use canvas::*;
 
@@ -7,19 +10,25 @@ pub use color::*;
 mod drawing;
 pub use drawing::*;
 
-mod drawing_target;
-pub use drawing_target::*;
+mod extent;
+pub use extent::*;
+
+mod fast_bounds;
+pub use fast_bounds::*;
 
 pub mod functions;
 
-mod geometry;
-pub use geometry::*;
-
-mod outline;
-pub use outline::*;
+mod outset;
+pub use outset::*;
 
 mod paint;
 pub use paint::*;
+
+pub mod path;
+pub use path::Path;
+
+mod point;
+pub use point::*;
 
 mod rect;
 pub use rect::*;
@@ -29,6 +38,12 @@ pub use rounded_rect::*;
 
 mod shape;
 pub use shape::*;
+
+mod target;
+pub use target::*;
+
+mod vector;
+pub use vector::*;
 
 pub trait Render {
     fn render(&self);

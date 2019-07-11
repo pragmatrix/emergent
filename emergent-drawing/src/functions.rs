@@ -1,12 +1,8 @@
 use crate::font::Style;
-use crate::{font, scalar, Font, Line, Paint, Point, Rect, Size, Text};
+use crate::{font, scalar, Font, Line, Paint, Point, Rect, Text, Vector};
 
 pub fn point(x: scalar, y: scalar) -> Point {
     Point(x, y)
-}
-
-pub fn size(width: scalar, height: scalar) -> Size {
-    Size(width, height)
 }
 
 pub fn line(p1: impl Into<Point>, p2: impl Into<Point>) -> Line {
@@ -21,8 +17,8 @@ pub fn line_h(y: scalar, (x1, x2): (scalar, scalar)) -> Line {
     line((x1, y), (x2, y))
 }
 
-pub fn rect(p: impl Into<Point>, s: impl Into<Size>) -> Rect {
-    Rect(p.into(), s.into())
+pub fn rect(p: impl Into<Point>, e: impl Into<Vector>) -> Rect {
+    Rect(p.into(), e.into())
 }
 
 pub fn font(typeface_name: impl AsRef<str>, size: scalar) -> Font {
