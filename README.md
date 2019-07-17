@@ -24,9 +24,9 @@ Years ago while working on a an Visual Studio extension that executed F# code li
 
 I think that live programming does not make sense except for a [good demo](https://www.youtube.com/watch?v=PUv66718DII), because developers spend most of the time refactoring. This is because the creation of new features is the trivial part of programming, but modifying an environment that supports all existing features _while_ enabling new features is the complex part.
 
-The live programming research community answers this problem with creating specifically suited live programming languages or environments, some of the researchers even created several over the years, ignoring the needs of millions now.
+The live programming research community answers this problem with creating specifically suited live programming languages or environments, and some of the researchers even created several over the years.
 
-Obviously this does not lead to a solution. And now I think I know why. Live programming is merely a by-product of a larger solution to a problem that is much more pressing, and that is live testing.
+Somehow, all that investment does not seem to lead to solution that is usable. And I think I know why. From my point of view, live programming is merely a by-product of a larger solution to a problem that is much more pressing, and that is live testing.
 
 This project should enable live testing up until the point we can test _any_ imagined aspect of the software in development. The result will be much more than live programming ever attempted, it will be an accessible representation of the application in any state at any time. A god view into the multiverse of the application under test that can be navigated, extended, tested, and compared with previous snapshots. All that without being constrained to a specific programming language or IDE.
 
