@@ -8,6 +8,14 @@ The "vision" of this project is to build a basis for developing applications tha
 
 Furthermore, the testrunner should be able to create new testcases by interacting directly with the application under test.
 
+## Building & Running Tests
+
+Currently, there is not a lot to see. 
+
+On Windows, `cargo run -- emergent-layout` should - with LLVM installed, and a decent Vulkan driver, and a lot of luck - compile everything, power up the testrunner, and visualize some early results of the layout engine.
+
+It does that by starting the testrunner, which starts `cargo watch` internally, which in turn runs `cargo test` on the `emergent-layout` package, captures its results, and visualizes them. From now on, changes in the `emergent-layout` packages are detected and the visualizations are updated automatically.
+
 ## History and Context
 
 I've had the vision of live programming for a long time and dived deep into languages, frameworks, built countless prototypes, visited conferences, but never felt that I or the live programming community was able to realize what I've imagined.
@@ -32,11 +40,11 @@ If all input to an application can be serialized and the application's state and
 
 My strategy is to ...
 
-- make a **graphics library** with a GPU backend, high quality perspective anti-aliasing, available to the Rust ecosystem. My first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
-- create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet) [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
+- make a **graphics library** with a GPU backend, high quality perspective anti-aliasing, available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
+- create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet), [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
   My goals for a drawing library is a complete, fast, and compact serializable representation with a minum set of external functional dependencies, like text measurements and path combinators, for example.
   And for the layout engine, it should be built from one-dimensional combinators and scale up to three or four dimesions while providing a simplified set of combinators to create 2D layouts.
-- create an **application component system** that looks like a combination of TEA and React. While React focuses a bit too much much on UI components, TEA focuses too much on having one single state. I think by layering multiple TEAs, an optimal combination of both worlds is possible. Conceptually, this is probably the hardest part to realize.
+- create an **application component system** that looks like a combination of TEA and React. While React focuses on UI components, TEA focuses on having one single application state. I think by layering multiple TEAs, an optimal combination of both worlds is possible. Conceptually, this is probably the hardest part to realize.
 - create an **interpolation** layer, that enables **animations**. This should work similar to the DOM diffing algorithms that enable incremental updates, but also produce animations that are independent of layout hierarchies and placement.
 - use or create a **gesture recognition** library.
 - specify and create text protocol based I/O interfaces and **simulators** for **operating system functionality**, so that all desktop and mobile operating systems look similar to the application and interfacing with them does not depend on complex FFI APIs.
@@ -44,6 +52,8 @@ My strategy is to ...
 All these components are developed _very carefully_ in lock-step with the testrunner. Strictly adhering to the the [first principle](https://en.wikipedia.org/wiki/First_principle) that a component and all its functionality _must_ be fully visualizable, simulatable, reproducible, and as a result, testable.
 
 ## Why Rust?
+
+Although the concepts here are not tailored to a specific programming langauge, I think that Rust is the perfect language for this project.
 
 Around 2005, when C# 2.0 were released with generics I moved from C++ and Delphi to C# as my primary programming language. Although I've never missed a GC, I was intrigued by the language features, compilation speed, and later - refactoring options. Further along, in 2013, I started using F# to finally get a grasp what functional programming is about, and yes, of course finally a language that had sum types I've always missed.
 
