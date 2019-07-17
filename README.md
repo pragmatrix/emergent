@@ -40,7 +40,7 @@ If all input to an application can be serialized and the application's state and
 
 My strategy is to ...
 
-- make a **graphics library** with a GPU backend, high quality perspective anti-aliasing, available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
+- make a **graphics library** with a GPU backend and high quality perspective anti-aliasing available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
 - create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet), [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
   My goals for a drawing library is a complete, fast, and compact serializable representation with a minum set of external functional dependencies, like text measurements and path combinators, for example.
   And for the layout engine, it should be built from one-dimensional combinators and scale up to three or four dimesions while providing a simplified set of combinators to create 2D layouts.
@@ -53,7 +53,7 @@ All these components are developed _very carefully_ in lock-step with the testru
 
 ## Why Rust?
 
-Although the concepts here are not tailored to a specific programming langauge, I think that Rust is the perfect language for this project.
+Although these concepts are not tailored to a specific programming language, I think that Rust is the perfect language for this project.
 
 Around 2005, when C# 2.0 were released with generics I moved from C++ and Delphi to C# as my primary programming language. Although I've never missed a GC, I was intrigued by the language features, compilation speed, and later - refactoring options. Further along, in 2013, I started using F# to finally get a grasp what functional programming is about, and yes, of course finally a language that had sum types I've always missed.
 
