@@ -10,6 +10,9 @@ pub use color::*;
 mod drawing;
 pub use drawing::*;
 
+mod drawing_target;
+pub use drawing_target::*;
+
 mod extent;
 pub use extent::*;
 
@@ -38,9 +41,6 @@ pub use rounded_rect::*;
 
 mod shape;
 pub use shape::*;
-
-mod target;
-pub use target::*;
 
 mod vector;
 pub use vector::*;
