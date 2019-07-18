@@ -16,6 +16,21 @@ On Windows, `cargo run -- emergent-layout` should - with LLVM installed, and a d
 
 It does that by starting the testrunner, which starts `cargo watch` internally, which in turn runs `cargo test` on the `emergent-layout` package, captures its results, and visualizes them. From now on, changes in the `emergent-layout` packages are detected and the visualizations are updated automatically.
 
+## Strategy
+
+My strategy is to ...
+
+- make a **graphics library** with a GPU backend and high quality perspective anti-aliasing available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
+- create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet), [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
+  My goals for a drawing library is a complete, fast, and compact serializable representation with a minum set of external functional dependencies, like text measurements and path combinators, for example.
+  And for the layout engine, it should be built from one-dimensional combinators and scale up to three or four dimensions while providing a simplified set of combinators to create 2D layouts.
+- create an **application component system** that looks like a combination of TEA and React. While React focuses on UI components, TEA focuses on having one single application state. I think by layering multiple TEAs, an optimal combination of both worlds is possible. Conceptually, this is probably the hardest part to realize.
+- create an **interpolation** layer, that enables **animations**. This should work similar to the DOM diffing algorithms that enable incremental updates, but also produce animations that are independent of layout hierarchies and placement.
+- use or create a **gesture recognition** library.
+- specify and create text protocol based I/O interfaces and **simulators** for **operating system functionality**, so that all desktop and mobile operating systems look similar to the application and interfacing with them does not depend on complex FFI APIs.
+
+All these components are developed _very carefully_ in lock-step with the testrunner. Strictly adhering to the the [first principle](https://en.wikipedia.org/wiki/First_principle) that a component and all its functionality _must_ be fully visualizable, simulatable, reproducible, and as a result, testable.
+
 ## History and Context
 
 I've had the vision of live programming for a long time and dived deep into languages, frameworks, built countless prototypes, visited conferences, but never felt that I or the live programming community was able to realize what I've imagined.
@@ -35,37 +50,6 @@ To realize that, I think we need to push only _one_ recently developed idea to i
 Basically it is event sourcing und unidirectional data flow that makes all of it possible, React and Flux were the first popular concepts that tried to project interaction to the input - output model of simple console applications _and_ simplified state handling at the same time. And that lead to The Elm Architecture, which disrupted MVC and is currently the pinnacle of application logic design.
 
 If all input to an application can be serialized and the application's state and side-effects captured in full, it is possible to put the application into a sandbox, provide environments to it, and simulate its results in form of its state and visual output.
-
-## Strategy
-
-My strategy is to ...
-
-- make a **graphics library** with a GPU backend and high quality perspective anti-aliasing available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
-- create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet), [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
-  My goals for a drawing library is a complete, fast, and compact serializable representation with a minum set of external functional dependencies, like text measurements and path combinators, for example.
-  And for the layout engine, it should be built from one-dimensional combinators and scale up to three or four dimensions while providing a simplified set of combinators to create 2D layouts.
-- create an **application component system** that looks like a combination of TEA and React. While React focuses on UI components, TEA focuses on having one single application state. I think by layering multiple TEAs, an optimal combination of both worlds is possible. Conceptually, this is probably the hardest part to realize.
-- create an **interpolation** layer, that enables **animations**. This should work similar to the DOM diffing algorithms that enable incremental updates, but also produce animations that are independent of layout hierarchies and placement.
-- use or create a **gesture recognition** library.
-- specify and create text protocol based I/O interfaces and **simulators** for **operating system functionality**, so that all desktop and mobile operating systems look similar to the application and interfacing with them does not depend on complex FFI APIs.
-
-All these components are developed _very carefully_ in lock-step with the testrunner. Strictly adhering to the the [first principle](https://en.wikipedia.org/wiki/First_principle) that a component and all its functionality _must_ be fully visualizable, simulatable, reproducible, and as a result, testable.
-
-## Why Rust?
-
-Although these concepts are not tailored to a specific programming language, I think that Rust is the perfect language for this project.
-
-Around 2005, when C# 2.0 were released with generics I moved from C++ and Delphi to C# as my primary programming language. Although I've never missed a GC, I was intrigued by the language features, compilation speed, and later - refactoring options. Further along, in 2013, I started using F# to finally get a grasp what functional programming is about, and yes, of course finally a language that had sum types I've always missed.
-
-And when Rust got popular around 2015, I realized that the industry got the language it needed. A fast _and_ safe systems programming language that needs no GC, comes with dependency management and a concept of modularization, supports functional programming and sum types, and has traits and decent macros.
-
-I now say good bye to GCs, Reflection, Runtimes, JIT compilers, it was nice while it lasted, but you are not needed anymore.
-
-I think that the future for Rust is so bright that I bet my future as a developer on it. With WASM support, it has the potential to a TypeScript killer and may demote JavaScript and C to interfacing languages. With its performance, safety, and FFI support, it will push out C++ out of its waters, which is long overdue.
-
-Yet Rust misses a decent option to build user interfaces with. And probably there is a reason why there is none, probably because the existing options somehow do not fit. Rust is something enterily new, and a user interface kit that attracts a generation of developers that decide to use Rust must bring in something new to get a chance of fitting in. If such a library would exist, I think that we can start to count the days for Java, Kotlin, Scala, C#, F# and dotnet, too.
-
-I like diversity, but sometimes old stuff is just that, old. I'd rather see a new generation of programming languages grow based on the concepts in Swift and Rust than waste any more time on layered balls of stuff that noone seems to understand and - when scrutinized - seems to just move problems around.
 
 ## Copyright & License 
 
