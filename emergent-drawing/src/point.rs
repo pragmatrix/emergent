@@ -6,6 +6,10 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 pub struct Point(pub scalar, pub scalar);
 
 impl Point {
+    pub const fn new(left: scalar, top: scalar) -> Self {
+        Self(left, top)
+    }
+
     pub fn left(&self) -> scalar {
         self.0
     }
@@ -13,6 +17,8 @@ impl Point {
     pub fn top(&self) -> scalar {
         self.1
     }
+
+    pub const ZERO: Point = Point::new(0.0, 0.0);
 }
 
 //

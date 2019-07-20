@@ -6,8 +6,10 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 pub struct Vector(pub scalar, pub scalar);
 
 impl Vector {
-    pub fn new(x: scalar, y: scalar) -> Self {
-        Self::from((x, y))
+    pub const ZERO: Vector = Vector::new(0.0, 0.0);
+
+    pub const fn new(x: scalar, y: scalar) -> Self {
+        Self(x, y)
     }
 
     pub fn x(&self) -> scalar {
@@ -40,7 +42,7 @@ impl Vector {
 
 impl From<(scalar, scalar)> for Vector {
     fn from((x, y): (scalar, scalar)) -> Self {
-        Self(x, y)
+        Self::new(x, y)
     }
 }
 
@@ -118,7 +120,7 @@ impl MulAssign<scalar> for Vector {
 
 impl Div<scalar> for Vector {
     type Output = Vector;
-    fn div(mut self, rhs: f32) -> Self::Output {
+    fn div(mut self, rhs: scalar) -> Self::Output {
         self /= rhs;
         self
     }

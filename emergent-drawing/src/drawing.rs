@@ -123,7 +123,7 @@ pub enum Clip {
 
 // TODO: consider f64 here.
 #[allow(non_camel_case_types)]
-pub type scalar = f32;
+pub type scalar = f64;
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Angle(pub scalar);
