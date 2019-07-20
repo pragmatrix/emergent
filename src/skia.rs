@@ -3,13 +3,12 @@ use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent_drawing as drawing;
-use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape, Text};
+use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape};
 use skia_safe::gpu::vk;
-use skia_safe::utils::{look_at, perspective, View3D};
+use skia_safe::utils::View3D;
 use skia_safe::{
     font_style, gpu, scalar, BlendMode, Canvas, CanvasPointMode, Color, ColorType, Font, FontStyle,
-    Matrix, Matrix44, Paint, PaintCap, PaintJoin, PaintStyle, Point, RRect, Rect, Size, Surface,
-    Typeface, Vector,
+    Paint, PaintCap, PaintJoin, PaintStyle, Point, RRect, Rect, Size, Surface, Typeface, Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
@@ -158,7 +157,7 @@ impl DrawingSurface for skia_safe::Surface {
         // let result = matrix44la * matrix44;
         // dbg!(result.has_perspective());
 
-        let mut view = View3D::default();
+        let view = View3D::default();
         // view.rotate_y(10.0);
         // view.rotate_x(10.0);
 
@@ -179,7 +178,7 @@ struct CanvasDrawingTarget<'canvas> {
 }
 
 impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
-    fn fill(&mut self, paint: &drawing::Paint, blend_mode: drawing::BlendMode) {
+    fn fill(&mut self, _paint: &drawing::Paint, _blend_mode: drawing::BlendMode) {
         unimplemented!()
     }
 
@@ -233,17 +232,17 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         self.canvas.restore();
     }
 
-    fn clip(&mut self, clip: &drawing::Clip, f: impl FnOnce(&mut Self)) {
+    fn clip(&mut self, _clip: &drawing::Clip, _f: impl FnOnce(&mut Self)) {
         unimplemented!()
     }
 
-    fn transform(&mut self, transformation: &drawing::Transformation, f: impl FnOnce(&mut Self)) {
+    fn transform(&mut self, _transformation: &drawing::Transformation, _f: impl FnOnce(&mut Self)) {
         unimplemented!()
     }
 }
 
 impl<'a> CanvasDrawingTarget<'a> {
-    fn canvas(&mut self) -> &mut Canvas {
+    fn _canvas(&mut self) -> &mut Canvas {
         &mut self.canvas
     }
 
@@ -257,7 +256,7 @@ impl<'a> CanvasDrawingTarget<'a> {
         }
     }
 
-    fn resolve_font(&mut self, font: &drawing::Font) -> &Font {
+    fn _resolve_font(&mut self, font: &drawing::Font) -> &Font {
         if self.font.is_none() {
             self.font = Some(FontSync::from_font(font));
         };
@@ -296,8 +295,8 @@ impl PaintSync {
         // TODO: we _do_ know which values have been changed, so probably we should apply only that.
         paint.set_style(dp.style.to_skia());
         paint.set_color(dp.color.to_skia());
-        paint.set_stroke_width(dp.stroke_width);
-        paint.set_stroke_miter(dp.stroke_miter);
+        paint.set_stroke_width(dp.stroke_width.to_skia());
+        paint.set_stroke_miter(dp.stroke_miter.to_skia());
         paint.set_stroke_cap(dp.stroke_cap.to_skia());
         paint.set_stroke_join(dp.stroke_join.to_skia());
         paint.set_blend_mode(dp.blend_mode.to_skia());
@@ -312,8 +311,8 @@ struct FontSync {
 
 impl FontSync {
     pub fn from_font(font: &drawing::Font) -> FontSync {
-        let (typeface, sk_font) = Self::create_typeface_and_font(font);
-        let sk_font = Font::from_typeface_with_size(&typeface, *font.size());
+        let (typeface, _sk_font) = Self::create_typeface_and_font(font);
+        let sk_font = Font::from_typeface(&typeface, font.size().to_skia());
         Self {
             drawing_font: font.clone(),
             typeface,
@@ -339,7 +338,7 @@ impl FontSync {
             self.font = f;
             self.drawing_font = font.clone();
         } else if font.size() != self.drawing_font.size() {
-            self.font = Font::from_typeface_with_size(&self.typeface, *font.size());
+            self.font = Font::from_typeface(&self.typeface, font.size().to_skia());
             // TODO: _that_ looks scary.
             self.drawing_font.2 = font.size()
         }
@@ -349,7 +348,7 @@ impl FontSync {
 
     pub fn create_typeface_and_font(font: &drawing::Font) -> (Typeface, Font) {
         let typeface = Typeface::from_name(font.name(), font.style().to_skia()).unwrap_or_default();
-        let sk_font = Font::from_typeface_with_size(&typeface, *font.size());
+        let sk_font = Font::from_typeface(&typeface, font.size().to_skia());
         (typeface, sk_font)
     }
 }
@@ -371,14 +370,14 @@ impl ToSkia<Color> for drawing::Color {
 impl ToSkia<Point> for drawing::Point {
     fn to_skia(&self) -> Point {
         let drawing::Point(x, y) = *self;
-        Point::from((x, y))
+        Point::from((x.to_skia(), y.to_skia()))
     }
 }
 
 impl ToSkia<Vector> for drawing::Vector {
     fn to_skia(&self) -> Point {
         let drawing::Vector(x, y) = *self;
-        Vector::from((x, y))
+        Vector::from((x.to_skia(), y.to_skia()))
     }
 }
 
@@ -391,7 +390,7 @@ impl ToSkia<Vec<Point>> for Vec<drawing::Point> {
 impl ToSkia<Size> for drawing::Vector {
     fn to_skia(&self) -> Size {
         let drawing::Vector(width, height) = *self;
-        Size::from((width, height))
+        Size::from((width.to_skia(), height.to_skia()))
     }
 }
 
@@ -417,7 +416,7 @@ impl ToSkia<RRect> for drawing::RoundedRect {
 
 impl ToSkia<f32> for drawing::Radius {
     fn to_skia(&self) -> scalar {
-        self.0
+        self.0.to_skia()
     }
 }
 
@@ -508,5 +507,12 @@ impl ToSkia<font_style::Slant> for drawing::font::Slant {
             drawing::font::Slant::Italic => font_style::Slant::Italic,
             drawing::font::Slant::Oblique => font_style::Slant::Oblique,
         }
+    }
+}
+
+impl ToSkia<scalar> for drawing::scalar {
+    fn to_skia(&self) -> f32 {
+        // TODO: perf, also truncation?
+        *self as f32
     }
 }
