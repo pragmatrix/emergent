@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate bitflags;
+
 mod bounds;
 pub use bounds::*;
 
@@ -20,6 +23,9 @@ mod fast_bounds;
 pub use fast_bounds::*;
 
 pub mod functions;
+
+pub mod matrix;
+pub use matrix::Matrix;
 
 mod outset;
 pub use outset::*;

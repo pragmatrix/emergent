@@ -1,7 +1,7 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::{Path, Point, Rect, Vector};
+use crate::{Matrix, Path, Point, Rect, Vector};
 use serde::{Deserialize, Serialize};
 
 pub mod font;
@@ -145,9 +145,6 @@ pub struct Degrees(scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Radius(pub scalar);
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Matrix([scalar; 9]);
 
 // Contains Option values to support optimal serialization if values do not diverge from their defaults.
 // TODO: we need some way to resolve that to a paint _with_ all values set, and specify a default.
