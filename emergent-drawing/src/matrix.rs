@@ -215,7 +215,7 @@ impl Matrix {
     }
 
     pub fn map_radius(&self, radius: Radius) -> Radius {
-        let mut v = [Vector::new(radius.0, 0.0), Vector::new(0.0, radius.0)];
+        let mut v = [Vector::new(*radius, 0.0), Vector::new(0.0, *radius)];
         self.map_vectors_inplace(&mut v);
         let d0 = v[0].length();
         let d1 = v[1].length();

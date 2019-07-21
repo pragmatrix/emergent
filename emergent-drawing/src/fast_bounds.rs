@@ -1,5 +1,5 @@
 use crate::{
-    Arc, Bounds, Circle, Font, Line, Oval, Point, Polygon, Rect, RoundedRect, Shape, Vector,
+    Arc, Bounds, Circle, Extent, Font, Line, Oval, Point, Polygon, Rect, RoundedRect, Shape, Vector,
 };
 
 pub trait MeasureText {
@@ -48,7 +48,8 @@ impl FastBounds for Oval {
 
 impl FastBounds for Circle {
     fn fast_bounds(&self) -> Bounds {
-        let r = Vector::from(((self.1).0, (self.1).0));
+        let r = self.1;
+        let r = Vector::from((*r, *r));
         let p = self.0 - r;
         Bounds::from((p, (r * 2.0).into()))
     }

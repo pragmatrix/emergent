@@ -410,7 +410,7 @@ impl ToSkia<RRect> for drawing::RoundedRect {
 
 impl ToSkia<f32> for drawing::Radius {
     fn to_skia(&self) -> scalar {
-        self.0.to_skia()
+        (**self).to_skia()
     }
 }
 

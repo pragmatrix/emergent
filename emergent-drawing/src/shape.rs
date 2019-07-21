@@ -1,5 +1,5 @@
 use crate::{
-    scalar, Arc, Circle, Line, Oval, Path, Point, Polygon, Radius, Rect, RoundedRect, Shape, Text,
+    scalar, Arc, Circle, Line, Oval, Path, Point, Polygon, Rect, RoundedRect, Shape, Text,
 };
 
 //
@@ -79,21 +79,5 @@ impl From<(Point, Point)> for Line {
 impl From<(scalar, scalar, scalar, scalar)> for Line {
     fn from((p1x, p1y, p2x, p2y): (scalar, scalar, scalar, scalar)) -> Self {
         Line::from(((p1x, p1y).into(), (p2x, p2y).into()))
-    }
-}
-
-//
-// Radius
-//
-
-impl From<scalar> for Radius {
-    fn from(radius: scalar) -> Self {
-        Radius(radius)
-    }
-}
-
-impl From<i64> for Radius {
-    fn from(radius: i64) -> Self {
-        (radius as scalar).into()
     }
 }

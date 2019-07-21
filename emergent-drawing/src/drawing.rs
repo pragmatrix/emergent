@@ -1,7 +1,7 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::{Matrix, Paint, Path, Point, Rect, Vector};
+use crate::{Matrix, Paint, Path, Point, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
 
 pub mod font;
@@ -138,9 +138,6 @@ pub struct Skew(pub scalar, pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Degrees(scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Radius(pub scalar);
 
 // https://developer.android.com/reference/android/graphics/PorterDuff.Mode
 // We support 12 alpha composition modes, 5 blending modes, and simple addition for now.

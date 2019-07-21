@@ -1,6 +1,6 @@
 use crate::{
-    scalar, Arc, Bounds, Circle, FastBounds, Matrix, Oval, Point, Polygon, Radius, Rect,
-    RoundedRect, Vector,
+    scalar, Arc, Bounds, Circle, FastBounds, Matrix, Oval, Point, Polygon, Rect, RoundedRect,
+    Vector,
 };
 use serde::{Deserialize, Serialize};
 
@@ -113,8 +113,8 @@ impl Path {
                     unimplemented!("compute the end-point of the rect");
                     // current = Some(r.center())
                 }
-                Verb::AddCircle(Circle(p, Radius(r)), _) => {
-                    let sector_size = Vector::from((*r, *r));
+                Verb::AddCircle(Circle(p, r), _) => {
+                    let sector_size = Vector::from((**r, **r));
                     let r = Rect::from((*p - sector_size, sector_size * 2.0));
                     points.extend(&r.to_quad());
                     // TODO: this is incorrect, use the correct end-point of the rect here.

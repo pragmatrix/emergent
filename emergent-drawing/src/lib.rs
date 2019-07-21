@@ -39,6 +39,9 @@ pub use path::Path;
 mod point;
 pub use point::*;
 
+mod radius;
+pub use radius::*;
+
 mod rect;
 pub use rect::*;
 
