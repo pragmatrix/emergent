@@ -76,7 +76,7 @@ impl FastBounds for Circle {
 
 impl FastBounds for RoundedRect {
     fn fast_bounds(&self) -> Bounds {
-        self.0.fast_bounds()
+        self.rect().fast_bounds()
     }
 }
 

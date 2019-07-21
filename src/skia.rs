@@ -388,6 +388,12 @@ impl ToSkia<Size> for drawing::Vector {
     }
 }
 
+impl ToSkia<Vector> for drawing::Extent {
+    fn to_skia(&self) -> Vector {
+        Vector::new(self.width().to_skia(), self.height().to_skia())
+    }
+}
+
 impl ToSkia<Rect> for drawing::Rect {
     fn to_skia(&self) -> Rect {
         let drawing::Rect(p, s) = self;
@@ -397,14 +403,14 @@ impl ToSkia<Rect> for drawing::Rect {
 
 impl ToSkia<RRect> for drawing::RoundedRect {
     fn to_skia(&self) -> RRect {
-        let drawing::RoundedRect(rect, corners) = self;
+        let corners = self.corner_radii();
         let corners = [
             corners[0].to_skia(),
             corners[1].to_skia(),
             corners[2].to_skia(),
             corners[3].to_skia(),
         ];
-        RRect::new_rect_radii(rect.to_skia(), &corners)
+        RRect::new_rect_radii(self.rect().to_skia(), &corners)
     }
 }
 

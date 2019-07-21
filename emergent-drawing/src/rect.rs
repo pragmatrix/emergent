@@ -7,6 +7,10 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 pub struct Rect(pub Point, pub Vector);
 
 impl Rect {
+    pub fn new(p: impl Into<Point>, v: impl Into<Vector>) -> Rect {
+        Rect(p.into(), v.into())
+    }
+
     pub fn from_points(lt: Point, rb: Point) -> Rect {
         Rect::from((lt, rb - lt))
     }
@@ -163,6 +167,6 @@ impl From<Bounds> for Rect {
 
 impl From<(Point, Vector)> for Rect {
     fn from((p, size): (Point, Vector)) -> Self {
-        Rect(p, size)
+        Rect::new(p, size)
     }
 }

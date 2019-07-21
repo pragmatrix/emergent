@@ -52,7 +52,6 @@ pub enum Verb {
     AddOval(Oval, Option<(Direction, usize)>),
     AddCircle(Circle, Option<Direction>),
     AddArc(Arc),
-    AddRoundedRect(RoundedRect, Option<Direction>),
     AddOpenPolygon(Polygon),
     // TODO: Do we need to support adding paths?
 }
@@ -127,10 +126,6 @@ impl Path {
                     unimplemented!("compute the end-point of the rect");
                     // current = Some(r.center())
                 }
-                Verb::AddRoundedRect(RoundedRect(r, _), _) => {
-                    points.extend(&r.to_quad());
-                    current = Some(r.center())
-                }
                 Verb::AddOpenPolygon(Polygon(pts)) => {
                     points.extend(pts);
                     current = pts.last().cloned().or(current);
@@ -144,6 +139,52 @@ impl Path {
     //
     // add of complex shapes.
     //
+
+    pub fn add_rounded_rect(
+        &mut self,
+        rr: &RoundedRect,
+        dir_start: impl Into<Option<(Direction, usize)>>,
+    ) {
+        let (dir, start) = dir_start.into().unwrap_or_default();
+
+        // CW: odd indices
+        // CCW: even indices
+        let starts_with_conic = ((start & 1) != 0) == (dir == Direction::CW);
+        const WEIGHT: f64 = std::f64::consts::FRAC_1_SQRT_2;
+
+        let mut rrect_iter = rounded_rect_point_iterator(rr, (dir, start));
+        let rect_start_index = start / 2 + (if dir == Direction::CW { 0 } else { 1 });
+        let mut rect_iter = rect_point_iterator(rr.rect(), (dir, rect_start_index));
+
+        self.reserve_verbs(if starts_with_conic { 9 } else { 10 })
+            .move_to(rrect_iter.next().unwrap());
+
+        if starts_with_conic {
+            for _ in 0..=2 {
+                self.conic_to(
+                    rect_iter.next().unwrap(),
+                    rrect_iter.next().unwrap(),
+                    WEIGHT,
+                )
+                .line_to(rrect_iter.next().unwrap());
+            }
+            self.conic_to(
+                rect_iter.next().unwrap(),
+                rrect_iter.next().unwrap(),
+                WEIGHT,
+            );
+        } else {
+            for _ in 0..=3 {
+                self.line_to(rrect_iter.next().unwrap()).conic_to(
+                    rect_iter.next().unwrap(),
+                    rrect_iter.next().unwrap(),
+                    WEIGHT,
+                );
+            }
+        }
+
+        self.close();
+    }
 
     pub fn add_rect(&mut self, rect: &Rect, dir_start: impl Into<Option<(Direction, usize)>>) {
         let mut iter = rect_point_iterator(rect, dir_start);
@@ -159,12 +200,37 @@ impl Path {
     // add primitive verbs.
     //
 
-    pub fn move_to(&mut self, p: impl Into<Point>) -> &mut Self {
-        self.add_verb(Verb::MoveTo(p.into()))
+    pub fn conic_to(
+        &mut self,
+        p1: impl Into<Point>,
+        p2: impl Into<Point>,
+        weight: scalar,
+    ) -> &mut Self {
+        if !(weight > 0.0) {
+            return self.line_to(p2);
+        }
+
+        if !weight.is_finite() {
+            return self.line_to(p1).line_to(p2);
+        }
+
+        if weight == 1.0 {
+            return self.quad_to(p1, p2);
+        }
+
+        self.add_verb(Verb::ConicTo(p1.into(), p2.into(), weight))
+    }
+
+    pub fn quad_to(&mut self, p1: impl Into<Point>, p2: impl Into<Point>) -> &mut Self {
+        self.add_verb(Verb::QuadTo(p1.into(), p2.into()))
     }
 
     pub fn line_to(&mut self, p: impl Into<Point>) -> &mut Self {
         self.add_verb(Verb::LineTo(p.into()))
+    }
+
+    pub fn move_to(&mut self, p: impl Into<Point>) -> &mut Self {
+        self.add_verb(Verb::MoveTo(p.into()))
     }
 
     pub fn close(&mut self) {
@@ -185,7 +251,7 @@ impl Path {
 fn rect_point_iterator(
     rect: &Rect,
     dir_start: impl Into<Option<(Direction, usize)>>,
-) -> impl Iterator<Item = Point> + 'static {
+) -> impl Iterator<Item = Point> {
     let (dir, start) = dir_start.into().unwrap_or_default();
 
     let step = match dir {
@@ -205,6 +271,27 @@ fn rect_point_iterator(
             _ => unreachable!(),
         };
 
+        index += step;
+        Some(p)
+    })
+}
+
+fn rounded_rect_point_iterator(
+    rrect: &RoundedRect,
+    dir_start: impl Into<Option<(Direction, usize)>>,
+) -> impl Iterator<Item = Point> {
+    let (dir, start) = dir_start.into().unwrap_or_default();
+
+    let step = match dir {
+        Direction::CW => 1,
+        Direction::CCW => -1,
+    };
+
+    let mut index = start as isize;
+    let points = rrect.to_points();
+    let num = points.len() as isize;
+    iter::from_fn(move || {
+        let p = points[(index % num) as usize];
         index += step;
         Some(p)
     })
