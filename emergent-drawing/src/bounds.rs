@@ -1,7 +1,12 @@
 use crate::{scalar, Extent, Point, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-/// Normalized bounds with a positive extent.
+/// Bounds, currently a rectangle with a positive extent.
+///
+/// May be set to zero or one-dimensional bounds when width / height are 0.0.
+/// Lower-dimensions are important for bounds computation of shapes like points and horizontal /
+/// vertical lines that are zero or one-dimensional and get their two-dimensionality
+/// from a Paint's stroke width, for example.
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
 pub struct Bounds(pub Point, pub Extent);
 
