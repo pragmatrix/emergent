@@ -1,7 +1,5 @@
 use crate::{scalar, Bounds, FastBounds, Point, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
-#[cfg(test)]
-use std::f64::consts::PI;
 use std::{mem, slice};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -251,7 +249,7 @@ impl Matrix {
         (self.scale_x(), self.scale_y())
     }
 
-    fn skew(&self) -> (scalar, scalar) {
+    fn _skew(&self) -> (scalar, scalar) {
         (self.skew_x(), self.skew_y())
     }
 
@@ -466,41 +464,6 @@ fn affine_points(m: &Matrix, points: &mut [Point]) {
     }
 }
 
-#[test]
-fn test_decomposition() {
-    let rotation0: scalar = 15.5 * PI / 180.0;
-    let _rotation1: scalar = -50. * PI / 180.0;
-    let scale0: scalar = 5000.;
-    let scale1: scalar = 0.001;
-
-    let mat = Matrix::new_identity();
-    assert!(check_matrix_recomposition(
-        &mat,
-        decompose_upper_2x2(&mat).unwrap()
-    ));
-
-    let mat = Matrix::new_rotate(rotation0, None);
-    assert!(check_matrix_recomposition(
-        &mat,
-        decompose_upper_2x2(&mat).unwrap()
-    ));
-
-    let mat = Matrix::new_scale(scale0, scale0, None);
-    assert!(check_matrix_recomposition(
-        &mat,
-        decompose_upper_2x2(&mat).unwrap()
-    ));
-
-    let mut mat = Matrix::new_rotate(rotation0, None);
-    mat.post_scale(scale1, -scale1, None);
-    assert!(check_matrix_recomposition(
-        &mat,
-        decompose_upper_2x2(&mat).unwrap()
-    ));
-
-    // TODO: more decomposition tests (if we need actually need it)
-}
-
 pub fn decompose_upper_2x2(matrix: &Matrix) -> Option<(Vector, Vector, Vector)> {
     let a = matrix.0[SCALE_X];
     let b = matrix.0[SKEW_X];
@@ -591,37 +554,8 @@ pub fn decompose_upper_2x2(matrix: &Matrix) -> Option<(Vector, Vector, Vector)> 
     Some((rotation1, scale, rotation2))
 }
 
-#[cfg(test)]
-fn check_matrix_recomposition(
-    mat: &Matrix,
-    (rotation1, scale, rotation2): (Vector, Vector, Vector),
-) -> bool {
-    let c1 = rotation1.x();
-    let s1 = rotation1.y();
-    let scale_x = scale.x();
-    let scale_y = scale.y();
-    let c2 = rotation2.x();
-    let s2 = rotation2.y();
-
-    // We do a relative check here because large scale factors cause problems with an absolute check
-    let result = nearly_equal_relative(
-        mat.0[SCALE_X],
-        scale_x * c1 * c2 - scale_y * s1 * s2,
-        NEARLY_ZERO,
-    ) && nearly_equal_relative(
-        mat.0[SKEW_X],
-        -scale_x * s1 * c2 - scale_y * c1 * s2,
-        NEARLY_ZERO,
-    ) && nearly_equal_relative(
-        mat.0[SKEW_Y],
-        scale_x * c1 * s2 + scale_y * s1 * c2,
-        NEARLY_ZERO,
-    ) && nearly_equal_relative(
-        mat.0[SCALE_Y],
-        -scale_x * s1 * s2 + scale_y * c1 * c2,
-        NEARLY_ZERO,
-    );
-    return result;
+fn invert(v: scalar) -> scalar {
+    1.0 / v
 }
 
 fn is_degenerate_2x2(scale_x: scalar, skew_x: scalar, skew_y: scalar, scale_y: scalar) -> bool {
@@ -641,25 +575,94 @@ fn nearly_equal(x: scalar, y: scalar, tolerance: scalar) -> bool {
     (x - y).abs() <= tolerance
 }
 
-fn invert(v: scalar) -> scalar {
-    1.0 / v
-}
-
 #[cfg(test)]
-fn nearly_equal_relative(a: scalar, b: scalar, tolerance: scalar) -> bool {
-    let diff = (a - b).abs();
-    if diff < tolerance {
-        return true;
+mod tests {
+    use crate::matrix::{decompose_upper_2x2, NEARLY_ZERO};
+    use crate::{scalar, Matrix, Vector};
+    use std::f64::consts::PI;
+
+    #[test]
+    fn test_decomposition() {
+        let rotation0: scalar = 15.5 * PI / 180.0;
+        let _rotation1: scalar = -50. * PI / 180.0;
+        let scale0: scalar = 5000.;
+        let scale1: scalar = 0.001;
+
+        let mat = Matrix::new_identity();
+        assert!(check_matrix_recomposition(
+            &mat,
+            decompose_upper_2x2(&mat).unwrap()
+        ));
+
+        let mat = Matrix::new_rotate(rotation0, None);
+        assert!(check_matrix_recomposition(
+            &mat,
+            decompose_upper_2x2(&mat).unwrap()
+        ));
+
+        let mat = Matrix::new_scale(scale0, scale0, None);
+        assert!(check_matrix_recomposition(
+            &mat,
+            decompose_upper_2x2(&mat).unwrap()
+        ));
+
+        let mut mat = Matrix::new_rotate(rotation0, None);
+        mat.post_scale(scale1, -scale1, None);
+        assert!(check_matrix_recomposition(
+            &mat,
+            decompose_upper_2x2(&mat).unwrap()
+        ));
+
+        // TODO: more decomposition tests (if we need actually need it)
     }
 
-    // relative check
-    let a = a.abs();
-    let b = b.abs();
-    let largest = if b > a { b } else { a };
+    fn check_matrix_recomposition(
+        mat: &Matrix,
+        (rotation1, scale, rotation2): (Vector, Vector, Vector),
+    ) -> bool {
+        let c1 = rotation1.x();
+        let s1 = rotation1.y();
+        let scale_x = scale.x();
+        let scale_y = scale.y();
+        let c2 = rotation2.x();
+        let s2 = rotation2.y();
 
-    if diff <= largest * tolerance {
-        return true;
+        // We do a relative check here because large scale factors cause problems with an absolute check
+        let result = nearly_equal_relative(
+            mat.scale_x(),
+            scale_x * c1 * c2 - scale_y * s1 * s2,
+            NEARLY_ZERO,
+        ) && nearly_equal_relative(
+            mat.skew_x(),
+            -scale_x * s1 * c2 - scale_y * c1 * s2,
+            NEARLY_ZERO,
+        ) && nearly_equal_relative(
+            mat.skew_y(),
+            scale_x * c1 * s2 + scale_y * s1 * c2,
+            NEARLY_ZERO,
+        ) && nearly_equal_relative(
+            mat.scale_y(),
+            -scale_x * s1 * s2 + scale_y * c1 * c2,
+            NEARLY_ZERO,
+        );
+        return result;
     }
 
-    return false;
+    fn nearly_equal_relative(a: scalar, b: scalar, tolerance: scalar) -> bool {
+        let diff = (a - b).abs();
+        if diff < tolerance {
+            return true;
+        }
+
+        // relative check
+        let a = a.abs();
+        let b = b.abs();
+        let largest = if b > a { b } else { a };
+
+        if diff <= largest * tolerance {
+            return true;
+        }
+
+        return false;
+    }
 }
