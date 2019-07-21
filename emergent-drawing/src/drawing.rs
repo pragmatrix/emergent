@@ -179,27 +179,34 @@ pub enum BlendMode {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct ImageId(String);
 
-#[test]
-fn test_serialize() {
-    let shapes = Draw::Shapes(
-        vec![Shape::Line(Line(Point(10.0, 1.0), Point(11.0, 1.0)))],
-        Paint {
-            style: PaintStyle::Stroke,
-            color: Color::from(0xff000000),
-            stroke_width: 1.0,
-            stroke_miter: 4.0,
-            stroke_cap: StrokeCap::Butt,
-            stroke_join: StrokeJoin::Miter,
-            blend_mode: BlendMode::SourceOver,
-        },
-    );
+#[cfg(test)]
+mod tests {
+    use crate::{
+        paint, BlendMode, Clip, Color, Draw, Drawing, Line, Paint, Point, Rect, Shape, Vector,
+    };
 
-    println!("{}", serde_json::to_string(&shapes).unwrap());
+    #[test]
+    fn test_serialize() {
+        let shapes = Draw::Shapes(
+            vec![Shape::Line(Line(Point(10.0, 1.0), Point(11.0, 1.0)))],
+            Paint {
+                style: paint::Style::Stroke,
+                color: Color::from(0xff000000),
+                stroke_width: 1.0,
+                stroke_miter: 4.0,
+                stroke_cap: paint::StrokeCap::Butt,
+                stroke_join: paint::StrokeJoin::Miter,
+                blend_mode: BlendMode::SourceOver,
+            },
+        );
 
-    let drawing = Draw::Clipped(
-        Clip::Rect(Rect::from((Point(10.0, 1.0), Vector(10.0, 1.0)))),
-        Drawing(vec![shapes]),
-    );
+        println!("{}", serde_json::to_string(&shapes).unwrap());
 
-    println!("{}", serde_json::to_string(&drawing).unwrap());
+        let drawing = Draw::Clipped(
+            Clip::Rect(Rect::from((Point(10.0, 1.0), Vector(10.0, 1.0)))),
+            Drawing(vec![shapes]),
+        );
+
+        println!("{}", serde_json::to_string(&drawing).unwrap());
+    }
 }

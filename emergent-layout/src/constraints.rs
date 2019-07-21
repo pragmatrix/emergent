@@ -421,7 +421,7 @@ impl Max {
 mod tests {
     use crate::constraints::{place_bounded, Alignment, Linear, Max};
     use crate::finite;
-    use emergent_drawing::{functions::*, scalar, Canvas, DrawingCanvas, PaintStyle};
+    use emergent_drawing::{functions::*, paint, scalar, Canvas, DrawingCanvas};
 
     #[test]
     fn visualized_constraints() {
