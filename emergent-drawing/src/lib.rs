@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate bitflags;
 
+mod angle;
+pub use angle::*;
+
 mod bounds;
 pub use bounds::*;
 
@@ -12,9 +15,6 @@ pub use circle::*;
 
 mod color;
 pub use color::*;
-
-mod degrees;
-pub use degrees::*;
 
 mod drawing;
 pub use drawing::*;

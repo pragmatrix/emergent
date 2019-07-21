@@ -1,4 +1,4 @@
-use crate::{Degrees, Matrix, Point, Vector};
+use crate::{Angle, Matrix, Point, Vector};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -6,7 +6,7 @@ pub enum Transform {
     Identity,
     Translate(Vector),
     Scale(Vector, Point),
-    Rotate(Degrees, Point),
+    Rotate(Angle, Point),
     Matrix(Matrix),
 }
 

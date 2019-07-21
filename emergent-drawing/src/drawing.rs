@@ -1,7 +1,7 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::{Circle, Paint, Path, Point, Rect, RoundedRect, Transform};
+use crate::{Angle, Circle, Paint, Path, Point, Rect, RoundedRect, Transform};
 use serde::{Deserialize, Serialize};
 
 pub mod font;
@@ -92,9 +92,6 @@ pub enum Clip {
 
 #[allow(non_camel_case_types)]
 pub type scalar = f64;
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Angle(pub scalar);
 
 // 32-bit ARGB color value.
 // TODO: do we really want this? Serialization should be HEX I guess.

@@ -1,4 +1,4 @@
-use crate::{scalar, Degrees};
+use crate::{scalar, Angle};
 use std::f64::consts::PI;
 use std::ops::Deref;
 
@@ -19,8 +19,8 @@ impl Deref for Radians {
     }
 }
 
-impl From<Degrees> for Radians {
-    fn from(d: Degrees) -> Self {
+impl From<Angle> for Radians {
+    fn from(d: Angle) -> Self {
         const DEGREE_TO_RADIANS: scalar = PI / 180.0;
         Radians::new(*d * DEGREE_TO_RADIANS)
     }
