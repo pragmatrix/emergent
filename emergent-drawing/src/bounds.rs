@@ -1,4 +1,4 @@
-use crate::{Extent, Point, Rect, Vector};
+use crate::{scalar, Extent, Point, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Normalized bounds with a positive extent.
@@ -10,8 +10,36 @@ impl Bounds {
         Self(point, extent)
     }
 
+    pub fn left(&self) -> scalar {
+        self.0.left()
+    }
+
+    pub fn top(&self) -> scalar {
+        self.0.top()
+    }
+
+    pub fn right(&self) -> scalar {
+        self.0.left() + self.1.width()
+    }
+
+    pub fn bottom(&self) -> scalar {
+        self.0.top() + self.1.height()
+    }
+
     pub fn left_top(&self) -> Point {
         self.0
+    }
+
+    pub fn right_top(&self) -> Point {
+        self.left_top() + Extent::new(self.extent().width(), 0.0)
+    }
+
+    pub fn right_bottom(&self) -> Point {
+        self.left_top() + self.extent()
+    }
+
+    pub fn left_bottom(&self) -> Point {
+        self.left_top() + Extent::new(0.0, self.extent().height())
     }
 
     pub fn extent(&self) -> Extent {
@@ -44,8 +72,23 @@ impl Bounds {
     }
 
     pub fn to_quad(&self) -> [Point; 4] {
-        // TODO: I guess Rect is a higher-level data type than Bounds and should not be used here.
-        Rect::from(*self).to_quad()
+        [
+            self.left_top(),
+            self.right_top(),
+            self.right_bottom(),
+            self.left_bottom(),
+        ]
+    }
+
+    pub fn union(a: &Bounds, b: &Bounds) -> Bounds {
+        let left = a.left().min(b.left());
+        let top = a.top().min(b.top());
+        let right = a.right().max(b.right());
+        let bottom = a.bottom().max(b.bottom());
+        Self::new(
+            Point::new(left, top),
+            Extent::new(right - left, bottom - top),
+        )
     }
 }
 
