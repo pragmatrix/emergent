@@ -1,5 +1,6 @@
 use crate::{
-    Arc, Bounds, Circle, Extent, Font, Line, Oval, Point, Polygon, Rect, RoundedRect, Shape, Vector,
+    Arc, Bounds, Circle, Clip, Extent, Font, Line, Oval, Point, Polygon, Rect, RoundedRect, Shape,
+    Vector,
 };
 
 pub trait MeasureText {
@@ -64,6 +65,16 @@ impl FastBounds for RoundedRect {
 impl FastBounds for Arc {
     fn fast_bounds(&self) -> Bounds {
         self.0.fast_bounds()
+    }
+}
+
+impl FastBounds for Clip {
+    fn fast_bounds(&self) -> Bounds {
+        match self {
+            Clip::Rect(r) => r.fast_bounds(),
+            Clip::RoundedRect(rr) => rr.fast_bounds(),
+            Clip::Path(p) => p.fast_bounds(),
+        }
     }
 }
 
