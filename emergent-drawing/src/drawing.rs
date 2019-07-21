@@ -1,7 +1,7 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::{Matrix, Paint, Path, Point, Radius, Rect, Vector};
+use crate::{Paint, Path, Point, Radius, Rect, Transform, Vector};
 use serde::{Deserialize, Serialize};
 
 pub mod font;
@@ -24,7 +24,7 @@ pub enum Draw {
     Clipped(Clip, Drawing),
 
     /// Draw a drawing transformed with the current matrix.
-    Transformed(Transformation, Drawing),
+    Transformed(Transform, Drawing),
 }
 
 //
@@ -84,28 +84,10 @@ pub struct UseCenter(pub bool);
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
 
-//
-// Font & Text
-//
-
 /// Text, described by a location, a string, and the font.
 // TODO: can we share fonts?
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Text(pub Point, pub String, pub Font);
-
-//
-// States
-//
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Transformation {
-    Identity,
-    Translate(Vector),
-    Scale(Vector),
-    Rotate(Vector),
-    Skew(Skew),
-    Matrix(Matrix),
-}
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Clip {
@@ -129,15 +111,6 @@ pub struct Angle(pub scalar);
 // Also: what about a decent color type, say 4 f32 values, may be both?
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Color(pub u32);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Scale(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Skew(pub scalar, pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Degrees(scalar);
 
 // https://developer.android.com/reference/android/graphics/PorterDuff.Mode
 // We support 12 alpha composition modes, 5 blending modes, and simple addition for now.

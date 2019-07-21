@@ -1,5 +1,5 @@
 //! Function based API to specify drawings.
-use crate::{BlendMode, Clip, Draw, Drawing, Paint, Shape, Transformation};
+use crate::{BlendMode, Clip, Draw, Drawing, Paint, Shape, Transform};
 
 pub mod drawing;
 
@@ -15,7 +15,7 @@ pub trait DrawingTarget: Sized {
     /// Intersect clip with the current clipping area and draw a nested drawing.
     fn clip(&mut self, clip: &Clip, f: impl FnOnce(&mut Self));
     /// Apply the matrix transformation to the current matrix and draw a nested drawing.
-    fn transform(&mut self, transformation: &Transformation, f: impl FnOnce(&mut Self));
+    fn transform(&mut self, transformation: &Transform, f: impl FnOnce(&mut Self));
 }
 
 /// A trait for something that is drawable to a drawing target.

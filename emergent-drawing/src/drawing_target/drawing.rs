@@ -1,4 +1,4 @@
-use crate::{BlendMode, Clip, Draw, Drawing, DrawingTarget, Paint, Shape, Transformation};
+use crate::{BlendMode, Clip, Draw, Drawing, DrawingTarget, Paint, Shape, Transform};
 
 impl DrawingTarget for Drawing {
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode) {
@@ -25,7 +25,7 @@ impl DrawingTarget for Drawing {
         }
     }
 
-    fn transform(&mut self, transformation: &Transformation, f: impl FnOnce(&mut Self)) {
+    fn transform(&mut self, transformation: &Transform, f: impl FnOnce(&mut Self)) {
         let begin = self.0.len();
         f(self);
         let nested = Drawing(self.0.drain(begin..).collect());

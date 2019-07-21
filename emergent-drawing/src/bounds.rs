@@ -1,4 +1,4 @@
-use crate::{scalar, Extent, Point, Vector};
+use crate::{scalar, Extent, Outset, Point, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Bounds, currently a rectangle with a positive extent.
@@ -83,6 +83,25 @@ impl Bounds {
             self.right_bottom(),
             self.left_bottom(),
         ]
+    }
+
+    /// Adds the outset to the bounds and returns a new bounds.
+    ///
+    /// Returns None if the outset is an inset and would reduce width or height
+    /// below 0.0.
+    #[must_use]
+    pub fn outset(&self, outset: &Outset) -> Option<Bounds> {
+        let l = self.left() - outset.left();
+        let t = self.top() - outset.top();
+        let r = self.right() + outset.right();
+        let b = self.bottom() + outset.bottom();
+        let width = r - l;
+        let height = b - t;
+        if width >= 0.0 && height >= 0.0 {
+            Some(Bounds::new(Point::new(l, t), Extent::new(width, height)))
+        } else {
+            None
+        }
     }
 
     pub fn union(a: &Bounds, b: &Bounds) -> Bounds {

@@ -230,7 +230,7 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         unimplemented!()
     }
 
-    fn transform(&mut self, _transformation: &drawing::Transformation, _f: impl FnOnce(&mut Self)) {
+    fn transform(&mut self, _transformation: &drawing::Transform, _f: impl FnOnce(&mut Self)) {
         unimplemented!()
     }
 }

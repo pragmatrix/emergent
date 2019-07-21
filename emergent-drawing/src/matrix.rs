@@ -1,4 +1,4 @@
-use crate::{scalar, Bounds, FastBounds, Point, Radius, Rect, Vector};
+use crate::{scalar, Bounds, FastBounds, Point, Radians, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
 use std::{mem, slice};
 
@@ -18,16 +18,21 @@ impl Matrix {
         Self([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
     }
 
-    pub fn new_scale(sx: scalar, sy: scalar, p: impl Into<Option<Point>>) -> Self {
+    pub fn new_scale(s: impl Into<Vector>, p: impl Into<Option<Point>>) -> Self {
+        let s = s.into();
         let p = p.into().unwrap_or_default();
+        let sx = s.x();
+        let sy = s.y();
         Self::new_scale_translate(sx, sy, p.left() - sx * p.left(), p.top() - sy * p.top())
     }
 
-    pub fn new_translate(d: Vector) -> Matrix {
+    pub fn new_translate(d: impl Into<Vector>) -> Matrix {
+        let d = d.into();
         Self::new_scale_translate(1.0, 1.0, d.x(), d.y())
     }
 
-    pub fn new_rotate(radians: scalar, p: impl Into<Option<Point>>) -> Self {
+    pub fn new_rotate(radians: impl Into<Radians>, p: impl Into<Option<Point>>) -> Self {
+        let radians = *radians.into();
         Self::new_sin_cos(radians.sin(), radians.cos(), p.into().unwrap_or_default())
     }
 
@@ -134,25 +139,26 @@ impl Matrix {
         }
     }
 
-    pub fn pre_scale(&mut self, sx: scalar, sy: scalar, p: impl Into<Option<Point>>) {
-        if sx == 1.0 && sy == 1.0 {
+    pub fn pre_scale(&mut self, s: impl Into<Vector>, p: impl Into<Option<Point>>) {
+        let s = s.into();
+        if s != Vector::new(1.0, 1.0) {
             return;
         }
-        self.pre_concat(&Self::new_scale(sx, sy, p))
+        self.pre_concat(&Self::new_scale(s, p))
     }
 
-    pub fn post_scale(&mut self, sx: scalar, sy: scalar, p: impl Into<Option<Point>>) {
-        if sx == 1.0 && sy == 1.0 {
-            return;
+    pub fn post_scale(&mut self, s: impl Into<Vector>, p: impl Into<Option<Point>>) {
+        let s = s.into();
+        if s != Vector::new(1.0, 1.0) {
+            self.post_concat(&Self::new_scale(s, p))
         }
-        self.post_concat(&Self::new_scale(sx, sy, p))
     }
 
-    pub fn pre_rotate(&mut self, radians: scalar, p: impl Into<Option<Point>>) {
+    pub fn pre_rotate(&mut self, radians: impl Into<Radians>, p: impl Into<Option<Point>>) {
         self.pre_concat(&Self::new_rotate(radians, p))
     }
 
-    pub fn post_rotate(&mut self, radians: scalar, p: impl Into<Option<Point>>) {
+    pub fn post_rotate(&mut self, radians: impl Into<Radians>, p: impl Into<Option<Point>>) {
         self.post_concat(&Self::new_rotate(radians, p))
     }
 
@@ -578,13 +584,12 @@ fn nearly_equal(x: scalar, y: scalar, tolerance: scalar) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::matrix::{decompose_upper_2x2, NEARLY_ZERO};
-    use crate::{scalar, Matrix, Vector};
-    use std::f64::consts::PI;
+    use crate::{scalar, Matrix, ToDegrees, Vector};
 
     #[test]
     fn test_decomposition() {
-        let rotation0: scalar = 15.5 * PI / 180.0;
-        let _rotation1: scalar = -50. * PI / 180.0;
+        let rotation0 = 15.5.degrees();
+        let _rotation1 = (-50.0).degrees();
         let scale0: scalar = 5000.;
         let scale1: scalar = 0.001;
 
@@ -600,14 +605,14 @@ mod tests {
             decompose_upper_2x2(&mat).unwrap()
         ));
 
-        let mat = Matrix::new_scale(scale0, scale0, None);
+        let mat = Matrix::new_scale(Vector::from((scale0, scale0)), None);
         assert!(check_matrix_recomposition(
             &mat,
             decompose_upper_2x2(&mat).unwrap()
         ));
 
         let mut mat = Matrix::new_rotate(rotation0, None);
-        mat.post_scale(scale1, -scale1, None);
+        mat.post_scale(Vector::from((scale1, -scale1)), None);
         assert!(check_matrix_recomposition(
             &mat,
             decompose_upper_2x2(&mat).unwrap()

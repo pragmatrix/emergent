@@ -10,6 +10,9 @@ pub use canvas::*;
 mod color;
 pub use color::*;
 
+mod degrees;
+pub use degrees::*;
+
 mod drawing;
 pub use drawing::*;
 
@@ -39,6 +42,9 @@ pub use path::Path;
 mod point;
 pub use point::*;
 
+mod radians;
+pub use radians::*;
+
 mod radius;
 pub use radius::*;
 
@@ -50,6 +56,9 @@ pub use rounded_rect::*;
 
 mod shape;
 pub use shape::*;
+
+mod transform;
+pub use transform::*;
 
 mod vector;
 pub use vector::*;

@@ -2,7 +2,7 @@ use crate::scalar;
 use serde::{Deserialize, Serialize};
 use std::ops::Neg;
 
-/// An outset area around a rectangle.
+/// An outset area around a rectangle or bounds.
 ///
 /// Previously named Padding, then renamed to precisely specify that
 /// - for an actual outset - all values have to be positive. For an inset,
