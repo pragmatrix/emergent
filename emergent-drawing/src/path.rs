@@ -3,6 +3,7 @@ use crate::{
     Vector,
 };
 use serde::{Deserialize, Serialize};
+use std::iter;
 
 //
 // Path
@@ -29,6 +30,12 @@ pub enum Direction {
     CCW,
 }
 
+impl Default for Direction {
+    fn default() -> Self {
+        Direction::CW
+    }
+}
+
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct ForceMoveTo(pub bool);
 
@@ -41,8 +48,7 @@ pub enum Verb {
     CubicTo(Point, Point, Point),
     ArcTo(Arc, ForceMoveTo),
     Close,
-    // is the direction and / or index too much?
-    AddRect(Rect, Option<(Direction, usize)>),
+
     AddOval(Oval, Option<(Direction, usize)>),
     AddCircle(Circle, Option<Direction>),
     AddArc(Arc),
@@ -101,12 +107,6 @@ impl Path {
                     // current = Some(r.center())
                 }
                 Verb::Close => {}
-                Verb::AddRect(r, _) => {
-                    points.extend(&r.to_quad());
-                    // TODO: this is incorrect, use the correct end-point of the rect here.
-                    unimplemented!("compute the end-point of the rect");
-                    // current = Some(r.center())
-                }
                 Verb::AddOval(Oval(r), _) => {
                     points.extend(&r.to_quad());
                     // TODO: this is incorrect, use the correct end-point of the rect here.
@@ -140,6 +140,74 @@ impl Path {
 
         points
     }
+
+    //
+    // add of complex shapes.
+    //
+
+    pub fn add_rect(&mut self, rect: &Rect, dir_start: impl Into<Option<(Direction, usize)>>) {
+        let mut iter = rect_point_iterator(rect, dir_start);
+        self.reserve_verbs(5)
+            .move_to(iter.next().unwrap())
+            .line_to(iter.next().unwrap())
+            .line_to(iter.next().unwrap())
+            .line_to(iter.next().unwrap())
+            .close()
+    }
+
+    //
+    // add primitive verbs.
+    //
+
+    pub fn move_to(&mut self, p: impl Into<Point>) -> &mut Self {
+        self.add_verb(Verb::MoveTo(p.into()))
+    }
+
+    pub fn line_to(&mut self, p: impl Into<Point>) -> &mut Self {
+        self.add_verb(Verb::LineTo(p.into()))
+    }
+
+    pub fn close(&mut self) {
+        self.add_verb(Verb::Close);
+    }
+
+    fn add_verb(&mut self, verb: Verb) -> &mut Self {
+        self.verbs.push(verb);
+        self
+    }
+
+    fn reserve_verbs(&mut self, additional: usize) -> &mut Self {
+        self.verbs.reserve(additional);
+        self
+    }
+}
+
+fn rect_point_iterator(
+    rect: &Rect,
+    dir_start: impl Into<Option<(Direction, usize)>>,
+) -> impl Iterator<Item = Point> + 'static {
+    let (dir, start) = dir_start.into().unwrap_or_default();
+
+    let step = match dir {
+        Direction::CW => 1,
+        Direction::CCW => -1,
+    };
+
+    let mut index = start as isize;
+    let rect = rect.clone();
+
+    iter::from_fn(move || {
+        let p = match index % 4 {
+            0 => rect.left_top(),
+            1 => rect.right_top(),
+            2 => rect.right_bottom(),
+            3 => rect.left_bottom(),
+            _ => unreachable!(),
+        };
+
+        index += step;
+        Some(p)
+    })
 }
 
 impl FastBounds for Path {
