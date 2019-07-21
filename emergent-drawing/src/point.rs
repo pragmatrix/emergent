@@ -1,6 +1,6 @@
 use crate::{scalar, Extent, Vector};
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Point(pub scalar, pub scalar);
@@ -96,6 +96,36 @@ impl Sub<Vector> for Point {
     type Output = Self;
     fn sub(mut self, rhs: Vector) -> Self {
         self -= rhs;
+        self
+    }
+}
+
+impl MulAssign<Vector> for Point {
+    fn mul_assign(&mut self, rhs: Vector) {
+        self.0 *= rhs.x();
+        self.1 *= rhs.y();
+    }
+}
+
+impl Mul<Vector> for Point {
+    type Output = Self;
+    fn mul(mut self, rhs: Vector) -> Self::Output {
+        self *= rhs;
+        self
+    }
+}
+
+impl DivAssign<Vector> for Point {
+    fn div_assign(&mut self, rhs: Vector) {
+        self.0 /= rhs.x();
+        self.1 /= rhs.y();
+    }
+}
+
+impl Div<Vector> for Point {
+    type Output = Self;
+    fn div(mut self, rhs: Vector) -> Self::Output {
+        self /= rhs;
         self
     }
 }

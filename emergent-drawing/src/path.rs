@@ -95,20 +95,20 @@ impl Path {
                         points.push(current);
                     };
 
-                    points.extend(&r.points());
+                    points.extend(&r.to_quad());
                     // TODO: this is incorrect, compute the end-point of the arc here.
                     unimplemented!("compute the end-point of the arc here");
                     // current = Some(r.center())
                 }
                 Verb::Close => {}
                 Verb::AddRect(r, _) => {
-                    points.extend(&r.points());
+                    points.extend(&r.to_quad());
                     // TODO: this is incorrect, use the correct end-point of the rect here.
                     unimplemented!("compute the end-point of the rect");
                     // current = Some(r.center())
                 }
                 Verb::AddOval(Oval(r), _) => {
-                    points.extend(&r.points());
+                    points.extend(&r.to_quad());
                     // TODO: this is incorrect, use the correct end-point of the rect here.
                     unimplemented!("compute the end-point of the rect");
                     // current = Some(r.center())
@@ -116,19 +116,19 @@ impl Path {
                 Verb::AddCircle(Circle(p, Radius(r)), _) => {
                     let sector_size = Vector::from((*r, *r));
                     let r = Rect::from((*p - sector_size, sector_size * 2.0));
-                    points.extend(&r.points());
+                    points.extend(&r.to_quad());
                     // TODO: this is incorrect, use the correct end-point of the rect here.
                     unimplemented!("compute the end-point of the rect");
                     // current = Some(r.center())
                 }
                 Verb::AddArc(Arc(Oval(r), ..)) => {
-                    points.extend(&r.points());
+                    points.extend(&r.to_quad());
                     // TODO: this is incorrect, compute the end-point of the arc here.
                     unimplemented!("compute the end-point of the rect");
                     // current = Some(r.center())
                 }
                 Verb::AddRoundedRect(RoundedRect(r, _), _) => {
-                    points.extend(&r.points());
+                    points.extend(&r.to_quad());
                     current = Some(r.center())
                 }
                 Verb::AddOpenPolygon(Polygon(pts)) => {

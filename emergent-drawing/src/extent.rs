@@ -7,6 +7,11 @@ use std::ops::{Div, DivAssign, Mul, MulAssign};
 pub struct Extent(scalar, scalar);
 
 impl Extent {
+    pub fn new(width: scalar, height: scalar) -> Self {
+        assert!(width >= 0.0 && height >= 0.0);
+        Self(width, height)
+    }
+
     pub fn width(&self) -> scalar {
         self.0
     }
@@ -62,8 +67,7 @@ impl Div<scalar> for Extent {
 
 impl From<(scalar, scalar)> for Extent {
     fn from((x, y): (scalar, scalar)) -> Self {
-        assert!(x >= 0.0 && y >= 0.0);
-        Self(x, y)
+        Self::new(x, y)
     }
 }
 
@@ -75,6 +79,6 @@ impl From<(isize, isize)> for Extent {
 
 impl From<Vector> for Extent {
     fn from(v: Vector) -> Self {
-        Extent::from((v.x(), v.y()))
+        Self::from((v.x(), v.y()))
     }
 }

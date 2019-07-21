@@ -12,7 +12,7 @@ pub struct Drawing(pub Vec<Draw>);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Draw {
-    /// Fill that current area with the given paint.
+    /// Fill that current area with the given paint and blend mode.
     Paint(Paint, BlendMode),
 
     /// Draw a number of shapes with the same paint.
@@ -20,7 +20,7 @@ pub enum Draw {
 
     // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
     // TODO: Also Skia supports do_anti_alias for clipping.
-    /// Intersect the current clip with the given Clip.
+    /// Intersect the current clip with the given Clip and draw the nested drawing.
     Clipped(Clip, Drawing),
 
     /// Draw a drawing transformed with the current matrix.

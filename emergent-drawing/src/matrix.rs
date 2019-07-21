@@ -1,4 +1,4 @@
-use crate::{scalar, Point, Radius, Vector};
+use crate::{scalar, Bounds, FastBounds, Point, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use std::f64::consts::PI;
@@ -224,8 +224,35 @@ impl Matrix {
         Radius::from((d0 * d1).sqrt())
     }
 
+    /// Treats the bounds as a rectangle, applies the matrix to it and returns
+    /// the new bounds of the resulting transformed rectangle.
+    pub fn map_bounds(&self, bounds: Bounds) -> Bounds {
+        let tm = self.type_mask();
+        if tm.is_translate() {
+            return bounds + self.trans();
+        }
+        if tm.is_scale_translate() {
+            let s = Vector::from(self.scale());
+            let t = self.trans();
+            let r = Rect::from(bounds);
+            // TODO: Rect::fast_bounds() shouldn't probably be used here.
+            return Rect::from_points(r.left_top() * s + t, r.right_bottom() * s + t).fast_bounds();
+        }
+        let mut quad = bounds.to_quad();
+        self.map_points_inplace(&mut quad);
+        Bounds::from_points(&quad).unwrap()
+    }
+
     fn trans(&self) -> Vector {
         Vector::new(self.trans_x(), self.trans_y())
+    }
+
+    fn scale(&self) -> (scalar, scalar) {
+        (self.scale_x(), self.scale_y())
+    }
+
+    fn skew(&self) -> (scalar, scalar) {
+        (self.skew_x(), self.skew_y())
     }
 
     fn scale_x(&self) -> scalar {
@@ -340,7 +367,8 @@ impl TypeMask {
         self == Self::IDENTITY
     }
 
-    fn _is_translate(self) -> bool {
+    /// Returns trie if the type mask indicates that the matrix at most translates.
+    fn is_translate(self) -> bool {
         (self & !TypeMask::TRANSLATE).is_empty()
     }
 

@@ -89,11 +89,11 @@ impl Rect {
         .into()
     }
 
-    // If the size vector is positive, returns 4 points in the following order:
+    // If the size vector is positive, returns a quadriteral in the following order:
     // 0--1
     // |  |
     // 3--2
-    pub fn points(&self) -> [Point; 4] {
+    pub fn to_quad(&self) -> [Point; 4] {
         [
             self.left_top(),
             self.right_top(),
