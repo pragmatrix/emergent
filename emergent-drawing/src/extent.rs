@@ -7,6 +7,8 @@ use std::ops::{Div, DivAssign, Mul, MulAssign};
 pub struct Extent(scalar, scalar);
 
 impl Extent {
+    pub const EMPTY: Extent = Self(0.0, 0.0);
+
     pub fn new(width: scalar, height: scalar) -> Self {
         assert!(width >= 0.0 && height >= 0.0);
         Self(width, height)

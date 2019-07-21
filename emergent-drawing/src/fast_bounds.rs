@@ -18,7 +18,7 @@ pub trait ComplexFastBounds {
 
 impl FastBounds for Point {
     fn fast_bounds(&self) -> Bounds {
-        Bounds::from((*self, (1.0, 1.0).into()))
+        Bounds::from((*self, Extent::EMPTY))
     }
 }
 
