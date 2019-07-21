@@ -196,7 +196,7 @@ impl DrawingBounds {
         }
     }
 
-    pub fn union_all<'a>(it: impl IntoIterator<Item = DrawingBounds>) -> DrawingBounds {
+    pub fn union_all(it: impl IntoIterator<Item = DrawingBounds>) -> DrawingBounds {
         it.into_iter()
             .fold(DrawingBounds::Empty, |a, b| DrawingBounds::union(&a, &b))
     }
