@@ -1,5 +1,5 @@
 //! Function based API to specify drawings.
-use crate::drawing::{BlendMode, Clip, Draw, Drawing, Paint, Shape, Transformation};
+use crate::{BlendMode, Clip, Draw, Drawing, Paint, Shape, Transformation};
 
 pub mod drawing;
 

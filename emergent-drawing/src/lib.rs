@@ -30,8 +30,8 @@ pub use matrix::Matrix;
 mod outset;
 pub use outset::*;
 
-mod paint;
-pub use paint::*;
+pub mod paint;
+pub use paint::Paint;
 
 pub mod path;
 pub use path::Path;

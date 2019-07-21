@@ -11,8 +11,10 @@ use std::ops::Neg;
 pub struct Outset(pub [scalar; 4]);
 
 impl Outset {
-    pub fn new(left: scalar, top: scalar, right: scalar, bottom: scalar) -> Self {
-        [left, top, right, bottom].into()
+    pub const EMPTY: Self = Self::new(0.0, 0.0, 0.0, 0.0);
+
+    pub const fn new(left: scalar, top: scalar, right: scalar, bottom: scalar) -> Self {
+        Self([left, top, right, bottom])
     }
 
     pub fn left(&self) -> scalar {
@@ -32,10 +34,6 @@ impl Outset {
     }
 }
 
-//
-// From
-//
-
 impl From<scalar> for Outset {
     fn from(outset: scalar) -> Self {
         Self::from((outset, outset))
@@ -44,13 +42,13 @@ impl From<scalar> for Outset {
 
 impl From<(scalar, scalar)> for Outset {
     fn from((outset_h, outset_v): (scalar, scalar)) -> Self {
-        Self([outset_h, outset_v, outset_h, outset_v])
+        Self::new(outset_h, outset_v, outset_h, outset_v)
     }
 }
 
 impl From<[scalar; 4]> for Outset {
     fn from(padding: [scalar; 4]) -> Self {
-        Self(padding)
+        Self::new(padding[0], padding[1], padding[2], padding[3])
     }
 }
 

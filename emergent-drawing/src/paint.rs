@@ -1,4 +1,66 @@
-use crate::{scalar, BlendMode, Color, Paint, PaintStyle, StrokeCap, StrokeJoin};
+use crate::{scalar, BlendMode, Bounds, Color, Outset};
+use serde::{Deserialize, Serialize};
+
+// ref: https://skia.org/user/api/SkPaint_Reference
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Paint {
+    #[serde(
+        skip_serializing_if = "Paint::is_style_default",
+        default = "Paint::default_style"
+    )]
+    pub style: Style,
+    #[serde(
+        skip_serializing_if = "Paint::is_color_default",
+        default = "Paint::default_color"
+    )]
+    pub color: Color,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_width_default",
+        default = "Paint::default_stroke_width"
+    )]
+    pub stroke_width: scalar,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_miter_default",
+        default = "Paint::default_stroke_miter"
+    )]
+    pub stroke_miter: scalar,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_cap_default",
+        default = "Paint::default_stroke_cap"
+    )]
+    pub stroke_cap: StrokeCap,
+    #[serde(
+        skip_serializing_if = "Paint::is_stroke_join_default",
+        default = "Paint::default_stroke_join"
+    )]
+    pub stroke_join: StrokeJoin,
+    #[serde(
+        skip_serializing_if = "Paint::is_blend_mode_default",
+        default = "Paint::default_blend_mode"
+    )]
+    pub blend_mode: BlendMode,
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Style {
+    Stroke,
+    Fill,
+    StrokeAndFill,
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum StrokeCap {
+    Butt,
+    Round,
+    Square,
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum StrokeJoin {
+    Miter,
+    Round,
+    Bevel,
+}
 
 impl Default for Paint {
     fn default() -> Self {
@@ -11,7 +73,7 @@ impl Paint {
 
     pub const fn new() -> Self {
         Self {
-            style: PaintStyle::Fill,
+            style: Style::Fill,
             color: Color(0xff000000),
             stroke_width: 0.0,
             stroke_miter: 4.0,
@@ -21,7 +83,7 @@ impl Paint {
         }
     }
 
-    pub fn style(&mut self, style: PaintStyle) -> &mut Self {
+    pub fn style(&mut self, style: Style) -> &mut Self {
         self.style = style;
         self
     }
@@ -55,6 +117,18 @@ impl Paint {
         self.blend_mode = blend_mode;
         self
     }
+
+    /// Fast outset, an approximate area around a figure drawing with that paint.
+    pub fn fast_outset(&self) -> Outset {
+        if self.stroke_width == 0.0 {
+            return Outset::EMPTY;
+        }
+
+        match self.style {
+            Style::Fill => Outset::EMPTY,
+            Style::Stroke | Style::StrokeAndFill => Outset::from(self.stroke_width / 2.0),
+        }
+    }
 }
 
 //
@@ -62,7 +136,7 @@ impl Paint {
 //
 
 impl Paint {
-    pub(crate) fn is_style_default(style: &PaintStyle) -> bool {
+    pub(crate) fn is_style_default(style: &Style) -> bool {
         *style == Self::DEFAULT.style
     }
 
@@ -90,7 +164,7 @@ impl Paint {
         *mode == Self::DEFAULT.blend_mode
     }
 
-    pub(crate) fn default_style() -> PaintStyle {
+    pub(crate) fn default_style() -> Style {
         Self::DEFAULT.style
     }
 

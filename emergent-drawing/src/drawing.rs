@@ -1,7 +1,7 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::{Matrix, Path, Point, Rect, Vector};
+use crate::{Matrix, Paint, Path, Point, Rect, Vector};
 use serde::{Deserialize, Serialize};
 
 pub mod font;
@@ -121,7 +121,6 @@ pub enum Clip {
 // Geometric Primitives.
 //
 
-// TODO: consider f64 here.
 #[allow(non_camel_case_types)]
 pub type scalar = f64;
 
@@ -145,48 +144,6 @@ pub struct Degrees(scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Radius(pub scalar);
-
-// Contains Option values to support optimal serialization if values do not diverge from their defaults.
-// TODO: we need some way to resolve that to a paint _with_ all values set, and specify a default.
-// ref: https://skia.org/user/api/SkPaint_Reference
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Paint {
-    #[serde(
-        skip_serializing_if = "Paint::is_style_default",
-        default = "Paint::default_style"
-    )]
-    pub style: PaintStyle,
-    #[serde(
-        skip_serializing_if = "Paint::is_color_default",
-        default = "Paint::default_color"
-    )]
-    pub color: Color,
-    #[serde(
-        skip_serializing_if = "Paint::is_stroke_width_default",
-        default = "Paint::default_stroke_width"
-    )]
-    pub stroke_width: scalar,
-    #[serde(
-        skip_serializing_if = "Paint::is_stroke_miter_default",
-        default = "Paint::default_stroke_miter"
-    )]
-    pub stroke_miter: scalar,
-    #[serde(
-        skip_serializing_if = "Paint::is_stroke_cap_default",
-        default = "Paint::default_stroke_cap"
-    )]
-    pub stroke_cap: StrokeCap,
-    #[serde(
-        skip_serializing_if = "Paint::is_stroke_join_default",
-        default = "Paint::default_stroke_join"
-    )]
-    pub stroke_join: StrokeJoin,
-    #[serde(
-        skip_serializing_if = "Paint::is_blend_mode_default",
-        default = "Paint::default_blend_mode"
-    )]
-    pub blend_mode: BlendMode,
-}
 
 // https://developer.android.com/reference/android/graphics/PorterDuff.Mode
 // We support 12 alpha composition modes, 5 blending modes, and simple addition for now.
@@ -219,27 +176,6 @@ pub enum BlendMode {
     Overlay,
 
     Add,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum PaintStyle {
-    Stroke,
-    Fill,
-    StrokeAndFill,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum StrokeCap {
-    Butt,
-    Round,
-    Square,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum StrokeJoin {
-    Miter,
-    Round,
-    Bevel,
 }
 
 // TODO: What should an Image be / refer to? A file, a http:// URL?

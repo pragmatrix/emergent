@@ -448,32 +448,32 @@ const BLEND_MODE_TABLE: [skia_safe::BlendMode; 18] = [
     BlendMode::Plus,
 ];
 
-impl ToSkia<PaintStyle> for drawing::PaintStyle {
+impl ToSkia<PaintStyle> for drawing::paint::Style {
     fn to_skia(&self) -> PaintStyle {
         match self {
-            drawing::PaintStyle::Stroke => PaintStyle::Stroke,
-            drawing::PaintStyle::Fill => PaintStyle::Fill,
-            drawing::PaintStyle::StrokeAndFill => PaintStyle::StrokeAndFill,
+            drawing::paint::Style::Stroke => PaintStyle::Stroke,
+            drawing::paint::Style::Fill => PaintStyle::Fill,
+            drawing::paint::Style::StrokeAndFill => PaintStyle::StrokeAndFill,
         }
     }
 }
 
-impl ToSkia<PaintCap> for drawing::StrokeCap {
+impl ToSkia<PaintCap> for drawing::paint::StrokeCap {
     fn to_skia(&self) -> PaintCap {
         match self {
-            drawing::StrokeCap::Butt => PaintCap::Butt,
-            drawing::StrokeCap::Round => PaintCap::Round,
-            drawing::StrokeCap::Square => PaintCap::Square,
+            drawing::paint::StrokeCap::Butt => PaintCap::Butt,
+            drawing::paint::StrokeCap::Round => PaintCap::Round,
+            drawing::paint::StrokeCap::Square => PaintCap::Square,
         }
     }
 }
 
-impl ToSkia<PaintJoin> for drawing::StrokeJoin {
+impl ToSkia<PaintJoin> for drawing::paint::StrokeJoin {
     fn to_skia(&self) -> PaintJoin {
         match self {
-            drawing::StrokeJoin::Miter => PaintJoin::Miter,
-            drawing::StrokeJoin::Round => PaintJoin::Round,
-            drawing::StrokeJoin::Bevel => PaintJoin::Bevel,
+            drawing::paint::StrokeJoin::Miter => PaintJoin::Miter,
+            drawing::paint::StrokeJoin::Round => PaintJoin::Round,
+            drawing::paint::StrokeJoin::Bevel => PaintJoin::Bevel,
         }
     }
 }
