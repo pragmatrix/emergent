@@ -226,12 +226,6 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         }
     }
 
-    fn paint(&mut self, f: impl FnOnce(&mut Self)) {
-        self.canvas.save();
-        f(self);
-        self.canvas.restore();
-    }
-
     fn clip(&mut self, _clip: &drawing::Clip, _f: impl FnOnce(&mut Self)) {
         unimplemented!()
     }

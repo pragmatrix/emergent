@@ -8,10 +8,13 @@ pub mod drawing;
 /// These are the essential commands that a drawing target must be able to
 /// process to provide all the functionality to implement a canvas.
 pub trait DrawingTarget: Sized {
+    /// Fill all the available area with the Paint.
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode);
+    /// Draw a shape.
     fn draw(&mut self, shape: &Shape, paint: &Paint);
-    fn paint(&mut self, f: impl FnOnce(&mut Self));
+    /// Intersect clip with the current clipping area and draw a nested drawing.
     fn clip(&mut self, clip: &Clip, f: impl FnOnce(&mut Self));
+    /// Apply the matrix transformation to the current matrix and draw a nested drawing.
     fn transform(&mut self, transformation: &Transformation, f: impl FnOnce(&mut Self));
 }
 
@@ -32,11 +35,7 @@ impl Drawing {
 
 impl DrawTo for Drawing {
     fn draw_to(&self, target: &mut impl DrawingTarget) {
-        // drawing a drawing _always_ introduces a new scope in the drawing
-        // target to avoid changing state.
-        target.paint(|dt| {
-            self.0.iter().for_each(|drawing| drawing.draw_to(dt));
-        });
+        self.0.iter().for_each(|draw| draw.draw_to(target));
     }
 }
 
@@ -48,7 +47,6 @@ impl DrawTo for Draw {
                 // TODO: optimize paint reuse here?
                 shapes.iter().for_each(|shape| target.draw(shape, &paint))
             }
-            Draw::Drawing(drawing) => drawing.draw_to(target),
             Draw::Clipped(clip, drawing) => target.clip(clip, |dt| drawing.draw_to(dt)),
             Draw::Transformed(transform, drawing) => {
                 target.transform(transform, |dt| drawing.draw_to(dt));

@@ -18,10 +18,6 @@ pub enum Draw {
     /// Draw a number of shapes with the same paint.
     Shapes(Vec<Shape>, Paint),
 
-    /// A nested drawing, save the current matrix and clip,
-    /// and restores it afterwards.
-    Drawing(Drawing),
-
     // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
     // TODO: Also Skia supports do_anti_alias for clipping.
     /// Intersect the current clip with the given Clip.
@@ -103,6 +99,7 @@ pub struct Text(pub Point, pub String, pub Font);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Transformation {
+    Identity,
     Translate(Vector),
     Scale(Vector),
     Rotate(Vector),

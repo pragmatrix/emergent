@@ -16,15 +16,6 @@ impl DrawingTarget for Drawing {
         }
     }
 
-    fn paint(&mut self, f: impl FnOnce(&mut Self)) {
-        let begin = self.0.len();
-        f(self);
-        let nested = Drawing(self.0.drain(begin..).collect());
-        if !nested.is_empty() {
-            self.0.push(Draw::Drawing(nested));
-        }
-    }
-
     fn clip(&mut self, clip: &Clip, f: impl FnOnce(&mut Self)) {
         let begin = self.0.len();
         f(self);

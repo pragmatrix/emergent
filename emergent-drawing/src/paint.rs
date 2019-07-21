@@ -1,4 +1,4 @@
-use crate::{scalar, BlendMode, Bounds, Color, Outset};
+use crate::{scalar, BlendMode, Color, Outset};
 use serde::{Deserialize, Serialize};
 
 // ref: https://skia.org/user/api/SkPaint_Reference
