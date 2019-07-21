@@ -75,18 +75,26 @@ impl Rect {
         self.0 + (self.size() * 0.5)
     }
 
-    // Returns a rectangle that encloses two other rectangles.
-    // This function _does_ treat the location of empty rectangles
-    // as a point inside the bounds.
+    /// Returns a rectangle that encloses two other rectangles.
     pub fn union(a: &Rect, b: &Rect) -> Rect {
-        Bounds::from_points(&[
-            a.left_top(),
-            a.right_bottom(),
-            b.left_top(),
-            b.right_bottom(),
-        ])
-        .unwrap()
-        .into()
+        let l = a.left().min(b.left());
+        let t = a.top().min(b.top());
+        let r = a.right().max(b.right());
+        let b = a.bottom().max(b.bottom());
+        Rect::from_points(Point::new(l, t), Point::new(r, b))
+    }
+
+    /// If they intersect, returns the intersection of two rectangles.
+    pub fn intersect(a: &Rect, b: &Rect) -> Option<Rect> {
+        let l = a.left().max(b.left());
+        let t = a.top().max(b.top());
+        let r = a.right().min(b.right());
+        let b = a.bottom().min(b.bottom());
+        if r > l && b > t {
+            Some(Rect::from_points(Point::new(l, t), Point::new(r, b)))
+        } else {
+            None
+        }
     }
 
     // If the size vector is positive, returns a quadriteral in the following order:

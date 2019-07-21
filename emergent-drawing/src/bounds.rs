@@ -90,6 +90,21 @@ impl Bounds {
             Extent::new(right - left, bottom - top),
         )
     }
+
+    pub fn intersect(a: &Bounds, b: &Bounds) -> Option<Bounds> {
+        let left = a.left().max(b.left());
+        let top = a.top().max(b.top());
+        let right = a.right().min(b.right());
+        let bottom = a.bottom().min(b.bottom());
+        if right > left && bottom > top {
+            Some(Self::new(
+                Point::new(left, top),
+                Extent::new(right - left, bottom - top),
+            ))
+        } else {
+            None
+        }
+    }
 }
 
 impl From<(Point, Extent)> for Bounds {

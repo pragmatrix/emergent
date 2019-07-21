@@ -12,7 +12,7 @@ pub struct Drawing(pub Vec<Draw>);
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Draw {
-    /// Fill that current area with the given paint and blend mode.
+    /// Fill the current clipping area with the given paint and blend mode.
     Paint(Paint, BlendMode),
 
     /// Draw a number of shapes with the same paint.
