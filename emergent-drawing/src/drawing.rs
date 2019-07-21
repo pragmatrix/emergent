@@ -1,7 +1,7 @@
 //! Serializable data Structures for unparameterized Drawings
 //! Structures here are optimized compact serialization but also for type safety and maximum precision.
 
-use crate::{Paint, Path, Point, Radius, Rect, RoundedRect, Transform};
+use crate::{Circle, Paint, Path, Point, Rect, RoundedRect, Transform};
 use serde::{Deserialize, Serialize};
 
 pub mod font;
@@ -55,10 +55,6 @@ pub enum Shape {
 /// A line defined by two points.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Line(pub Point, pub Point);
-
-/// A circle at a center point with a radius.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Circle(pub Point, pub Radius);
 
 /// An Oval, described by a Rect.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]

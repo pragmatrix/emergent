@@ -7,6 +7,9 @@ pub use bounds::*;
 mod canvas;
 pub use canvas::*;
 
+mod circle;
+pub use circle::*;
+
 mod color;
 pub use color::*;
 

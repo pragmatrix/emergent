@@ -1,6 +1,5 @@
 use crate::{
     scalar, Arc, Bounds, Circle, FastBounds, Matrix, Oval, Point, Polygon, Rect, RoundedRect,
-    Vector,
 };
 use serde::{Deserialize, Serialize};
 use std::iter;
@@ -49,8 +48,6 @@ pub enum Verb {
     ArcTo(Arc, ForceMoveTo),
     Close,
 
-    AddOval(Oval, Option<(Direction, usize)>),
-    AddCircle(Circle, Option<Direction>),
     AddArc(Arc),
     AddOpenPolygon(Polygon),
     // TODO: Do we need to support adding paths?
@@ -106,20 +103,6 @@ impl Path {
                     // current = Some(r.center())
                 }
                 Verb::Close => {}
-                Verb::AddOval(Oval(r), _) => {
-                    points.extend(&r.to_quad());
-                    // TODO: this is incorrect, use the correct end-point of the rect here.
-                    unimplemented!("compute the end-point of the rect");
-                    // current = Some(r.center())
-                }
-                Verb::AddCircle(Circle(p, r), _) => {
-                    let sector_size = Vector::from((**r, **r));
-                    let r = Rect::from((*p - sector_size, sector_size * 2.0));
-                    points.extend(&r.to_quad());
-                    // TODO: this is incorrect, use the correct end-point of the rect here.
-                    unimplemented!("compute the end-point of the rect");
-                    // current = Some(r.center())
-                }
                 Verb::AddArc(Arc(Oval(r), ..)) => {
                     points.extend(&r.to_quad());
                     // TODO: this is incorrect, compute the end-point of the arc here.
@@ -184,6 +167,31 @@ impl Path {
         }
 
         self.close();
+    }
+
+    pub fn add_oval(&mut self, oval: &Oval, dir_start: impl Into<Option<(Direction, usize)>>) {
+        self.reserve_verbs(6);
+        const WEIGHT: f64 = std::f64::consts::FRAC_1_SQRT_2;
+
+        let (dir, start) = dir_start.into().unwrap_or_default();
+
+        let mut oval_iter = oval_point_iterator(&oval.0, (dir, start));
+        let mut rect_iter = rect_point_iterator(
+            &oval.0,
+            (dir, start + if dir == Direction::CW { 0 } else { 1 }),
+        );
+
+        self.move_to(oval_iter.next().unwrap());
+        for _ in 0..=3 {
+            self.conic_to(rect_iter.next().unwrap(), oval_iter.next().unwrap(), WEIGHT);
+        }
+        self.close();
+    }
+
+    pub fn add_circle(&mut self, circle: &Circle, dir: impl Into<Option<Direction>>) {
+        let dir = dir.into().unwrap_or_default();
+        // TODO: does it make sense here to support a starting index?
+        self.add_oval(&circle.to_oval(), (dir, 0))
     }
 
     pub fn add_rect(&mut self, rect: &Rect, dir_start: impl Into<Option<(Direction, usize)>>) {
@@ -292,6 +300,35 @@ fn rounded_rect_point_iterator(
     let num = points.len() as isize;
     iter::from_fn(move || {
         let p = points[(index % num) as usize];
+        index += step;
+        Some(p)
+    })
+}
+
+fn oval_point_iterator(
+    rect: &Rect,
+    dir_start: impl Into<Option<(Direction, usize)>>,
+) -> impl Iterator<Item = Point> {
+    let (dir, start) = dir_start.into().unwrap_or_default();
+
+    let step = match dir {
+        Direction::CW => 1,
+        Direction::CCW => -1,
+    };
+
+    let mut index = start as isize;
+    let rect = rect.clone();
+    let center = rect.center();
+
+    iter::from_fn(move || {
+        let p = match index % 4 {
+            0 => Point::new(center.left(), rect.top()),
+            1 => Point::new(rect.right(), center.top()),
+            2 => Point::new(center.left(), rect.bottom()),
+            3 => Point::new(rect.left(), center.top()),
+            _ => unreachable!(),
+        };
+
         index += step;
         Some(p)
     })
