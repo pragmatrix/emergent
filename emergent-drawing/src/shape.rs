@@ -1,8 +1,38 @@
-use crate::{
-    scalar, Arc, Circle, ImageId, Line, Oval, Path, Point, Polygon, Rect, RoundedRect, Text,
-};
-
+use crate::scalar;
 use serde::{Deserialize, Serialize};
+
+mod arc;
+pub use arc::*;
+
+mod circle;
+pub use circle::*;
+
+mod image;
+pub use image::*;
+
+mod line;
+pub use line::*;
+
+mod oval;
+pub use oval::*;
+
+pub mod path;
+pub use path::Path;
+
+mod point;
+pub use point::*;
+
+mod polygon;
+pub use polygon::*;
+
+mod rect;
+pub use rect::*;
+
+mod rounded_rect;
+pub use rounded_rect::*;
+
+mod text;
+pub use text::*;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Shape {

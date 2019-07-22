@@ -4,9 +4,6 @@ extern crate bitflags;
 mod angle;
 pub use angle::*;
 
-mod arc;
-pub use arc::*;
-
 mod blend_mode;
 pub use blend_mode::*;
 
@@ -18,9 +15,6 @@ pub use canvas::*;
 
 pub(crate) mod conic;
 pub(crate) use conic::*;
-
-mod circle;
-pub use circle::*;
 
 mod clip;
 pub use clip::*;
@@ -45,12 +39,6 @@ pub use font::Font;
 
 pub mod functions;
 
-mod image;
-pub use image::*;
-
-mod line;
-pub use line::*;
-
 pub mod matrix;
 pub use matrix::Matrix;
 
@@ -60,20 +48,8 @@ pub use nearly::*;
 mod outset;
 pub use outset::*;
 
-mod oval;
-pub use oval::*;
-
 pub mod paint;
 pub use paint::Paint;
-
-pub mod path;
-pub use path::Path;
-
-mod point;
-pub use point::*;
-
-mod polygon;
-pub use polygon::*;
 
 mod radians;
 pub use radians::*;
@@ -81,17 +57,8 @@ pub use radians::*;
 mod radius;
 pub use radius::*;
 
-mod rect;
-pub use rect::*;
-
-mod rounded_rect;
-pub use rounded_rect::*;
-
 mod shape;
 pub use shape::*;
-
-mod text;
-pub use text::*;
 
 mod transform;
 pub use transform::*;
