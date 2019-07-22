@@ -1,17 +1,8 @@
 #[macro_use]
 extern crate bitflags;
 
-mod angle;
-pub use angle::*;
-
-mod bounds;
-pub use bounds::*;
-
 mod canvas;
 pub use canvas::*;
-
-pub(crate) mod conic;
-pub(crate) use conic::*;
 
 mod drawing;
 pub use drawing::*;
@@ -19,34 +10,13 @@ pub use drawing::*;
 mod drawing_target;
 pub use drawing_target::*;
 
-mod extent;
-pub use extent::*;
-
-mod fast_bounds;
-pub use fast_bounds::*;
-
 pub mod functions;
 
-pub mod matrix;
-pub use matrix::Matrix;
-
-pub mod nearly;
-pub use nearly::*;
-
-mod outset;
-pub use outset::*;
-
-mod radians;
-pub use radians::*;
-
-mod radius;
-pub use radius::*;
+mod geometry;
+pub use geometry::*;
 
 mod shape;
 pub use shape::*;
-
-mod vector;
-pub use vector::*;
 
 //
 // Scalar type. f64.
