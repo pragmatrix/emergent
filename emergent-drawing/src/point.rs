@@ -19,6 +19,10 @@ impl Point {
     }
 
     pub const ZERO: Point = Point::new(0.0, 0.0);
+
+    pub fn to_vector(&self) -> Vector {
+        Vector::new(self.left(), self.top())
+    }
 }
 
 //
@@ -133,6 +137,12 @@ impl Div<Vector> for Point {
 //
 // From
 //
+
+impl From<Vector> for Point {
+    fn from(v: Vector) -> Self {
+        Point::new(v.x(), v.y())
+    }
+}
 
 impl From<(scalar, scalar)> for Point {
     fn from((x, y): (scalar, scalar)) -> Self {

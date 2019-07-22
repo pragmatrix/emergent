@@ -10,6 +10,9 @@ pub use bounds::*;
 mod canvas;
 pub use canvas::*;
 
+pub(crate) mod conic;
+pub(crate) use conic::*;
+
 mod circle;
 pub use circle::*;
 
@@ -32,6 +35,9 @@ pub mod functions;
 
 pub mod matrix;
 pub use matrix::Matrix;
+
+pub mod nearly;
+pub use nearly::*;
 
 mod outset;
 pub use outset::*;

@@ -1,5 +1,6 @@
 use crate::{
-    scalar, Arc, Bounds, Circle, FastBounds, Matrix, Oval, Point, Polygon, Rect, RoundedRect,
+    scalar, Angle, Arc, Bounds, Circle, Conic, FastBounds, Matrix, NearlyEqual, NearlyZero, Oval,
+    Point, Radians, Rect, RoundedRect, Scalar, Vector,
 };
 use serde::{Deserialize, Serialize};
 use std::iter;
@@ -45,18 +46,26 @@ pub enum Verb {
     QuadTo(Point, Point),
     ConicTo(Point, Point, scalar),
     CubicTo(Point, Point, Point),
-    ArcTo(Arc, ForceMoveTo),
     Close,
+}
 
-    AddArc(Arc),
-    AddOpenPolygon(Polygon),
-    // TODO: Do we need to support adding paths?
+impl Verb {
+    pub fn last_point(&self) -> Option<Point> {
+        match self {
+            Verb::MoveTo(l) => Some(*l),
+            Verb::LineTo(l) => Some(*l),
+            Verb::QuadTo(_, l) => Some(*l),
+            Verb::ConicTo(_, l, _) => Some(*l),
+            Verb::CubicTo(_, _, l) => Some(*l),
+            Verb::Close => None,
+        }
+    }
 }
 
 // TODO: add path combinators!
 
 impl Path {
-    // TODO: complete the implementation.
+    // TODO: return an iterator?
     pub fn points(&self) -> Vec<Point> {
         let mut current: Option<Point> = None;
 
@@ -90,29 +99,7 @@ impl Path {
                     points.extend(&[p1, *p2, *p3, *p4]);
                     current = Some(*p4);
                 }
-                Verb::ArcTo(Arc(Oval(r), _, _, _), ForceMoveTo(fmt)) => {
-                    // TODO: clarify exactly what ForceMoveTo means.
-                    if *fmt {
-                        let current = current.unwrap_or_default();
-                        points.push(current);
-                    };
-
-                    points.extend(&r.to_quad());
-                    // TODO: this is incorrect, compute the end-point of the arc here.
-                    unimplemented!("compute the end-point of the arc here");
-                    // current = Some(r.center())
-                }
                 Verb::Close => {}
-                Verb::AddArc(Arc(Oval(r), ..)) => {
-                    points.extend(&r.to_quad());
-                    // TODO: this is incorrect, compute the end-point of the arc here.
-                    unimplemented!("compute the end-point of the rect");
-                    // current = Some(r.center())
-                }
-                Verb::AddOpenPolygon(Polygon(pts)) => {
-                    points.extend(pts);
-                    current = pts.last().cloned().or(current);
-                }
             }
         }
 
@@ -133,7 +120,7 @@ impl Path {
         // CW: odd indices
         // CCW: even indices
         let starts_with_conic = ((start & 1) != 0) == (dir == Direction::CW);
-        const WEIGHT: f64 = std::f64::consts::FRAC_1_SQRT_2;
+        const WEIGHT: f64 = scalar::ROOT_2_OVER_2;
 
         let mut rrect_iter = rounded_rect_point_iterator(rr, (dir, start));
         let rect_start_index = start / 2 + (if dir == Direction::CW { 0 } else { 1 });
@@ -204,6 +191,69 @@ impl Path {
             .close()
     }
 
+    pub fn arc_to(&mut self, arc: &Arc, force_move_to: bool) -> &Self {
+        // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
+        let oval = &(arc.0).0;
+        let start_angle = arc.1;
+        let sweep_angle = arc.2;
+
+        if oval.width() < 0.0 || oval.height() < 0.0 {
+            return self;
+        }
+
+        let force_move_to = force_move_to || self.verbs.is_empty();
+
+        if let Some(lone_pt) = arc_is_lone_point(oval, start_angle, sweep_angle) {
+            return if force_move_to {
+                self.move_to(lone_pt)
+            } else {
+                self.line_to(lone_pt)
+            };
+        }
+
+        let (start_v, stop_v, dir) = angles_to_unit_vectors(start_angle, sweep_angle);
+        let add_pt = |path: &mut Path, pt: Point| {
+            if force_move_to {
+                path.move_to(pt);
+                return;
+            }
+
+            match path.last_point() {
+                Some(last_pt) if !last_pt.nearly_equal(&pt, scalar::NEARLY_ZERO) => {
+                    path.line_to(pt);
+                }
+                None => {
+                    path.line_to(pt);
+                }
+                _ => {}
+            }
+        };
+
+        if start_v == stop_v {
+            let end_angle: Radians = (start_angle + sweep_angle).into();
+            let (radius_x, radius_y) = (oval.width() / 2.0, oval.height() / 2.0);
+            let single_pt = Point::new(
+                oval.center().left() + radius_x * (*end_angle).cos(),
+                oval.center().top() + radius_y * (*end_angle).sin(),
+            );
+            add_pt(self, single_pt);
+            return self;
+        }
+
+        match build_arc_conics(oval, &start_v, &stop_v, dir) {
+            ArcConics::Conics(conics) => {
+                self.reserve_verbs(conics.len() * 2 + 1);
+                add_pt(self, conics[0].points[0]);
+                for conic in conics {
+                    self.conic_to(conic.points[1], conic.points[2], conic.weight);
+                }
+            }
+            ArcConics::SinglePoint(point) => add_pt(self, point),
+        }
+
+        return self;
+    }
+
     //
     // add primitive verbs.
     //
@@ -242,7 +292,19 @@ impl Path {
     }
 
     pub fn close(&mut self) {
-        self.add_verb(Verb::Close);
+        let last_verb = self.verbs.last();
+        if let Some(verb) = last_verb {
+            match verb {
+                Verb::MoveTo(_)
+                | Verb::LineTo(_)
+                | Verb::QuadTo(_, _)
+                | Verb::ConicTo(_, _, _)
+                | Verb::CubicTo(_, _, _) => {
+                    self.add_verb(Verb::Close);
+                }
+                Verb::Close => {}
+            }
+        }
     }
 
     fn add_verb(&mut self, verb: Verb) -> &mut Self {
@@ -253,6 +315,10 @@ impl Path {
     fn reserve_verbs(&mut self, additional: usize) -> &mut Self {
         self.verbs.reserve(additional);
         self
+    }
+
+    fn last_point(&self) -> Option<Point> {
+        self.verbs.iter().rev().find_map(|v| v.last_point())
     }
 }
 
@@ -332,6 +398,102 @@ fn oval_point_iterator(
         index += step;
         Some(p)
     })
+}
+
+fn arc_is_lone_point(oval: &Rect, start_angle: Angle, sweep_angle: Angle) -> Option<Point> {
+    // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
+    if sweep_angle == Angle::ZERO
+        && (start_angle == Angle::ZERO || start_angle == Angle::FULL_CIRCLE)
+    {
+        // TODO: why right/centery ?
+        return Some(Point::new(oval.right(), oval.center().top()));
+    }
+    if oval.width() == 0.0 && oval.height() == 0.0 {
+        // TODO: why right / top
+        return Some(oval.right_top());
+    }
+
+    None
+}
+
+// Note: implementation differs from the Skia version:
+// - no snap to zero.
+// - no adjustments for coincent vectors.
+
+fn angles_to_unit_vectors(start_angle: Angle, sweep_angle: Angle) -> (Vector, Vector, Direction) {
+    // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
+    let start_rad: scalar = start_angle.to_radians();
+    let stop_rad: scalar = (start_angle + sweep_angle).to_radians();
+
+    let start_v = Vector::new(
+        start_rad.sin(), /*.snap_to_zero(NEARLY_ZERO)*/
+        start_rad.cos(), /*.snap_to_zero(NEARLY_ZERO)*/
+    );
+    let stop_v = Vector::new(
+        stop_rad.sin(), /*.snap_to_zero(NEARLY_ZERO)*/
+        stop_rad.cos(), /*.snap_to_zero(NEARLY_ZERO)*/
+    );
+
+    /*
+    If the sweep angle is nearly (but less than) 360, then due to precision
+     loss in radians-conversion and/or sin/cos, we may end up with coincident
+     vectors, which will fool SkBuildQuadArc into doing nothing (bad) instead
+     of drawing a nearly complete circle (good).
+     e.g. canvas.drawArc(0, 359.99, ...)
+     -vs- canvas.drawArc(0, 359.9, ...)
+     We try to detect this edge case, and tweak the stop vector
+
+     */
+
+    // TODO: I am not sure if this is needed anymore (armin).
+    // TODO: needs testcase
+
+    /*
+    let mut stopRad = stopRad;
+    let mut stopV = stopV;
+
+    if startV == stopV {
+        let sw = (*sweepAngle).abs();
+        if sw < 360.0 && sw > 359.0 {
+            // make a guess at a tiny angle (in radians) to tweak by
+            let deltaRad = (1.0 as f64 / 512.0).copysign(*sweepAngle);
+            // not sure how much will be enough, so we use a loop
+            while {
+                stopRad -= deltaRad;
+                stopV = Vector::new(
+                    stopRad.sin().snap_to_zero(NEARLY_ZERO),
+                    stopRad.cos().snap_to_zero(NEARLY_ZERO),
+                );
+                startV == stopV
+            } {}
+        }
+    }
+    */
+
+    let dir = if sweep_angle > Angle::ZERO {
+        Direction::CW
+    } else {
+        Direction::CCW
+    };
+    (start_v, stop_v, dir)
+}
+
+enum ArcConics {
+    SinglePoint(Point),
+    Conics(Vec<Conic>),
+}
+
+fn build_arc_conics(oval: &Rect, start: &Vector, stop: &Vector, dir: Direction) -> ArcConics {
+    // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
+    let mut matrix = Matrix::new_scale(Vector::new(oval.width() * 0.5, oval.height() * 0.5), None);
+    matrix.post_translate(oval.center().to_vector());
+
+    let conics = Conic::build_unit_arc(start, stop, dir, Some(&matrix));
+    if conics.is_empty() {
+        ArcConics::SinglePoint(matrix.map_point(*stop))
+    } else {
+        ArcConics::Conics(conics)
+    }
 }
 
 impl FastBounds for Path {

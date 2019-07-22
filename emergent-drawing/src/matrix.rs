@@ -1,4 +1,6 @@
-use crate::{scalar, Bounds, FastBounds, Point, Radians, Radius, Rect, Vector};
+use crate::{
+    scalar, Bounds, FastBounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Vector,
+};
 use serde::{Deserialize, Serialize};
 use std::{mem, slice};
 
@@ -36,7 +38,8 @@ impl Matrix {
         Self::new_sin_cos(radians.sin(), radians.cos(), p.into().unwrap_or_default())
     }
 
-    fn new_sin_cos(sin: scalar, cos: scalar, p: Point) -> Self {
+    pub(crate) fn new_sin_cos(sin: scalar, cos: scalar, p: impl Into<Option<Point>>) -> Self {
+        let p = p.into().unwrap_or_default();
         let one_minus_cos = 1.0 - cos;
         Self([
             cos,
@@ -178,8 +181,8 @@ impl Matrix {
         *self = Self::concat(mat, self);
     }
 
-    pub fn map_point(&self, point: Point) -> Point {
-        let mut r = point;
+    pub fn map_point(&self, point: impl Into<Point>) -> Point {
+        let mut r = point.into();
         self.map_points_inplace(slice::from_mut(&mut r));
         r
     }
@@ -471,6 +474,7 @@ fn affine_points(m: &Matrix, points: &mut [Point]) {
 }
 
 pub fn decompose_upper_2x2(matrix: &Matrix) -> Option<(Vector, Vector, Vector)> {
+    // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
     let a = matrix.0[SCALE_X];
     let b = matrix.0[SKEW_X];
     let c = matrix.0[SKEW_Y];
@@ -495,7 +499,7 @@ pub fn decompose_upper_2x2(matrix: &Matrix) -> Option<(Vector, Vector, Vector)> 
     let sd;
 
     // if M is already symmetric (i.e., M = I*S)
-    if nearly_equal(b, c, NEARLY_ZERO) {
+    if b.nearly_equal(&c, scalar::NEARLY_ZERO) {
         cos_q = 1.0;
         sin_q = 0.0;
 
@@ -519,7 +523,7 @@ pub fn decompose_upper_2x2(matrix: &Matrix) -> Option<(Vector, Vector, Vector)> 
     // Now we need to compute eigenvalues of S (our scale factors)
     // and eigenvectors (bases for our rotation)
     // From this, should be able to reconstruct S as U*W*U^T
-    if nearly_zero(sb, NEARLY_ZERO) {
+    if sb.nearly_zero(scalar::NEARLY_ZERO) {
         // already diagonalized
         cos1 = 1.0;
         sin1 = 0.0;
@@ -565,29 +569,19 @@ fn invert(v: scalar) -> scalar {
 }
 
 fn is_degenerate_2x2(scale_x: scalar, skew_x: scalar, skew_y: scalar, scale_y: scalar) -> bool {
+    // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
     let perp_dot = scale_x * scale_y - skew_x * skew_y;
-    return nearly_zero(perp_dot, NEARLY_ZERO * NEARLY_ZERO);
-}
-
-const NEARLY_ZERO: scalar = 1.0 / ((1 << 12) as scalar);
-
-fn nearly_zero(x: scalar, tolerance: scalar) -> bool {
-    debug_assert!(tolerance >= 0.0);
-    x.abs() <= tolerance
-}
-
-fn nearly_equal(x: scalar, y: scalar, tolerance: scalar) -> bool {
-    debug_assert!(tolerance >= 0.0);
-    (x - y).abs() <= tolerance
+    return perp_dot.nearly_zero(scalar::NEARLY_ZERO * scalar::NEARLY_ZERO);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::matrix::{decompose_upper_2x2, NEARLY_ZERO};
-    use crate::{scalar, Matrix, ToDegrees, Vector};
+    use crate::matrix::decompose_upper_2x2;
+    use crate::{scalar, Matrix, NearlyZero, ToDegrees, Vector};
 
     #[test]
     fn test_decomposition() {
+        // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
         let rotation0 = 15.5.degrees();
         let _rotation1 = (-50.0).degrees();
         let scale0: scalar = 5000.;
@@ -625,6 +619,7 @@ mod tests {
         mat: &Matrix,
         (rotation1, scale, rotation2): (Vector, Vector, Vector),
     ) -> bool {
+        // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
         let c1 = rotation1.x();
         let s1 = rotation1.y();
         let scale_x = scale.x();
@@ -636,19 +631,19 @@ mod tests {
         let result = nearly_equal_relative(
             mat.scale_x(),
             scale_x * c1 * c2 - scale_y * s1 * s2,
-            NEARLY_ZERO,
+            scalar::NEARLY_ZERO,
         ) && nearly_equal_relative(
             mat.skew_x(),
             -scale_x * s1 * c2 - scale_y * c1 * s2,
-            NEARLY_ZERO,
+            scalar::NEARLY_ZERO,
         ) && nearly_equal_relative(
             mat.skew_y(),
             scale_x * c1 * s2 + scale_y * s1 * c2,
-            NEARLY_ZERO,
+            scalar::NEARLY_ZERO,
         ) && nearly_equal_relative(
             mat.scale_y(),
             -scale_x * s1 * s2 + scale_y * c1 * c2,
-            NEARLY_ZERO,
+            scalar::NEARLY_ZERO,
         );
         return result;
     }

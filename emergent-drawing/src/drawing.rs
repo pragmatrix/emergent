@@ -66,13 +66,9 @@ pub struct Oval(pub Rect);
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Polygon(pub Vec<Point>);
 
-// TODO: not sure what that means, verify relation to Path / Shape.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct UseCenter(pub bool);
-
 // An Arc, described by an oval, start angle, and sweep angle.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Arc(pub Oval, pub Angle, pub Angle, pub UseCenter);
+pub struct Arc(pub Oval, pub Angle, pub Angle);
 
 /// Text, described by a location, a string, and the font.
 // TODO: can we share fonts?
@@ -92,6 +88,18 @@ pub enum Clip {
 
 #[allow(non_camel_case_types)]
 pub type scalar = f64;
+
+pub(crate) trait Scalar {
+    const ROOT_2_OVER_2: scalar;
+    fn invert(self) -> Self;
+}
+
+impl Scalar for scalar {
+    const ROOT_2_OVER_2: scalar = std::f64::consts::FRAC_1_SQRT_2;
+    fn invert(self) -> Self {
+        1.0 / self
+    }
+}
 
 // 32-bit ARGB color value.
 // TODO: do we really want this? Serialization should be HEX I guess.

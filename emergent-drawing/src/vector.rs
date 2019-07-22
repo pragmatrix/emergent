@@ -34,6 +34,28 @@ impl Vector {
     pub fn length(&self) -> scalar {
         (self.0 * self.0 + self.1 * self.1).sqrt()
     }
+
+    pub fn set_length(&mut self, length: scalar) -> bool {
+        let (x, y) = (self.x(), self.y());
+        let dmag = (x * x + y * y).sqrt();
+        let dscale = length / dmag;
+        let x = x * dscale;
+        let y = y * dscale;
+        if !x.is_finite() || !y.is_finite() {
+            *self = Vector::ZERO;
+            return false;
+        }
+        *self = Vector::new(x, y);
+        return true;
+    }
+
+    pub fn dot_product(a: &Vector, b: &Vector) -> scalar {
+        a.x() * b.x() + a.y() * b.y()
+    }
+
+    pub fn cross_product(a: &Vector, b: &Vector) -> scalar {
+        a.x() * b.y() - a.y() * b.x()
+    }
 }
 
 //
