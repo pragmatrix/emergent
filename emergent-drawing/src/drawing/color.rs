@@ -15,7 +15,7 @@ impl Color {
         return to_byte(a) << 24 | to_byte(r) << 16 | to_byte(g) << 8 | to_byte(b);
 
         fn to_byte(v: c_comp) -> u32 {
-            (v.to_f32() * 255.0) as u32
+            (v.to_f32().max(0.0).min(1.0) * 255.0) as u32
         }
     }
 }
