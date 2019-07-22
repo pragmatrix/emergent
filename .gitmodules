@@ -10,3 +10,6 @@
 [submodule "tears"]
 	path = tears
 	url = https://github.com/pragmatrix/tears.git
+[submodule "serde_tuple"]
+	path = serde_tuple
+	url = https://github.com/pragmatrix/serde_tuple.git
