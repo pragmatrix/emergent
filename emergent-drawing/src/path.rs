@@ -191,6 +191,39 @@ impl Path {
             .close()
     }
 
+    pub fn add_arc(&mut self, arc: &Arc) -> &Self {
+        // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
+
+        /*
+            note: Empty ovals and sweep_angle == 0 are fine for us.
+            Assuming that his resolves to a single point, it may produce output
+            depending on the Paint used.
+
+            if (oval.is_empty() || sweep_angle == 0.0) {
+                return self
+            }
+        */
+
+        /* (armin) Also don't optimize for the Oval case.
+        if sweep_angle >= Angle::FULL_CIRCLE || sweep_angle <= -Angle::FULL_CIRCLE {
+            // We can treat the arc as an oval if it begins at one of our legal starting positions.
+            // See SkPath::addOval() docs.
+            SkScalar startOver90 = startAngle / 90.f;
+            SkScalar startOver90I = SkScalarRoundToScalar(startOver90);
+            SkScalar error = startOver90 - startOver90I;
+            if (SkScalarNearlyEqual(error, 0)) {
+                // Index 1 is at startAngle == 0.
+                SkScalar startIndex = std::fmod(startOver90I + 1.f, 4.f);
+                startIndex = startIndex < 0 ? startIndex + 4.f : startIndex;
+                return this->addOval(oval, sweepAngle > 0 ? kCW_Direction : kCCW_Direction,
+                (unsigned) startIndex);
+            }
+        }
+        */
+
+        self.arc_to(arc, true)
+    }
+
     pub fn arc_to(&mut self, arc: &Arc, force_move_to: bool) -> &Self {
         // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
         let oval = &(arc.0).0;
