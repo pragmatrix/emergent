@@ -80,9 +80,9 @@ impl FastBounds for RoundedRect {
 impl FastBounds for Arc {
     fn fast_bounds(&self) -> Bounds {
         // TODO: find out if a conversion to a list of conics is fast enough for
-        // considering it a fast_bounds() conversion.
-        // Note that there is a inconsistency right now, a Path's fast_bounds()
-        // will be more precise, because adding an arc to a Path will be immediately converted to
+        // considering it a fast_bounds() computation.
+        // Note that a Path's fast_bounds() is in consistent in that it
+        // will be more precise, because adding an arc to a Path will be converted to
         // a list of conics.
         self.oval.fast_bounds()
     }
