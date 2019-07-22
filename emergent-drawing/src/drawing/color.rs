@@ -8,7 +8,8 @@ impl Color {
     pub const BLACK: Self = Color(f16::ZERO, f16::ZERO, f16::ZERO, f16::ONE);
     pub const WHITE: Self = Color(f16::ONE, f16::ONE, f16::ONE, f16::ONE);
 
-    /// Convert a color to 8 bit component 32 bit value encoded as ARGB.
+    /// Convert a color to a u32 bits encoded as ARGB with 8 bit for
+    /// each component.
     pub fn to_u32(&self) -> u32 {
         let Color(r, g, b, a) = *self;
         return to_byte(a) << 24 | to_byte(r) << 16 | to_byte(g) << 8 | to_byte(b);
@@ -20,8 +21,7 @@ impl Color {
 }
 
 impl From<u32> for Color {
-    /// Convert a color from a 8 bit components stored in a 32 bit value
-    /// as ARGB.
+    /// Convert a u32 ARGB 8 bit component value into a color.
     fn from(v: u32) -> Self {
         let a = v >> 24;
         let r = (v >> 16) & 0xff;
@@ -37,7 +37,7 @@ impl From<u32> for Color {
 
 impl From<(f32, f32, f32, f32)> for Color {
     /// Convert a color from red, green, blue and alpha values in the range
-    /// of 0.0 to 1.0.
+    /// from 0.0 to 1.0.
     fn from((r, g, b, a): (f32, f32, f32, f32)) -> Self {
         let r = c_comp::from_f32(r);
         let g = c_comp::from_f32(g);
@@ -49,7 +49,7 @@ impl From<(f32, f32, f32, f32)> for Color {
 
 // A color component.
 //
-// Note: we use the half crate here and want this to be an implementation detail for now.
+// We use the half crate here and want this to be an implementation detail for now.
 #[allow(non_camel_case_types)]
 type c_comp = half::f16;
 
