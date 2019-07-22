@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::{scalar, Bounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
 use std::{mem, slice};
@@ -212,7 +213,7 @@ impl Matrix {
     }
 
     pub fn map_radius(&self, radius: Radius) -> Radius {
-        let mut v = [Vector::new(*radius, 0.0), Vector::new(0.0, *radius)];
+        let mut v = [vector(*radius, 0.0), vector(0.0, *radius)];
         self.map_vectors_inplace(&mut v);
         let d0 = v[0].length();
         let d1 = v[1].length();
@@ -238,7 +239,7 @@ impl Matrix {
     }
 
     fn trans(&self) -> Vector {
-        Vector::new(self.trans_x(), self.trans_y())
+        vector(self.trans_x(), self.trans_y())
     }
 
     fn scale(&self) -> (scalar, scalar) {
@@ -544,9 +545,9 @@ pub fn decompose_upper_2x2(matrix: &Matrix) -> Option<(Vector, Vector, Vector)> 
         sin1 = -sin1;
     }
 
-    let scale = Vector::new(w1, w2);
-    let rotation1 = Vector::new(cos1, sin1);
-    let rotation2 = Vector::new(cos2, sin2);
+    let scale = vector(w1, w2);
+    let rotation1 = vector(cos1, sin1);
+    let rotation2 = vector(cos2, sin2);
 
     Some((rotation1, scale, rotation2))
 }

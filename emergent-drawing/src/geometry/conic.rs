@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::path::Direction;
 use crate::{scalar, Matrix, NearlyZero, Point, Scalar, Vector};
 
@@ -87,13 +88,13 @@ impl Conic {
         }
 
         // Now compute any remaing (sub-90-degree) arc for the last conic
-        let final_p = Vector::new(x, y);
+        let final_p = vector(x, y);
         let last_q = QUADRANT_PTS[quadrant * 2].to_vector(); // will already be a unit-vector
         let dot = Vector::dot_product(&last_q, &final_p);
         debug_assert!(0.0 <= dot && dot <= 1.0 + scalar::NEARLY_ZERO);
 
         if dot < 1.0 {
-            let mut off_curve = Vector::new(last_q.x + x, last_q.y + y);
+            let mut off_curve = vector(last_q.x + x, last_q.y + y);
             // compute the bisector vector, and then rescale to be the off-curve point.
             // we compute its length from cos(theta/2) = length / 1, using half-angle identity we get
             // length = sqrt(2 / (1 + cos(theta)). We already have cos() when to computed the dot.

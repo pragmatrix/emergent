@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::{scalar, Extent, Vector};
 use serde_tuple::*;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
@@ -16,7 +17,7 @@ impl Point {
     }
 
     pub fn to_vector(&self) -> Vector {
-        Vector::new(self.x, self.y)
+        vector(self.x, self.y)
     }
 }
 

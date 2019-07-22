@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::{
     scalar, Angle, Arc, Bounds, Circle, Conic, FastBounds, Matrix, NearlyEqual, NearlyZero, Oval,
     Point, Radians, Rect, RoundedRect, Scalar, Vector,
@@ -483,11 +484,11 @@ fn angles_to_unit_vectors(start_angle: Angle, sweep_angle: Angle) -> (Vector, Ve
     let start_rad: scalar = start_angle.to_radians();
     let stop_rad: scalar = (start_angle + sweep_angle).to_radians();
 
-    let start_v = Vector::new(
+    let start_v = vector(
         start_rad.sin(), /*.snap_to_zero(NEARLY_ZERO)*/
         start_rad.cos(), /*.snap_to_zero(NEARLY_ZERO)*/
     );
-    let stop_v = Vector::new(
+    let stop_v = vector(
         stop_rad.sin(), /*.snap_to_zero(NEARLY_ZERO)*/
         stop_rad.cos(), /*.snap_to_zero(NEARLY_ZERO)*/
     );
@@ -518,7 +519,7 @@ fn angles_to_unit_vectors(start_angle: Angle, sweep_angle: Angle) -> (Vector, Ve
             // not sure how much will be enough, so we use a loop
             while {
                 stopRad -= deltaRad;
-                stopV = Vector::new(
+                stopV = vector(
                     stopRad.sin().snap_to_zero(NEARLY_ZERO),
                     stopRad.cos().snap_to_zero(NEARLY_ZERO),
                 );
@@ -543,7 +544,7 @@ enum ArcConics {
 
 fn build_arc_conics(oval: &Rect, start: &Vector, stop: &Vector, dir: Direction) -> ArcConics {
     // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
-    let mut matrix = Matrix::new_scale(Vector::new(oval.width() * 0.5, oval.height() * 0.5), None);
+    let mut matrix = Matrix::new_scale(vector(oval.width() * 0.5, oval.height() * 0.5), None);
     matrix.post_translate(oval.center().to_vector());
 
     let conics = Conic::build_unit_arc(start, stop, dir, Some(&matrix));

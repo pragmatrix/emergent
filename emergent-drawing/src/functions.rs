@@ -1,11 +1,11 @@
 use crate::font::Style;
 use crate::{font, scalar, Extent, Font, Line, Paint, Point, Rect, Text, Vector};
 
-pub fn point(x: scalar, y: scalar) -> Point {
+pub const fn point(x: scalar, y: scalar) -> Point {
     Point::new(x, y)
 }
 
-pub fn vector(x: scalar, y: scalar) -> Vector {
+pub const fn vector(x: scalar, y: scalar) -> Vector {
     Vector::new(x, y)
 }
 

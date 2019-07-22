@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::{scalar, Extent};
 use serde_tuple::*;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};

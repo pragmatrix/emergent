@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::{scalar, Bounds, Outset, Point, Vector};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
@@ -68,11 +69,11 @@ impl Rect {
     }
 
     pub fn size(&self) -> Vector {
-        Vector::new(self.width(), self.height())
+        vector(self.width(), self.height())
     }
 
     pub fn center(&self) -> Point {
-        (self.0 + self.1.to_vector()) * Vector::new(0.5, 0.5)
+        (self.0 + self.1.to_vector()) * vector(0.5, 0.5)
     }
 
     /// Returns a rectangle that encloses two other rectangles.

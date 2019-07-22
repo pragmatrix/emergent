@@ -1,4 +1,5 @@
-use crate::{Oval, Point, Radius, Rect, Vector};
+use crate::functions::vector;
+use crate::{Oval, Point, Radius, Rect};
 use serde_tuple::*;
 
 /// A circle at a center point with a radius.
@@ -10,7 +11,7 @@ pub struct Circle {
 
 impl Circle {
     pub fn to_oval(&self) -> Oval {
-        let rv = Vector::new(*self.radius, *self.radius);
-        Oval(Rect::new(self.center - rv, rv * 2.0))
+        let rv = vector(*self.radius, *self.radius);
+        Oval(Rect::new(self.center - rv, self.center + rv))
     }
 }
