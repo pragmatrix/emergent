@@ -23,14 +23,14 @@ impl Matrix {
     pub fn new_scale(s: impl Into<Vector>, p: impl Into<Option<Point>>) -> Self {
         let s = s.into();
         let p = p.into().unwrap_or_default();
-        let sx = s.x();
-        let sy = s.y();
+        let sx = s.x;
+        let sy = s.y;
         Self::new_scale_translate(sx, sy, p.x - sx * p.x, p.y - sy * p.y)
     }
 
     pub fn new_translate(d: impl Into<Vector>) -> Matrix {
         let d = d.into();
-        Self::new_scale_translate(1.0, 1.0, d.x(), d.y())
+        Self::new_scale_translate(1.0, 1.0, d.x, d.y)
     }
 
     pub fn new_rotate(radians: impl Into<Radians>, p: impl Into<Option<Point>>) -> Self {
@@ -116,8 +116,8 @@ impl Matrix {
 
     pub fn pre_translate(&mut self, d: Vector) {
         if self.is_translate() {
-            self.0[TRANS_X] += d.x();
-            self.0[TRANS_Y] += d.y();
+            self.0[TRANS_X] += d.x;
+            self.0[TRANS_Y] += d.y;
             return;
         }
         self.pre_concat(&Self::new_translate(d));
@@ -127,8 +127,8 @@ impl Matrix {
         if self.has_perspective() {
             self.post_concat(&Self::new_translate(d));
         } else {
-            self.0[TRANS_X] += d.x();
-            self.0[TRANS_Y] += d.y();
+            self.0[TRANS_X] += d.x;
+            self.0[TRANS_Y] += d.y;
         }
     }
 
@@ -610,12 +610,12 @@ mod tests {
         (rotation1, scale, rotation2): (Vector, Vector, Vector),
     ) -> bool {
         // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
-        let c1 = rotation1.x();
-        let s1 = rotation1.y();
-        let scale_x = scale.x();
-        let scale_y = scale.y();
-        let c2 = rotation2.x();
-        let s2 = rotation2.y();
+        let c1 = rotation1.x;
+        let s1 = rotation1.y;
+        let scale_x = scale.x;
+        let scale_y = scale.y;
+        let c2 = rotation2.x;
+        let s2 = rotation2.y;
 
         // We do a relative check here because large scale factors cause problems with an absolute check
         let result = nearly_equal_relative(

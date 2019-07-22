@@ -369,8 +369,7 @@ impl ToSkia<Point> for drawing::Point {
 
 impl ToSkia<Vector> for drawing::Vector {
     fn to_skia(&self) -> Point {
-        let drawing::Vector(x, y) = *self;
-        Vector::from((x.to_skia(), y.to_skia()))
+        Vector::from((self.x.to_skia(), self.y.to_skia()))
     }
 }
 
@@ -382,8 +381,7 @@ impl ToSkia<Vec<Point>> for Vec<drawing::Point> {
 
 impl ToSkia<Size> for drawing::Vector {
     fn to_skia(&self) -> Size {
-        let drawing::Vector(width, height) = *self;
-        Size::from((width.to_skia(), height.to_skia()))
+        Size::from((self.x.to_skia(), self.y.to_skia()))
     }
 }
 

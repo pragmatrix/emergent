@@ -93,7 +93,7 @@ impl Conic {
         debug_assert!(0.0 <= dot && dot <= 1.0 + scalar::NEARLY_ZERO);
 
         if dot < 1.0 {
-            let mut off_curve = Vector::new(last_q.x() + x, last_q.y() + y);
+            let mut off_curve = Vector::new(last_q.x + x, last_q.y + y);
             // compute the bisector vector, and then rescale to be the off-curve point.
             // we compute its length from cos(theta/2) = length / 1, using half-angle identity we get
             // length = sqrt(2 / (1 + cos(theta)). We already have cos() when to computed the dot.
@@ -112,7 +112,7 @@ impl Conic {
         }
 
         // now handle counter-clockwise and the initial unitStart rotation
-        let mut matrix = Matrix::new_sin_cos(u_start.y(), u_start.x(), None);
+        let mut matrix = Matrix::new_sin_cos(u_start.y, u_start.x, None);
         if dir == Direction::CCW {
             matrix.pre_scale((1.0, -1.0), None);
         }

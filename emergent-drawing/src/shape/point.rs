@@ -71,8 +71,8 @@ impl Sub<Extent> for Point {
 
 impl AddAssign<Vector> for Point {
     fn add_assign(&mut self, rhs: Vector) {
-        self.x += rhs.x();
-        self.y += rhs.y();
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
 
@@ -86,8 +86,8 @@ impl Add<Vector> for Point {
 
 impl SubAssign<Vector> for Point {
     fn sub_assign(&mut self, rhs: Vector) {
-        self.x -= rhs.x();
-        self.y -= rhs.y();
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 
@@ -101,8 +101,8 @@ impl Sub<Vector> for Point {
 
 impl MulAssign<Vector> for Point {
     fn mul_assign(&mut self, rhs: Vector) {
-        self.x *= rhs.x();
-        self.y *= rhs.y();
+        self.x *= rhs.x;
+        self.y *= rhs.y;
     }
 }
 
@@ -116,8 +116,8 @@ impl Mul<Vector> for Point {
 
 impl DivAssign<Vector> for Point {
     fn div_assign(&mut self, rhs: Vector) {
-        self.x /= rhs.x();
-        self.y /= rhs.y();
+        self.x /= rhs.x;
+        self.y /= rhs.y;
     }
 }
 
@@ -135,7 +135,7 @@ impl Div<Vector> for Point {
 
 impl From<Vector> for Point {
     fn from(v: Vector) -> Self {
-        Point::new(v.x(), v.y())
+        Point::new(v.x, v.y)
     }
 }
 

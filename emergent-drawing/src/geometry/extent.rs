@@ -81,6 +81,6 @@ impl From<(isize, isize)> for Extent {
 
 impl From<Vector> for Extent {
     fn from(v: Vector) -> Self {
-        Self::from((v.x(), v.y()))
+        Self::from((v.x, v.y))
     }
 }

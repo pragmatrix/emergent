@@ -1,42 +1,37 @@
 use crate::{scalar, Extent};
-use serde::{Deserialize, Serialize};
+use serde_tuple::*;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Vector(pub scalar, pub scalar);
+#[derive(Copy, Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Default, Debug)]
+pub struct Vector {
+    pub x: scalar,
+    pub y: scalar,
+}
 
 impl Vector {
     pub const ZERO: Vector = Vector::new(0.0, 0.0);
 
     pub const fn new(x: scalar, y: scalar) -> Self {
-        Self(x, y)
-    }
-
-    pub fn x(&self) -> scalar {
-        self.0
-    }
-
-    pub fn y(&self) -> scalar {
-        self.1
+        Vector { x, y }
     }
 
     /// Returns true if both scalars are >= 0.
     pub fn is_positive(&self) -> bool {
-        self.0 >= 0.0 && self.1 >= 0.0
+        self.x >= 0.0 && self.y >= 0.0
     }
 
     /// Returns true if the vector's length is zero.
     /// TODO: rename to is_origin()?
     pub fn is_zero(&self) -> bool {
-        self.0 == 0.0 && self.1 == 0.0
+        self.x == 0.0 && self.y == 0.0
     }
 
     pub fn length(&self) -> scalar {
-        (self.0 * self.0 + self.1 * self.1).sqrt()
+        (self.x * self.x + self.y * self.y).sqrt()
     }
 
     pub fn set_length(&mut self, length: scalar) -> bool {
-        let (x, y) = (self.x(), self.y());
+        let (x, y) = (self.x, self.y);
         let dmag = (x * x + y * y).sqrt();
         let dscale = length / dmag;
         let x = x * dscale;
@@ -50,11 +45,11 @@ impl Vector {
     }
 
     pub fn dot_product(a: &Vector, b: &Vector) -> scalar {
-        a.x() * b.x() + a.y() * b.y()
+        a.x * b.x + a.y * b.y
     }
 
     pub fn cross_product(a: &Vector, b: &Vector) -> scalar {
-        a.x() * b.y() - a.y() * b.x()
+        a.x * b.y - a.y * b.x
     }
 }
 
@@ -94,8 +89,8 @@ impl Add for Vector {
 
 impl AddAssign for Vector {
     fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-        self.1 += rhs.1;
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
 
@@ -109,15 +104,15 @@ impl Sub for Vector {
 
 impl SubAssign for Vector {
     fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
-        self.1 -= rhs.1;
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 
 impl Neg for Vector {
     type Output = Self;
     fn neg(self) -> Self::Output {
-        Self::new(-self.x(), -self.y())
+        Self::new(-self.x, -self.y)
     }
 }
 
@@ -135,8 +130,8 @@ impl Mul<scalar> for Vector {
 
 impl MulAssign<scalar> for Vector {
     fn mul_assign(&mut self, rhs: scalar) {
-        self.0 *= rhs;
-        self.1 *= rhs;
+        self.x *= rhs;
+        self.y *= rhs;
     }
 }
 
@@ -150,7 +145,7 @@ impl Div<scalar> for Vector {
 
 impl DivAssign<scalar> for Vector {
     fn div_assign(&mut self, rhs: scalar) {
-        self.0 /= rhs;
-        self.1 /= rhs;
+        self.x /= rhs;
+        self.y /= rhs;
     }
 }

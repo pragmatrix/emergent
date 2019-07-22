@@ -68,8 +68,8 @@ impl RectHelper for Rect {
 
     fn set_length(&mut self, axis: usize, length: length) {
         match axis {
-            0 => self.1 = Vector(*length, self.height()),
-            1 => self.1 = Vector(self.width(), *length),
+            0 => self.1 = Vector::new(*length, self.height()),
+            1 => self.1 = Vector::new(self.width(), *length),
             _ => {}
         }
     }

@@ -7,7 +7,7 @@ use std::ops::Neg;
 /// Previously named Padding, then renamed to precisely specify that
 /// - for an actual outset - all values have to be positive. For an inset,
 /// all need to be negative.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Default, Debug)]
 pub struct Outset(pub [scalar; 4]);
 
 impl Outset {

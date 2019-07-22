@@ -63,12 +63,12 @@ impl Rect {
 
     /// The width, may be negative.
     pub fn width(&self) -> scalar {
-        self.size().x()
+        self.size().x
     }
 
     /// The height, may be negative.
     pub fn height(&self) -> scalar {
-        self.size().y()
+        self.size().y
     }
 
     pub fn size(&self) -> Vector {
@@ -126,8 +126,8 @@ impl AddAssign<Outset> for Rect {
         // This makes sure that applying an outset to a rect is the same as
         // flipping the rect, adding the outset, and flipping it back.
         let sz = self.size();
-        let h_dir = sz.x().signum();
-        let v_dir = sz.y().signum();
+        let h_dir = sz.x.signum();
+        let v_dir = sz.y.signum();
         let l = rhs.left() * h_dir;
         let t = rhs.top() * v_dir;
         let r = rhs.right() * h_dir;
