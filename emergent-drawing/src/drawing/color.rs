@@ -1,13 +1,61 @@
 use serde::{Deserialize, Serialize};
 
-// 32-bit ARGB color value.
-// TODO: do we really want this? Serialization should be HEX I guess.
-// Also: what about a decent color type, say 4 f32 values, may be both?
+/// RGBA color value.
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Color(pub u32);
+pub struct Color(c_comp, c_comp, c_comp, c_comp);
+
+impl Color {
+    pub const BLACK: Self = Color(f16::ZERO, f16::ZERO, f16::ZERO, f16::ONE);
+    pub const WHITE: Self = Color(f16::ONE, f16::ONE, f16::ONE, f16::ONE);
+
+    /// Convert a color to 8 bit component 32 bit value encoded as ARGB.
+    pub fn to_u32(&self) -> u32 {
+        let Color(r, g, b, a) = *self;
+        return to_byte(a) << 24 | to_byte(r) << 16 | to_byte(g) << 8 | to_byte(b);
+
+        fn to_byte(v: c_comp) -> u32 {
+            (v.to_f32() * 255.0) as u32
+        }
+    }
+}
 
 impl From<u32> for Color {
+    /// Convert a color from a 8 bit components stored in a 32 bit value
+    /// as ARGB.
     fn from(v: u32) -> Self {
-        Color(v)
+        let a = v >> 24;
+        let r = (v >> 16) & 0xff;
+        let g = (v >> 8) & 0xff;
+        let b = v & 0xff;
+        return Color(from_byte(r), from_byte(g), from_byte(b), from_byte(a));
+
+        fn from_byte(v: u32) -> c_comp {
+            c_comp::from_f32(v as f32 / 255.0)
+        }
     }
+}
+
+impl From<(f32, f32, f32, f32)> for Color {
+    /// Convert a color from red, green, blue and alpha values in the range
+    /// of 0.0 to 1.0.
+    fn from((r, g, b, a): (f32, f32, f32, f32)) -> Self {
+        let r = c_comp::from_f32(r);
+        let g = c_comp::from_f32(g);
+        let b = c_comp::from_f32(b);
+        let a = c_comp::from_f32(a);
+        Color(r, g, b, a)
+    }
+}
+
+// A color component.
+//
+// Note: we use the half crate here and want this to be an implementation detail for now.
+#[allow(non_camel_case_types)]
+type c_comp = half::f16;
+
+mod f16 {
+    use half::consts;
+
+    pub const ZERO: half::f16 = consts::ZERO;
+    pub const ONE: half::f16 = consts::ONE;
 }

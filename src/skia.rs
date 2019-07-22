@@ -357,7 +357,7 @@ trait ToSkia<ST> {
 
 impl ToSkia<Color> for drawing::Color {
     fn to_skia(&self) -> Color {
-        Color::from(self.0)
+        Color::from(self.to_u32())
     }
 }
 

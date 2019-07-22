@@ -74,7 +74,7 @@ impl Paint {
     pub const fn new() -> Self {
         Self {
             style: Style::Fill,
-            color: Color(0xff000000),
+            color: Color::BLACK,
             stroke_width: 0.0,
             stroke_miter: 4.0,
             stroke_cap: StrokeCap::Butt,
