@@ -1,4 +1,4 @@
-use crate::functions::vector;
+use crate::functions::{extent, vector};
 use crate::{Extent, Point, Radius, Rect};
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +65,7 @@ impl RoundedRect {
 
 impl From<(Rect, Radius)> for RoundedRect {
     fn from((rect, radius): (Rect, Radius)) -> Self {
-        let e = Extent::new(*radius, *radius);
+        let e = extent(*radius, *radius);
         RoundedRect::from((rect, e))
     }
 }
