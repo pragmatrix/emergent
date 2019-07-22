@@ -24,11 +24,11 @@ impl Bounds {
     }
 
     pub fn right(&self) -> scalar {
-        self.0.x + self.1.width()
+        self.0.x + self.1.width
     }
 
     pub fn bottom(&self) -> scalar {
-        self.0.y + self.1.height()
+        self.0.y + self.1.height
     }
 
     pub fn left_top(&self) -> Point {
@@ -36,7 +36,7 @@ impl Bounds {
     }
 
     pub fn right_top(&self) -> Point {
-        self.left_top() + Extent::new(self.extent().width(), 0.0)
+        self.left_top() + Extent::new(self.extent().width, 0.0)
     }
 
     pub fn right_bottom(&self) -> Point {
@@ -44,7 +44,7 @@ impl Bounds {
     }
 
     pub fn left_bottom(&self) -> Point {
-        self.left_top() + Extent::new(0.0, self.extent().height())
+        self.left_top() + Extent::new(0.0, self.extent().height)
     }
 
     pub fn extent(&self) -> Extent {

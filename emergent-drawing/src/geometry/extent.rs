@@ -4,26 +4,24 @@ use std::ops::{Div, DivAssign, Mul, MulAssign};
 
 /// An extent, 0 or positive width / height.
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Extent(scalar, scalar);
+pub struct Extent {
+    pub width: scalar,
+    pub height: scalar,
+}
 
 impl Extent {
-    pub const EMPTY: Extent = Self(0.0, 0.0);
+    pub const EMPTY: Extent = Extent {
+        width: 0.0,
+        height: 0.0,
+    };
 
     pub fn new(width: scalar, height: scalar) -> Self {
         assert!(width >= 0.0 && height >= 0.0);
-        Self(width, height)
-    }
-
-    pub fn width(&self) -> scalar {
-        self.0
-    }
-
-    pub fn height(&self) -> scalar {
-        self.1
+        Extent { width, height }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.width() == 0.0 || self.height() == 0.0
+        self.width == 0.0 || self.height == 0.0
     }
 }
 
@@ -34,8 +32,8 @@ impl Extent {
 impl MulAssign<scalar> for Extent {
     fn mul_assign(&mut self, rhs: scalar) {
         assert!(rhs >= 0.0);
-        self.0 *= rhs;
-        self.1 *= rhs;
+        self.width *= rhs;
+        self.height *= rhs;
     }
 }
 
@@ -50,8 +48,8 @@ impl Mul<scalar> for Extent {
 impl DivAssign<scalar> for Extent {
     fn div_assign(&mut self, rhs: scalar) {
         assert!(rhs >= 0.0);
-        self.0 /= rhs;
-        self.1 /= rhs;
+        self.width /= rhs;
+        self.height /= rhs;
     }
 }
 

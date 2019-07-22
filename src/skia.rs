@@ -387,7 +387,7 @@ impl ToSkia<Size> for drawing::Vector {
 
 impl ToSkia<Vector> for drawing::Extent {
     fn to_skia(&self) -> Vector {
-        Vector::new(self.width().to_skia(), self.height().to_skia())
+        Vector::new(self.width.to_skia(), self.height.to_skia())
     }
 }
 

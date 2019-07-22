@@ -71,7 +71,7 @@ impl From<(isize, isize)> for Vector {
 
 impl From<Extent> for Vector {
     fn from(extent: Extent) -> Self {
-        Vector::from((extent.width(), extent.height()))
+        Vector::from((extent.width, extent.height))
     }
 }
 

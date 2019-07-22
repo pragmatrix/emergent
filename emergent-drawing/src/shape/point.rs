@@ -37,8 +37,8 @@ impl Sub<Point> for Point {
 
 impl AddAssign<Extent> for Point {
     fn add_assign(&mut self, rhs: Extent) {
-        self.x += rhs.width();
-        self.y += rhs.height();
+        self.x += rhs.width;
+        self.y += rhs.height;
     }
 }
 
@@ -52,8 +52,8 @@ impl Add<Extent> for Point {
 
 impl SubAssign<Extent> for Point {
     fn sub_assign(&mut self, rhs: Extent) {
-        self.x -= rhs.width();
-        self.y -= rhs.height();
+        self.x -= rhs.width;
+        self.y -= rhs.height;
     }
 }
 
