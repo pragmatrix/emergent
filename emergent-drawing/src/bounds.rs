@@ -1,7 +1,7 @@
 use crate::{scalar, Extent, Outset, Point, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-/// Bounds, currently a rectangle with a positive extent.
+/// A rectangle with a positive extent.
 ///
 /// May be set to zero or one-dimensional bounds when width / height are 0.0.
 /// Lower-dimensions are important for bounds computation of shapes like points and horizontal /
@@ -104,6 +104,7 @@ impl Bounds {
         }
     }
 
+    /// Returns the union of two bounds.
     pub fn union(a: &Bounds, b: &Bounds) -> Bounds {
         let left = a.left().min(b.left());
         let top = a.top().min(b.top());
@@ -115,6 +116,9 @@ impl Bounds {
         )
     }
 
+    /// Returns the intersection of two bounds.
+    ///
+    /// None if they don't intersect.
     pub fn intersect(a: &Bounds, b: &Bounds) -> Option<Bounds> {
         let left = a.left().max(b.left());
         let top = a.top().max(b.top());

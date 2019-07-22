@@ -70,7 +70,7 @@ impl From<(Rect, Radius)> for RoundedRect {
 }
 
 impl From<(Rect, Extent)> for RoundedRect {
-    fn from((rect, v): (Rect, Extent)) -> Self {
-        RoundedRect(rect, [v, v, v, v])
+    fn from((rect, e): (Rect, Extent)) -> Self {
+        RoundedRect(rect, [e, e, e, e])
     }
 }

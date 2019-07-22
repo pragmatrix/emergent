@@ -1,6 +1,7 @@
 use crate::path::Direction;
 use crate::{scalar, Matrix, NearlyZero, Point, Scalar, Vector};
 
+/// A conic curve defined by three points and a weight.
 #[derive(Clone, PartialEq, Default, Debug)]
 pub struct Conic {
     pub points: [Point; 3],
@@ -15,13 +16,14 @@ impl Conic {
         }
     }
 
-    // 3a2e3e75232d225e6f5e7c3530458be63bbb355a
     pub fn build_unit_arc(
         u_start: &Vector,
         u_stop: &Vector,
         dir: Direction,
         user_matrix: Option<&Matrix>,
     ) -> Vec<Conic> {
+        // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
+
         // rotate by x,y so that uStart is (1.0)
         let x = Vector::dot_product(u_start, u_stop);
         let mut y = Vector::cross_product(u_start, u_stop);
