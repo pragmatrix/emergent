@@ -1,5 +1,23 @@
-use crate::{BlendMode, Clip, Paint, Shape, Transform};
+use crate::Shape;
 use serde::{Deserialize, Serialize};
+
+mod blend_mode;
+pub use blend_mode::*;
+
+mod clip;
+pub use clip::*;
+
+mod color;
+pub use color::*;
+
+pub mod font;
+pub use font::Font;
+
+pub mod paint;
+pub use paint::Paint;
+
+mod transform;
+pub use transform::*;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Drawing(pub Vec<Draw>);

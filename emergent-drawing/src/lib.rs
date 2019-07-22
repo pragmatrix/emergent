@@ -4,9 +4,6 @@ extern crate bitflags;
 mod angle;
 pub use angle::*;
 
-mod blend_mode;
-pub use blend_mode::*;
-
 mod bounds;
 pub use bounds::*;
 
@@ -15,12 +12,6 @@ pub use canvas::*;
 
 pub(crate) mod conic;
 pub(crate) use conic::*;
-
-mod clip;
-pub use clip::*;
-
-mod color;
-pub use color::*;
 
 mod drawing;
 pub use drawing::*;
@@ -34,9 +25,6 @@ pub use extent::*;
 mod fast_bounds;
 pub use fast_bounds::*;
 
-pub mod font;
-pub use font::Font;
-
 pub mod functions;
 
 pub mod matrix;
@@ -48,9 +36,6 @@ pub use nearly::*;
 mod outset;
 pub use outset::*;
 
-pub mod paint;
-pub use paint::Paint;
-
 mod radians;
 pub use radians::*;
 
@@ -59,9 +44,6 @@ pub use radius::*;
 
 mod shape;
 pub use shape::*;
-
-mod transform;
-pub use transform::*;
 
 mod vector;
 pub use vector::*;
