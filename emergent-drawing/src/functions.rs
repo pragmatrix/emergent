@@ -26,11 +26,7 @@ pub fn rect(p: impl Into<Point>, e: impl Into<Vector>) -> Rect {
 }
 
 pub fn font(typeface_name: impl AsRef<str>, size: scalar) -> Font {
-    Font(
-        typeface_name.as_ref().to_owned(),
-        Style::NORMAL,
-        font::Size(size),
-    )
+    Font::new(typeface_name.as_ref(), Style::NORMAL, font::Size(size))
 }
 
 pub fn text(p: impl Into<Point>, text: impl AsRef<str>, font: &Font) -> Text {

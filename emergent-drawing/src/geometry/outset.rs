@@ -1,5 +1,4 @@
 use crate::scalar;
-use serde::{Deserialize, Serialize};
 use std::ops::Neg;
 
 /// An outset area around a rectangle or bounds.

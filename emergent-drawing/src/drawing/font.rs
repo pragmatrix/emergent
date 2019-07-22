@@ -1,19 +1,29 @@
 use crate::scalar;
 use serde::{Deserialize, Serialize};
+use serde_tuple::*;
 use std::ops::Deref;
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Font(pub String, pub Style, pub Size);
+#[derive(Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Debug)]
+pub struct Font {
+    pub name: String,
+    pub style: Style,
+    pub size: Size,
+}
 
 // TODO: don't serialize defaults?
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Style(pub Weight, pub Width, pub Slant);
+#[derive(Copy, Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Default, Debug)]
+pub struct Style {
+    pub weight: Weight,
+    pub width: Width,
+    pub slant: Slant,
+}
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Size(pub scalar);
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Weight(pub usize);
+
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Width(pub usize);
 
@@ -26,38 +36,26 @@ pub enum Slant {
 
 impl Font {
     pub fn new(name: &str, style: Style, size: Size) -> Self {
-        Self(String::from(name), style, size)
-    }
-
-    pub fn name(&self) -> &str {
-        &self.0
-    }
-
-    pub fn style(&self) -> Style {
-        self.1
-    }
-
-    pub fn size(&self) -> Size {
-        self.2
+        Font {
+            name: String::from(name),
+            style,
+            size,
+        }
     }
 }
 
 impl Style {
-    pub const NORMAL: Self = Style(Weight::NORMAL, Width::NORMAL, Slant::Upright);
-    pub const BOLD: Self = Style(Weight::BOLD, Width::NORMAL, Slant::Upright);
-    pub const ITALIC: Self = Style(Weight::NORMAL, Width::NORMAL, Slant::Italic);
-    pub const BOLD_ITALIC: Self = Style(Weight::BOLD, Width::NORMAL, Slant::Italic);
+    pub const NORMAL: Self = Style::new(Weight::NORMAL, Width::NORMAL, Slant::Upright);
+    pub const BOLD: Self = Style::new(Weight::BOLD, Width::NORMAL, Slant::Upright);
+    pub const ITALIC: Self = Style::new(Weight::NORMAL, Width::NORMAL, Slant::Italic);
+    pub const BOLD_ITALIC: Self = Style::new(Weight::BOLD, Width::NORMAL, Slant::Italic);
 
-    pub fn weight(&self) -> Weight {
-        self.0
-    }
-
-    pub fn width(&self) -> Width {
-        self.1
-    }
-
-    pub fn slant(&self) -> Slant {
-        self.2
+    pub const fn new(weight: Weight, width: Width, slant: Slant) -> Self {
+        Style {
+            weight,
+            width,
+            slant,
+        }
     }
 }
 

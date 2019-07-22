@@ -306,7 +306,7 @@ struct FontSync {
 impl FontSync {
     pub fn from_font(font: &drawing::Font) -> FontSync {
         let (typeface, _sk_font) = Self::create_typeface_and_font(font);
-        let sk_font = Font::from_typeface(&typeface, font.size().to_skia());
+        let sk_font = Font::from_typeface(&typeface, font.size.to_skia());
         Self {
             drawing_font: font.clone(),
             typeface,
@@ -326,23 +326,22 @@ impl FontSync {
     }
 
     pub fn resolve(&mut self, font: &drawing::Font) -> &Font {
-        if font.name() != self.drawing_font.name() || font.style() != self.drawing_font.style() {
+        if font.name != self.drawing_font.name || font.style != self.drawing_font.style {
             let (tf, f) = Self::create_typeface_and_font(font);
             self.typeface = tf;
             self.font = f;
             self.drawing_font = font.clone();
-        } else if font.size() != self.drawing_font.size() {
-            self.font = Font::from_typeface(&self.typeface, font.size().to_skia());
-            // TODO: _that_ looks scary.
-            self.drawing_font.2 = font.size()
+        } else if font.size != self.drawing_font.size {
+            self.font = Font::from_typeface(&self.typeface, font.size.to_skia());
+            self.drawing_font.size = font.size
         }
 
         &self.font
     }
 
     pub fn create_typeface_and_font(font: &drawing::Font) -> (Typeface, Font) {
-        let typeface = Typeface::from_name(font.name(), font.style().to_skia()).unwrap_or_default();
-        let sk_font = Font::from_typeface(&typeface, font.size().to_skia());
+        let typeface = Typeface::from_name(&font.name, font.style.to_skia()).unwrap_or_default();
+        let sk_font = Font::from_typeface(&typeface, font.size.to_skia());
         (typeface, sk_font)
     }
 }
@@ -478,9 +477,9 @@ impl ToSkia<PaintJoin> for drawing::paint::StrokeJoin {
 impl ToSkia<FontStyle> for drawing::font::Style {
     fn to_skia(&self) -> FontStyle {
         FontStyle::new(
-            self.weight().to_skia(),
-            self.width().to_skia(),
-            self.slant().to_skia(),
+            self.weight.to_skia(),
+            self.width.to_skia(),
+            self.slant.to_skia(),
         )
     }
 }
