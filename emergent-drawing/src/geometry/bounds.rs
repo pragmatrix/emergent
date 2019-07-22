@@ -1,3 +1,4 @@
+use crate::functions::point;
 use crate::{scalar, Extent, Outset, Point, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
@@ -98,7 +99,7 @@ impl Bounds {
         let width = r - l;
         let height = b - t;
         if width >= 0.0 && height >= 0.0 {
-            Some(Bounds::new(Point::new(l, t), Extent::new(width, height)))
+            Some(Bounds::new(point(l, t), Extent::new(width, height)))
         } else {
             None
         }
@@ -110,10 +111,7 @@ impl Bounds {
         let top = a.top().min(b.top());
         let right = a.right().max(b.right());
         let bottom = a.bottom().max(b.bottom());
-        Self::new(
-            Point::new(left, top),
-            Extent::new(right - left, bottom - top),
-        )
+        Self::new(point(left, top), Extent::new(right - left, bottom - top))
     }
 
     /// Returns the intersection of two bounds.
@@ -126,7 +124,7 @@ impl Bounds {
         let bottom = a.bottom().min(b.bottom());
         if right > left && bottom > top {
             Some(Self::new(
-                Point::new(left, top),
+                point(left, top),
                 Extent::new(right - left, bottom - top),
             ))
         } else {

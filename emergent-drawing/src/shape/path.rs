@@ -1,4 +1,4 @@
-use crate::functions::vector;
+use crate::functions::{point, vector};
 use crate::{
     scalar, Angle, Arc, Bounds, Circle, Conic, FastBounds, Matrix, NearlyEqual, NearlyZero, Oval,
     Point, Radians, Rect, RoundedRect, Scalar, Vector,
@@ -291,7 +291,7 @@ impl Path {
         if start_v == stop_v {
             let end_angle: Radians = (start_angle + sweep_angle).into();
             let (radius_x, radius_y) = (oval.width() / 2.0, oval.height() / 2.0);
-            let single_pt = Point::new(
+            let single_pt = point(
                 oval.center().x + radius_x * (*end_angle).cos(),
                 oval.center().y + radius_y * (*end_angle).sin(),
             );
@@ -447,10 +447,10 @@ fn oval_point_iterator(
 
     iter::from_fn(move || {
         let p = match index % 4 {
-            0 => Point::new(center.x, rect.top()),
-            1 => Point::new(rect.right(), center.y),
-            2 => Point::new(center.x, rect.bottom()),
-            3 => Point::new(rect.left(), center.y),
+            0 => point(center.x, rect.top()),
+            1 => point(rect.right(), center.y),
+            2 => point(center.x, rect.bottom()),
+            3 => point(rect.left(), center.y),
             _ => unreachable!(),
         };
 

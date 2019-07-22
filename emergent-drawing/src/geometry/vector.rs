@@ -41,7 +41,7 @@ impl Vector {
             *self = Vector::ZERO;
             return false;
         }
-        *self = Vector::new(x, y);
+        *self = vector(x, y);
         return true;
     }
 

@@ -64,8 +64,8 @@ trait RectHelper {
 impl RectHelper for Rect {
     fn set_begin(&mut self, axis: usize, pos: finite) {
         match axis {
-            0 => self.0 = Point::new(*pos, self.top()),
-            1 => self.0 = Point::new(self.left(), *pos),
+            0 => self.0.x = *pos,
+            1 => self.0.y = *pos,
             _ => panic!("invalid axis"),
         }
     }

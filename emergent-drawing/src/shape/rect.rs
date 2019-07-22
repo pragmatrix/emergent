@@ -1,4 +1,4 @@
-use crate::functions::vector;
+use crate::functions::{point, vector};
 use crate::{scalar, Bounds, Outset, Point, Vector};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
@@ -82,7 +82,7 @@ impl Rect {
         let t = a.top().min(b.top());
         let r = a.right().max(b.right());
         let b = a.bottom().max(b.bottom());
-        Rect::new(Point::new(l, t), Point::new(r, b))
+        Rect::new(point(l, t), point(r, b))
     }
 
     /// If they intersect, returns the intersection of two rectangles.
@@ -92,7 +92,7 @@ impl Rect {
         let r = a.right().min(b.right());
         let b = a.bottom().min(b.bottom());
         if r > l && b > t {
-            Some(Rect::new(Point::new(l, t), Point::new(r, b)))
+            Some(Rect::new(point(l, t), point(r, b)))
         } else {
             None
         }

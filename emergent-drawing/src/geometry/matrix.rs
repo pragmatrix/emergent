@@ -1,4 +1,4 @@
-use crate::functions::vector;
+use crate::functions::{point, vector};
 use crate::{scalar, Bounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
 use std::{mem, slice};
@@ -133,7 +133,7 @@ impl Matrix {
 
     pub fn pre_scale(&mut self, s: impl Into<Vector>, p: impl Into<Option<Point>>) {
         let s = s.into();
-        if s != Vector::new(1.0, 1.0) {
+        if s != vector(1.0, 1.0) {
             return;
         }
         self.pre_concat(&Self::new_scale(s, p))
@@ -141,7 +141,7 @@ impl Matrix {
 
     pub fn post_scale(&mut self, s: impl Into<Vector>, p: impl Into<Option<Point>>) {
         let s = s.into();
-        if s != Vector::new(1.0, 1.0) {
+        if s != vector(1.0, 1.0) {
             self.post_concat(&Self::new_scale(s, p))
         }
     }
@@ -430,7 +430,7 @@ fn scale_points(m: &Matrix, points: &mut [Point]) {
     let (tx, ty) = (m.trans_x(), m.trans_y());
     let (sx, sy) = (m.scale_x(), m.scale_y());
     for p in points {
-        *p = Point::new(p.x * sx + tx, p.y * sy + ty)
+        *p = point(p.x * sx + tx, p.y * sy + ty)
     }
 }
 
@@ -445,7 +445,7 @@ fn persp_points(m: &Matrix, points: &mut [Point]) {
         if z != 0.0 {
             z = 1.0 / z
         }
-        *p = Point::new(x * z, y * z)
+        *p = point(x * z, y * z)
     }
 }
 
@@ -457,7 +457,7 @@ fn affine_points(m: &Matrix, points: &mut [Point]) {
     for p in points {
         let px = p.x;
         let py = p.y;
-        *p = Point::new(px * sx + py * kx + tx, px * ky + py * sy + ty)
+        *p = point(px * sx + py * kx + tx, px * ky + py * sy + ty)
     }
 }
 
