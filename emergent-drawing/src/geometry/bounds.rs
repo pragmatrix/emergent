@@ -16,19 +16,19 @@ impl Bounds {
     }
 
     pub fn left(&self) -> scalar {
-        self.0.left()
+        self.0.x
     }
 
     pub fn top(&self) -> scalar {
-        self.0.top()
+        self.0.y
     }
 
     pub fn right(&self) -> scalar {
-        self.0.left() + self.1.width()
+        self.0.x + self.1.width()
     }
 
     pub fn bottom(&self) -> scalar {
-        self.0.top() + self.1.height()
+        self.0.y + self.1.height()
     }
 
     pub fn left_top(&self) -> Point {
@@ -59,12 +59,12 @@ impl Bounds {
         }
 
         let p1 = points[0];
-        let mut left = p1.left();
-        let mut top = p1.top();
+        let mut left = p1.x;
+        let mut top = p1.y;
         let mut right = left;
         let mut bottom = top;
         points[1..].iter().for_each(|p| {
-            let (x, y) = (p.left(), p.top());
+            let (x, y) = (p.x, p.y);
             left = left.min(x);
             top = top.min(y);
             right = right.max(x);

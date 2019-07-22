@@ -25,7 +25,7 @@ impl Matrix {
         let p = p.into().unwrap_or_default();
         let sx = s.x();
         let sy = s.y();
-        Self::new_scale_translate(sx, sy, p.left() - sx * p.left(), p.top() - sy * p.top())
+        Self::new_scale_translate(sx, sy, p.x - sx * p.x, p.y - sy * p.y)
     }
 
     pub fn new_translate(d: impl Into<Vector>) -> Matrix {
@@ -44,10 +44,10 @@ impl Matrix {
         Self([
             cos,
             -sin,
-            sdot(sin, p.top(), one_minus_cos, p.left()),
+            sdot(sin, p.y, one_minus_cos, p.x),
             sin,
             cos,
-            sdot(-sin, p.left(), one_minus_cos, p.top()),
+            sdot(-sin, p.x, one_minus_cos, p.y),
             0.0,
             0.0,
             1.0,
@@ -60,17 +60,7 @@ impl Matrix {
 
     fn new_skew(sx: scalar, sy: scalar, p: impl Into<Option<Point>>) -> Self {
         let p = p.into().unwrap_or_default();
-        Self([
-            1.0,
-            sx,
-            -sx * p.top(),
-            sy,
-            1.0,
-            -sy * p.left(),
-            0.0,
-            0.0,
-            1.0,
-        ])
+        Self([1.0, sx, -sx * p.y, sy, 1.0, -sy * p.x, 0.0, 0.0, 1.0])
     }
 
     pub fn is_identity(&self) -> bool {
@@ -442,15 +432,15 @@ fn scale_points(m: &Matrix, points: &mut [Point]) {
     let (tx, ty) = (m.trans_x(), m.trans_y());
     let (sx, sy) = (m.scale_x(), m.scale_y());
     for p in points {
-        *p = Point::new(p.left() * sx + tx, p.top() * sy + ty)
+        *p = Point::new(p.x * sx + tx, p.y * sy + ty)
     }
 }
 
 fn persp_points(m: &Matrix, points: &mut [Point]) {
     debug_assert!(m.has_perspective());
     for p in points {
-        let px = p.left();
-        let py = p.top();
+        let px = p.x;
+        let py = p.y;
         let x = sdot(px, m.scale_x(), py, m.skew_x()) + m.trans_x();
         let y = sdot(px, m.skew_y(), py, m.scale_y()) + m.trans_y();
         let mut z = sdot(px, m.persp_0(), py, m.persp_1()) + m.persp_2();
@@ -467,8 +457,8 @@ fn affine_points(m: &Matrix, points: &mut [Point]) {
     let (sx, sy) = (m.scale_x(), m.scale_y());
     let (kx, ky) = (m.skew_x(), m.skew_y());
     for p in points {
-        let px = p.left();
-        let py = p.top();
+        let px = p.x;
+        let py = p.y;
         *p = Point::new(px * sx + py * kx + tx, px * ky + py * sy + ty)
     }
 }

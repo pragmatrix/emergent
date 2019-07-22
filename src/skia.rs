@@ -363,8 +363,7 @@ impl ToSkia<Color> for drawing::Color {
 
 impl ToSkia<Point> for drawing::Point {
     fn to_skia(&self) -> Point {
-        let drawing::Point(x, y) = *self;
-        Point::from((x.to_skia(), y.to_skia()))
+        Point::from((self.x.to_skia(), self.y.to_skia()))
     }
 }
 

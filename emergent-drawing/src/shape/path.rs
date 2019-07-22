@@ -294,8 +294,8 @@ impl Path {
             let end_angle: Radians = (start_angle + sweep_angle).into();
             let (radius_x, radius_y) = (oval.width() / 2.0, oval.height() / 2.0);
             let single_pt = Point::new(
-                oval.center().left() + radius_x * (*end_angle).cos(),
-                oval.center().top() + radius_y * (*end_angle).sin(),
+                oval.center().x + radius_x * (*end_angle).cos(),
+                oval.center().y + radius_y * (*end_angle).sin(),
             );
             add_pt(self, single_pt);
             return self;
@@ -449,10 +449,10 @@ fn oval_point_iterator(
 
     iter::from_fn(move || {
         let p = match index % 4 {
-            0 => Point::new(center.left(), rect.top()),
-            1 => Point::new(rect.right(), center.top()),
-            2 => Point::new(center.left(), rect.bottom()),
-            3 => Point::new(rect.left(), center.top()),
+            0 => Point::new(center.x, rect.top()),
+            1 => Point::new(rect.right(), center.y),
+            2 => Point::new(center.x, rect.bottom()),
+            3 => Point::new(rect.left(), center.y),
             _ => unreachable!(),
         };
 
@@ -467,7 +467,7 @@ fn arc_is_lone_point(oval: &Rect, start_angle: Angle, sweep_angle: Angle) -> Opt
         && (start_angle == Angle::ZERO || start_angle == Angle::FULL_CIRCLE)
     {
         // TODO: why right/centery ?
-        return Some(Point::new(oval.right(), oval.center().top()));
+        return Some(Point::new(oval.right(), oval.center().y));
     }
     if oval.width() == 0.0 && oval.height() == 0.0 {
         // TODO: why right / top

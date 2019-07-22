@@ -1,27 +1,22 @@
 use crate::{scalar, Extent, Vector};
-use serde::{Deserialize, Serialize};
+use serde_tuple::*;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Point(pub scalar, pub scalar);
+#[derive(Copy, Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Default, Debug)]
+pub struct Point {
+    pub x: scalar,
+    pub y: scalar,
+}
 
 impl Point {
-    pub const fn new(left: scalar, top: scalar) -> Self {
-        Self(left, top)
-    }
-
-    pub fn left(&self) -> scalar {
-        self.0
-    }
-
-    pub fn top(&self) -> scalar {
-        self.1
-    }
-
     pub const ZERO: Point = Point::new(0.0, 0.0);
 
+    pub const fn new(x: scalar, y: scalar) -> Self {
+        Point { x, y }
+    }
+
     pub fn to_vector(&self) -> Vector {
-        Vector::new(self.left(), self.top())
+        Vector::new(self.x, self.y)
     }
 }
 
@@ -32,7 +27,7 @@ impl Point {
 impl Sub<Point> for Point {
     type Output = Vector;
     fn sub(self, rhs: Point) -> Vector {
-        Vector::from((rhs.left() - self.left(), rhs.top() - self.top()))
+        Vector::from((rhs.x - self.x, rhs.y - self.x))
     }
 }
 
@@ -42,8 +37,8 @@ impl Sub<Point> for Point {
 
 impl AddAssign<Extent> for Point {
     fn add_assign(&mut self, rhs: Extent) {
-        self.0 += rhs.width();
-        self.1 += rhs.height();
+        self.x += rhs.width();
+        self.y += rhs.height();
     }
 }
 
@@ -57,8 +52,8 @@ impl Add<Extent> for Point {
 
 impl SubAssign<Extent> for Point {
     fn sub_assign(&mut self, rhs: Extent) {
-        self.0 -= rhs.width();
-        self.1 -= rhs.height();
+        self.x -= rhs.width();
+        self.y -= rhs.height();
     }
 }
 
@@ -76,8 +71,8 @@ impl Sub<Extent> for Point {
 
 impl AddAssign<Vector> for Point {
     fn add_assign(&mut self, rhs: Vector) {
-        self.0 += rhs.x();
-        self.1 += rhs.y();
+        self.x += rhs.x();
+        self.y += rhs.y();
     }
 }
 
@@ -91,8 +86,8 @@ impl Add<Vector> for Point {
 
 impl SubAssign<Vector> for Point {
     fn sub_assign(&mut self, rhs: Vector) {
-        self.0 -= rhs.x();
-        self.1 -= rhs.y();
+        self.x -= rhs.x();
+        self.y -= rhs.y();
     }
 }
 
@@ -106,8 +101,8 @@ impl Sub<Vector> for Point {
 
 impl MulAssign<Vector> for Point {
     fn mul_assign(&mut self, rhs: Vector) {
-        self.0 *= rhs.x();
-        self.1 *= rhs.y();
+        self.x *= rhs.x();
+        self.y *= rhs.y();
     }
 }
 
@@ -121,8 +116,8 @@ impl Mul<Vector> for Point {
 
 impl DivAssign<Vector> for Point {
     fn div_assign(&mut self, rhs: Vector) {
-        self.0 /= rhs.x();
-        self.1 /= rhs.y();
+        self.x /= rhs.x();
+        self.y /= rhs.y();
     }
 }
 
@@ -146,7 +141,7 @@ impl From<Vector> for Point {
 
 impl From<(scalar, scalar)> for Point {
     fn from((x, y): (scalar, scalar)) -> Self {
-        Self(x, y)
+        Point::new(x, y)
     }
 }
 

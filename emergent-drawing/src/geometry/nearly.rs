@@ -42,7 +42,6 @@ impl NearlyEqual for scalar {
 
 impl NearlyEqual for Point {
     fn nearly_equal(&self, other: &Self, tolerance: f64) -> bool {
-        self.left().nearly_equal(&other.left(), tolerance)
-            && self.top().nearly_equal(&other.top(), tolerance)
+        self.x.nearly_equal(&other.x, tolerance) && self.y.nearly_equal(&other.y, tolerance)
     }
 }

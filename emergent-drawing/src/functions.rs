@@ -2,7 +2,7 @@ use crate::font::Style;
 use crate::{font, scalar, Extent, Font, Line, Paint, Point, Rect, Text, Vector};
 
 pub fn point(x: scalar, y: scalar) -> Point {
-    Point(x, y)
+    Point::new(x, y)
 }
 
 pub fn extent(width: scalar, height: scalar) -> Extent {

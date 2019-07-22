@@ -43,12 +43,12 @@ impl Rect {
 
     /// The left edge of the rectangle (or the right if width is negative).
     pub fn left(&self) -> scalar {
-        self.0.left()
+        self.0.x
     }
 
     /// The top edge of the rectangle (or the bottom if height is negative).
     pub fn top(&self) -> scalar {
-        self.0.top()
+        self.0.y
     }
 
     /// The right edge of the rectangle (or the left if width is negative).
