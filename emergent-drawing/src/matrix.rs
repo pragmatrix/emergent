@@ -577,7 +577,7 @@ fn is_degenerate_2x2(scale_x: scalar, skew_x: scalar, skew_y: scalar, scale_y: s
 #[cfg(test)]
 mod tests {
     use crate::matrix::decompose_upper_2x2;
-    use crate::{scalar, Matrix, NearlyZero, ToDegrees, Vector};
+    use crate::{scalar, Degrees, Matrix, NearlyZero, Vector};
 
     #[test]
     fn test_decomposition() {

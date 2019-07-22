@@ -1,6 +1,6 @@
 use crate::scalar;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, AddAssign, Deref, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Deref, Neg, Sub, SubAssign};
 
 /// An angle expressed in degrees.
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Default, Debug)]
@@ -52,11 +52,18 @@ impl Sub<Angle> for Angle {
     }
 }
 
-pub trait ToDegrees {
+impl Neg for Angle {
+    type Output = Angle;
+    fn neg(self) -> Self::Output {
+        self.map(|a| -a)
+    }
+}
+
+pub trait Degrees {
     fn degrees(&self) -> Angle;
 }
 
-impl ToDegrees for f64 {
+impl Degrees for f64 {
     fn degrees(&self) -> Angle {
         Angle::new(*self)
     }
