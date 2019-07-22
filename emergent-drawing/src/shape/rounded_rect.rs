@@ -1,3 +1,4 @@
+use crate::functions::vector;
 use crate::{Extent, Point, Radius, Rect};
 use serde::{Deserialize, Serialize};
 
@@ -28,12 +29,15 @@ impl RoundedRect {
     /// | |
     /// 3-2
     pub fn to_corner_rects(&self) -> [Rect; 4] {
-        let [r0, r1, r2, r3] = self.corner_radii();
+        let [r0, r1, r2, r3] = *self.corner_radii();
         [
-            Rect::new(self.rect().left_top(), *r0),
-            Rect::new(self.rect().right_top() - Extent::new(r1.width, 0.0), *r1),
-            Rect::new(self.rect().right_bottom() - *r2, *r2),
-            Rect::new(self.rect().left_bottom() - Extent::new(0.0, r3.height), *r3),
+            Rect::from((self.rect().left_top(), r0.into())),
+            Rect::from((self.rect().right_top() - vector(r1.width, 0.0), r1.into())),
+            Rect::from((self.rect().right_bottom() - r2, r2.into())),
+            Rect::from((
+                self.rect().left_bottom() - vector(0.0, r3.height),
+                r3.into(),
+            )),
         ]
     }
 

@@ -36,9 +36,6 @@ impl Default for Direction {
     }
 }
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct ForceMoveTo(pub bool);
-
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Verb {
     MoveTo(Point),
@@ -254,9 +251,9 @@ impl Path {
 
     pub fn arc_to(&mut self, arc: &Arc, force_move_to: bool) -> &Self {
         // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
-        let oval = &(arc.0).0;
-        let start_angle = arc.1;
-        let sweep_angle = arc.2;
+        let oval = &(arc.oval).0;
+        let start_angle = arc.start;
+        let sweep_angle = arc.sweep;
 
         if oval.width() < 0.0 || oval.height() < 0.0 {
             return self;

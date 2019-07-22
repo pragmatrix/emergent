@@ -211,9 +211,12 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
                 self.canvas
                     .draw_rrect(rounded_rect.to_skia(), self.paint.resolve(paint));
             }
-            Shape::Circle(Circle(p, r)) => {
-                self.canvas
-                    .draw_circle(p.to_skia(), r.to_skia(), self.paint.resolve(paint));
+            Shape::Circle(c) => {
+                self.canvas.draw_circle(
+                    c.center.to_skia(),
+                    c.radius.to_skia(),
+                    self.paint.resolve(paint),
+                );
             }
             Shape::Arc(_) => unimplemented!(),
             Shape::Path(_) => unimplemented!(),
@@ -392,8 +395,7 @@ impl ToSkia<Vector> for drawing::Extent {
 
 impl ToSkia<Rect> for drawing::Rect {
     fn to_skia(&self) -> Rect {
-        let drawing::Rect(p, s) = self;
-        Rect::from((p.to_skia(), s.to_skia()))
+        Rect::from((self.left_top().to_skia(), self.size().to_skia()))
     }
 }
 

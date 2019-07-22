@@ -2,21 +2,17 @@ use crate::{scalar, Bounds, Outset, Point, Vector};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-/// A rectangle, defined by a point and a vector.
+/// A rectangle, defined by two points.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Rect(pub Point, pub Vector);
+pub struct Rect(pub Point, pub Point);
 
 impl Rect {
-    pub fn new(p: impl Into<Point>, v: impl Into<Vector>) -> Rect {
-        Rect(p.into(), v.into())
-    }
-
-    pub fn from_points(lt: Point, rb: Point) -> Rect {
-        Rect::from((lt, rb - lt))
+    pub fn new(p1: impl Into<Point>, p2: impl Into<Point>) -> Rect {
+        Rect(p1.into(), p2.into())
     }
 
     pub fn is_empty(&self) -> bool {
-        self.size().is_zero()
+        self.0 == self.1
     }
 
     /// The point at the left / top corner of the rectangle,
@@ -33,7 +29,7 @@ impl Rect {
     /// The point at the right / bottom corner of the rectangle,
     /// if the width / height is positive.
     pub fn right_bottom(&self) -> Point {
-        self.left_top() + self.size()
+        self.1
     }
 
     /// The point at the left / bottom corner of the rectangle.
@@ -53,30 +49,30 @@ impl Rect {
 
     /// The right edge of the rectangle (or the left if width is negative).
     pub fn right(&self) -> scalar {
-        self.left() + self.width()
+        self.1.x
     }
 
     /// The bottom edge of the rectangle (or the top if height is negative).
     pub fn bottom(&self) -> scalar {
-        self.top() + self.height()
+        self.1.y
     }
 
     /// The width, may be negative.
     pub fn width(&self) -> scalar {
-        self.size().x
+        self.1.x - self.0.x
     }
 
     /// The height, may be negative.
     pub fn height(&self) -> scalar {
-        self.size().y
+        self.1.y - self.0.y
     }
 
     pub fn size(&self) -> Vector {
-        self.1
+        Vector::new(self.width(), self.height())
     }
 
     pub fn center(&self) -> Point {
-        self.0 + (self.size() * 0.5)
+        (self.0 + self.1.to_vector()) * Vector::new(0.5, 0.5)
     }
 
     /// Returns a rectangle that encloses two other rectangles.
@@ -85,7 +81,7 @@ impl Rect {
         let t = a.top().min(b.top());
         let r = a.right().max(b.right());
         let b = a.bottom().max(b.bottom());
-        Rect::from_points(Point::new(l, t), Point::new(r, b))
+        Rect::new(Point::new(l, t), Point::new(r, b))
     }
 
     /// If they intersect, returns the intersection of two rectangles.
@@ -95,7 +91,7 @@ impl Rect {
         let r = a.right().min(b.right());
         let b = a.bottom().min(b.bottom());
         if r > l && b > t {
-            Some(Rect::from_points(Point::new(l, t), Point::new(r, b)))
+            Some(Rect::new(Point::new(l, t), Point::new(r, b)))
         } else {
             None
         }
@@ -112,6 +108,10 @@ impl Rect {
             self.right_bottom(),
             self.left_bottom(),
         ]
+    }
+
+    pub fn bounds(&self) -> Bounds {
+        Bounds::from_points(&[self.0, self.1]).unwrap()
     }
 }
 
@@ -132,8 +132,9 @@ impl AddAssign<Outset> for Rect {
         let t = rhs.top() * v_dir;
         let r = rhs.right() * h_dir;
         let b = rhs.bottom() * v_dir;
-        self.0 -= Vector::from((l, t));
-        self.1 += Vector::from((r, b));
+        let lt = Vector::from((l, t));
+        self.0 -= lt;
+        self.1 += lt + Vector::from((r, b));
     }
 }
 

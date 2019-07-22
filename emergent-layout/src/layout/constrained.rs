@@ -44,9 +44,9 @@ where
 #[cfg(test)]
 mod test {
     use crate::layout::Constrain;
-    use crate::{layout_and_position, Bound, Linear, Point, Rect, Vector};
+    use crate::{layout_and_position, Bound, Linear, Point, Rect};
     use emergent_drawing::functions::*;
-    use emergent_drawing::{Canvas, DrawingCanvas};
+    use emergent_drawing::{Canvas, DrawingCanvas, Vector};
 
     #[test]
     fn test_contrained_layout() {
@@ -59,7 +59,13 @@ mod test {
             &[1.0, 3.0],
         );
 
-        assert_eq!(r, Rect(Point::from((1, 3)), Vector::from((2, 4))));
+        assert_eq!(
+            r,
+            Rect::new(
+                Point::from((1, 3)),
+                Point::from((1, 3)) + Vector::from((2, 4))
+            )
+        );
 
         let mut canvas = DrawingCanvas::new();
         let paint = paint().color(0xff0000f0).clone();

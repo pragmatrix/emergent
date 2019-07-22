@@ -5,6 +5,10 @@ pub fn point(x: scalar, y: scalar) -> Point {
     Point::new(x, y)
 }
 
+pub fn vector(x: scalar, y: scalar) -> Vector {
+    Vector::new(x, y)
+}
+
 pub fn extent(width: scalar, height: scalar) -> Extent {
     Extent::from((width, height))
 }
@@ -21,8 +25,9 @@ pub fn line_h(y: scalar, (x1, x2): (scalar, scalar)) -> Line {
     line((x1, y), (x2, y))
 }
 
-pub fn rect(p: impl Into<Point>, e: impl Into<Vector>) -> Rect {
-    Rect(p.into(), e.into())
+pub fn rect(p: impl Into<Point>, v: impl Into<Vector>) -> Rect {
+    let p = p.into();
+    Rect::new(p, p + v.into())
 }
 
 pub fn font(typeface_name: impl AsRef<str>, size: scalar) -> Font {

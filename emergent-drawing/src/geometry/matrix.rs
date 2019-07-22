@@ -1,6 +1,4 @@
-use crate::{
-    scalar, Bounds, FastBounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Vector,
-};
+use crate::{scalar, Bounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Vector};
 use serde::{Deserialize, Serialize};
 use std::{mem, slice};
 
@@ -232,8 +230,7 @@ impl Matrix {
             let s = Vector::from(self.scale());
             let t = self.trans();
             let r = Rect::from(bounds);
-            // TODO: Rect::fast_bounds() shouldn't probably be used here.
-            return Rect::from_points(r.left_top() * s + t, r.right_bottom() * s + t).fast_bounds();
+            return Rect::new(r.left_top() * s + t, r.right_bottom() * s + t).bounds();
         }
         let mut quad = bounds.to_quad();
         self.map_points_inplace(&mut quad);

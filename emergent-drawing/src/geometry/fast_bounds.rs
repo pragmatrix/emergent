@@ -1,6 +1,6 @@
 use crate::{
     Arc, Bounds, Circle, Clip, Draw, Drawing, Extent, Font, Line, Outset, Oval, Point, Polygon,
-    Rect, RoundedRect, Shape, Vector,
+    Rect, RoundedRect, Shape,
 };
 
 pub trait MeasureText {
@@ -49,7 +49,7 @@ impl FastBounds for Line {
 
 impl FastBounds for Rect {
     fn fast_bounds(&self) -> Bounds {
-        Bounds::from_points(&[self.0, self.0 + self.1]).unwrap()
+        self.bounds()
     }
 }
 
@@ -67,10 +67,7 @@ impl FastBounds for Oval {
 
 impl FastBounds for Circle {
     fn fast_bounds(&self) -> Bounds {
-        let r = self.1;
-        let r = Vector::from((*r, *r));
-        let p = self.0 - r;
-        Bounds::from((p, (r * 2.0).into()))
+        self.to_oval().fast_bounds()
     }
 }
 
@@ -82,7 +79,12 @@ impl FastBounds for RoundedRect {
 
 impl FastBounds for Arc {
     fn fast_bounds(&self) -> Bounds {
-        self.0.fast_bounds()
+        // TODO: find out if a conversion to a list of conics is fast enough for
+        // considering it a fast_bounds() conversion.
+        // Note that there is a inconsistency right now, a Path's fast_bounds()
+        // will be more precise, because adding an arc to a Path will be immediately converted to
+        // a list of conics.
+        self.oval.fast_bounds()
     }
 }
 

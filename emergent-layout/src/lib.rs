@@ -1,17 +1,21 @@
+use crate::constraints::{Combine, Linear};
 use emergent_drawing::{scalar, Point, Rect, Vector};
+use std::convert::identity;
 
 pub mod constraints;
+
 mod grid;
 pub use grid::*;
+
 pub mod layout;
+
 mod prelude;
+
 mod primitives;
 pub use primitives::*;
+
 mod span;
 pub use span::*;
-
-use crate::constraints::{Combine, Linear};
-use std::convert::identity;
 
 /// A ResultRef is just a mutable Rectangle for now.
 pub type ResultRef<'a> = &'a mut Rect;
@@ -68,8 +72,8 @@ impl RectHelper for Rect {
 
     fn set_length(&mut self, axis: usize, length: length) {
         match axis {
-            0 => self.1 = Vector::new(*length, self.height()),
-            1 => self.1 = Vector::new(self.width(), *length),
+            0 => self.1.x = self.0.x + *length,
+            1 => self.1.y = self.0.y + *length,
             _ => {}
         }
     }
