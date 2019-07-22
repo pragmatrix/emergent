@@ -114,7 +114,7 @@ impl Path {
         &mut self,
         rr: &RoundedRect,
         dir_start: impl Into<Option<(Direction, usize)>>,
-    ) {
+    ) -> &mut Self {
         let (dir, start) = dir_start.into().unwrap_or_default();
 
         // CW: odd indices
@@ -154,9 +154,14 @@ impl Path {
         }
 
         self.close();
+        self
     }
 
-    pub fn add_oval(&mut self, oval: &Oval, dir_start: impl Into<Option<(Direction, usize)>>) {
+    pub fn add_oval(
+        &mut self,
+        oval: &Oval,
+        dir_start: impl Into<Option<(Direction, usize)>>,
+    ) -> &mut Self {
         self.reserve_verbs(6);
         const WEIGHT: f64 = std::f64::consts::FRAC_1_SQRT_2;
 
@@ -173,22 +178,45 @@ impl Path {
             self.conic_to(rect_iter.next().unwrap(), oval_iter.next().unwrap(), WEIGHT);
         }
         self.close();
+        self
     }
 
-    pub fn add_circle(&mut self, circle: &Circle, dir: impl Into<Option<Direction>>) {
+    pub fn add_circle(&mut self, circle: &Circle, dir: impl Into<Option<Direction>>) -> &mut Self {
         let dir = dir.into().unwrap_or_default();
         // TODO: does it make sense here to support a starting index?
         self.add_oval(&circle.to_oval(), (dir, 0))
     }
 
-    pub fn add_rect(&mut self, rect: &Rect, dir_start: impl Into<Option<(Direction, usize)>>) {
+    pub fn add_rect(
+        &mut self,
+        rect: &Rect,
+        dir_start: impl Into<Option<(Direction, usize)>>,
+    ) -> &mut Self {
         let mut iter = rect_point_iterator(rect, dir_start);
         self.reserve_verbs(5)
             .move_to(iter.next().unwrap())
             .line_to(iter.next().unwrap())
             .line_to(iter.next().unwrap())
             .line_to(iter.next().unwrap())
-            .close()
+            .close();
+        self
+    }
+
+    pub fn add_polygon(&mut self, points: &[Point], close: bool) -> &mut Self {
+        if points.is_empty() {
+            return self;
+        }
+
+        self.reserve_verbs(points.len() + if close { 1 } else { 0 });
+
+        self.move_to(points[0]);
+        for point in &points[1..] {
+            self.line_to(*point);
+        }
+        if close {
+            self.close();
+        }
+        self
     }
 
     pub fn add_arc(&mut self, arc: &Arc) -> &Self {
