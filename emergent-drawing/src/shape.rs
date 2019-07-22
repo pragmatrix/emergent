@@ -1,10 +1,25 @@
 use crate::{
-    scalar, Arc, Circle, Line, Oval, Path, Point, Polygon, Rect, RoundedRect, Shape, Text,
+    scalar, Arc, Circle, ImageId, Line, Oval, Path, Point, Polygon, Rect, RoundedRect, Text,
 };
 
-//
-// Shape
-//
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Shape {
+    Point(Point),
+    Line(Line),
+    Polygon(Polygon),
+    Rect(Rect),
+    Oval(Oval),
+    RoundedRect(RoundedRect),
+    // TODO: Skia has an optimized function for drawing a rounded rect inside another. Should we support that?
+    Circle(Circle),
+    Arc(Arc),
+    Path(Path),
+    Image(ImageId, Option<Rect>, Rect),
+    // ImageNine?
+    Text(Text),
+}
 
 impl From<Point> for Shape {
     fn from(point: Point) -> Self {
