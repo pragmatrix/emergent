@@ -8,6 +8,22 @@ impl Color {
     pub const BLACK: Self = Color(f16::ZERO, f16::ZERO, f16::ZERO, f16::ONE);
     pub const WHITE: Self = Color(f16::ONE, f16::ONE, f16::ONE, f16::ONE);
 
+    pub fn red(&self) -> f32 {
+        self.0.to_f32()
+    }
+
+    pub fn green(&self) -> f32 {
+        self.1.to_f32()
+    }
+
+    pub fn blue(&self) -> f32 {
+        self.2.to_f32()
+    }
+
+    pub fn alpha(&self) -> f32 {
+        self.3.to_f32()
+    }
+
     /// Convert a color to a u32 bits encoded as ARGB with 8 bit for
     /// each component.
     pub fn to_u32(&self) -> u32 {
