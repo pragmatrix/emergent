@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.50.0"
+version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -531,8 +531,8 @@ dependencies = [
  "serde 1.0.94 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "shh 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "skia-bindings 0.12.10",
- "skia-safe 0.12.10",
+ "skia-bindings 0.14.0",
+ "skia-safe 0.14.0",
  "tears 0.1.0",
  "vk-sys 0.4.0",
  "vulkano 0.11.1",
@@ -1983,9 +1983,9 @@ dependencies = [
 
 [[package]]
 name = "skia-bindings"
-version = "0.12.10"
+version = "0.14.0"
 dependencies = [
- "bindgen 0.50.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bindgen 0.51.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cc 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.9.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1995,11 +1995,11 @@ dependencies = [
 
 [[package]]
 name = "skia-safe"
-version = "0.12.10"
+version = "0.14.0"
 dependencies = [
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "skia-bindings 0.12.10",
+ "skia-bindings 0.14.0",
 ]
 
 [[package]]
@@ -2680,7 +2680,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum backtrace 0.3.32 (registry+https://github.com/rust-lang/crates.io-index)" = "18b50f5258d1a9ad8396d2d345827875de4261b158124d4c819d9b351454fae5"
 "checksum backtrace-sys 0.1.30 (registry+https://github.com/rust-lang/crates.io-index)" = "5b3a000b9c543553af61bc01cbfc403b04b5caa9e421033866f2e98061eb3e61"
 "checksum base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0b25d992356d2eb0ed82172f5248873db5560c4721f564b13cb5193bda5e668e"
-"checksum bindgen 0.50.0 (registry+https://github.com/rust-lang/crates.io-index)" = "65a913de3fa2fa95f2c593bb7e33b1be1ce1ce8a83f34b6bb02e6f01400b96cc"
+"checksum bindgen 0.51.0 (registry+https://github.com/rust-lang/crates.io-index)" = "18270cdd7065ec045a6bb4bdcd5144d14a78b3aedb3bc5111e688773ac8b9ad0"
 "checksum bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d155346769a6855b86399e9bc3814ab343cd3d62c7e985113d46a0ec3c281fd"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 "checksum bstr 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6cc0572e02f76cb335f309b19e0a0d585b4f62788f7d26de2a13a836a637385f"
