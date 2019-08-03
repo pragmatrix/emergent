@@ -42,11 +42,12 @@ fn main() {
         .get_matches();
 
     let project_path = {
-        let current = path::PathBuf::from(env::current_dir().unwrap());
-
         let provided = matches.value_of("PATH").map(|p| path::PathBuf::from(p));
 
-        provided.map(|p| current.join(p)).unwrap_or(current)
+        let current_path = path::PathBuf::from(env::current_dir().unwrap());
+        provided
+            .map(|p| current_path.join(p))
+            .unwrap_or(current_path)
     };
 
     dbg!(&project_path);
