@@ -29,7 +29,7 @@ impl TestRunRequest {
         // build library only for now.
         let compile_filter = ops::CompileFilter::Only {
             all_targets: false,
-            lib: true,
+            lib: LibRule::True,
             bins: FilterRule::Just(vec![]),
             examples: FilterRule::Just(vec![]),
             tests: FilterRule::Just(vec![]),
@@ -48,7 +48,7 @@ impl TestRunRequest {
         let capture = Capture::stdout();
 
         // we need a very specific set of arguments to make precise capturing of the otuput work.
-        let libtest_args: Vec<String> = [
+        let libtest_args: Vec<&str> = vec![
             "--test-threads",
             "1",
             "--nocapture",
@@ -56,10 +56,7 @@ impl TestRunRequest {
             "unstable-options",
             "--format",
             "json",
-        ]
-        .iter()
-        .map(|x| x.to_string())
-        .collect();
+        ];
 
         let test_error = ops::run_tests(workspace, test_options, &libtest_args)?;
         let captured = capture.end();
@@ -73,7 +70,7 @@ impl TestRunRequest {
     }
 }
 
-use cargo::ops::FilterRule;
+use cargo::ops::{FilterRule, LibRule};
 #[cfg(test)]
 use std::env;
 
