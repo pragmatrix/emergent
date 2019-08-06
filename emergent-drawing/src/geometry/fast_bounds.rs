@@ -116,7 +116,7 @@ impl ComplexFastBounds for Shape {
             // TODO: review Path here (do we need to support empty paths here)
             Shape::Path(p) => p.fast_bounds(),
             Shape::Image(_, _, target) => target.fast_bounds(),
-            // TODO: empty text?
+            // TODO: handle empty text?
             Shape::Text(t) => measure_text.measure_text(&t.1, &t.2),
         }
     }
