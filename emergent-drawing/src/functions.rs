@@ -1,5 +1,5 @@
 use crate::font::Style;
-use crate::{font, scalar, Extent, Font, Line, Paint, Point, Rect, Text, Vector};
+use crate::{font, scalar, Bounds, Extent, Font, Line, Paint, Point, Rect, Text, Vector};
 
 pub const fn point(x: scalar, y: scalar) -> Point {
     Point::new(x, y)
@@ -11,6 +11,10 @@ pub const fn vector(x: scalar, y: scalar) -> Vector {
 
 pub fn extent(width: scalar, height: scalar) -> Extent {
     Extent::new(width, height)
+}
+
+pub fn bounds(point: impl Into<Point>, extent: impl Into<Extent>) -> Bounds {
+    Bounds::new(point.into(), extent.into())
 }
 
 pub fn line(p1: impl Into<Point>, p2: impl Into<Point>) -> Line {
