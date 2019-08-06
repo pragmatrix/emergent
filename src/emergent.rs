@@ -4,7 +4,8 @@ use crate::test_runner::TestRunRequest;
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
-use emergent_drawing::Drawing;
+use emergent_drawing::functions::text;
+use emergent_drawing::{font, Drawing, DrawingTarget, Font, Paint, Point};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
@@ -77,7 +78,7 @@ impl Emergent {
         }
     }
 
-    /// A command to receive watcher notifications.
+    /// Returns a command that receives watcher notifications.
     fn receive_watcher_notifications(&self) -> Cmd<Event> {
         let receiver = self.notification_receiver.clone();
         Cmd::from(move || Event::WatcherNotification(receiver.recv().unwrap()))
@@ -90,10 +91,12 @@ impl View<Frame> for Emergent {
 
         // TODO: implement Iter in TestCaptures
         for capture in self.test_captures.0.iter() {
-            // TODO: add a nice paintings combinator.
-            drawing.0.extend(render_capture(capture).0)
+            // TODO: add a nice drawing combinator.
+            // TODO: avoid the access of 0!
+            drawing.0.extend(capture.render().0)
         }
 
+        // TODO: we probably need a composer for drawings.
         Frame {
             size: self.window_size,
             drawing,
@@ -101,11 +104,29 @@ impl View<Frame> for Emergent {
     }
 }
 
-fn render_capture(capture: &TestCapture) -> Drawing {
-    if !capture.output.starts_with("> ") {
-        return Drawing::new();
-    };
+impl TestCapture {
+    fn render(&self) -> Drawing {
+        self.render_output()
+    }
 
-    // TODO: handle parse errors:
-    serde_json::from_str(&capture.output[2..]).unwrap()
+    fn render_header(&self) -> Drawing {
+        // TODO: const fn? once_cell, the empty string is converted to a String which
+        // is not const_fn.
+        let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
+        let mut target = Drawing::new();
+        let text = text(Point::new(0.0, 20.0), &self.name, header_font);
+        let paint = &Paint::default();
+        target.draw(&text.into(), paint);
+        target
+    }
+
+    fn render_output(&self) -> Drawing {
+        // TODO: render invalid output as text and mark it appropriately
+        if !self.output.starts_with("> ") {
+            return Drawing::new();
+        };
+
+        // TODO: handle parse errors:
+        serde_json::from_str(&self.output[2..]).unwrap()
+    }
 }

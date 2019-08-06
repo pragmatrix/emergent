@@ -6,6 +6,7 @@ use std::convert::TryInto;
 use std::io;
 use std::io::{BufRead, BufReader, Read};
 
+// TODO: make that Vec private.
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct TestCaptures(pub Vec<TestCapture>);
 

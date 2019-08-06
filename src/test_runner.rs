@@ -48,7 +48,7 @@ impl TestRunRequest {
 
         let capture = Capture::stdout();
 
-        // we need a very specific set of arguments to make precise capturing of the otuput work.
+        // we need a very specific set of arguments to make precise capturing of the output work.
         let libtest_args: Vec<&str> = vec![
             "--test-threads",
             "1",
