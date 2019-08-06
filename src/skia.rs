@@ -353,7 +353,7 @@ impl FontSync {
 // IntoSkia implementations
 //
 
-trait ToSkia<ST> {
+pub trait ToSkia<ST> {
     fn to_skia(&self) -> ST;
 }
 

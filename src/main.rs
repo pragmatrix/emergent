@@ -3,6 +3,7 @@ use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::{App, Arg};
 use core::borrow::Borrow;
+use emergent_drawing::MeasureText;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
@@ -16,6 +17,7 @@ mod frame;
 mod libtest;
 mod renderer;
 mod skia;
+mod skia_measure;
 mod test_runner;
 mod test_watcher;
 
@@ -61,7 +63,8 @@ fn main() {
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
-    let (emergent, initial_cmd) = Emergent::new(window_size, test_run_request);
+    let measure = skia_measure::Measure::new();
+    let (emergent, initial_cmd) = Emergent::new(measure, window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
     let mut application = Application::new(emergent, executor);
     application.schedule(initial_cmd);

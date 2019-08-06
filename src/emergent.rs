@@ -5,7 +5,10 @@ use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent_drawing::functions::text;
-use emergent_drawing::{font, Drawing, DrawingTarget, Font, Paint, Point};
+use emergent_drawing::{
+    font, Drawing, DrawingFastBounds, DrawingTarget, Font, MeasureText, Paint, Point,
+};
+use std::borrow::Borrow;
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
@@ -15,6 +18,7 @@ pub enum Event {
 }
 
 pub struct Emergent {
+    measure_text: Box<dyn MeasureText + Send>,
     window_size: (u32, u32),
     notification_receiver: Receiver<test_watcher::Notification>,
     test_captures: TestCaptures,
@@ -22,11 +26,16 @@ pub struct Emergent {
 }
 
 impl Emergent {
-    pub fn new(window_size: (u32, u32), req: TestRunRequest) -> (Self, Cmd<Event>) {
+    pub fn new(
+        measure_text: impl MeasureText + Send + 'static,
+        window_size: (u32, u32),
+        req: TestRunRequest,
+    ) -> (Self, Cmd<Event>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
         test_watcher::begin_watching(req, sender).unwrap();
 
         let emergent = Self {
+            measure_text: Box::new(measure_text),
             window_size,
             notification_receiver: receiver.clone(),
             test_captures: TestCaptures::default(),
@@ -93,7 +102,7 @@ impl View<Frame> for Emergent {
         for capture in self.test_captures.0.iter() {
             // TODO: add a nice drawing combinator.
             // TODO: avoid the access of 0!
-            drawing.0.extend(capture.render().0)
+            drawing.0.extend(capture.render(&*self.measure_text).0)
         }
 
         // TODO: we probably need a composer for drawings.
@@ -105,7 +114,9 @@ impl View<Frame> for Emergent {
 }
 
 impl TestCapture {
-    fn render(&self) -> Drawing {
+    fn render(&self, measure_text: &dyn MeasureText) -> Drawing {
+        let header = self.render_header();
+        dbg!(header.fast_bounds(measure_text));
         self.render_output()
     }
 
