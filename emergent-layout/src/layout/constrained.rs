@@ -1,23 +1,19 @@
-use crate::{constraints, length, Bound, CompletedAxes, Layout, Linear, Span};
+use crate::constraints::Linear;
+use crate::{constraints, length, ConstraintContext, Layout, LayoutContext, Span};
 
 /// A layout that overrides the constraints of another layout.
 pub struct Constrained<'a> {
-    pub layout: &'a mut Layout,
+    pub layout: &'a mut dyn Layout,
     pub constraints: Vec<constraints::Linear>,
 }
 
 impl<'a> Layout for Constrained<'a> {
-    fn compute_constraints(&self, axis: usize) -> Option<constraints::Linear> {
-        self.constraints.get(axis).cloned()
+    fn compute_constraints(&self, context: &ConstraintContext) -> Option<constraints::Linear> {
+        self.constraints.get(context.axis).cloned()
     }
 
-    fn layout(
-        &mut self,
-        completed: &CompletedAxes,
-        axis: usize,
-        bound: Bound,
-    ) -> (length, Option<usize>) {
-        self.layout.layout(completed, axis, bound)
+    fn layout(&mut self, context: &LayoutContext) -> (length, Option<usize>) {
+        self.layout.layout(context)
     }
 
     fn position(&mut self, spans: &[Span]) {
@@ -43,8 +39,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::layout::Constrain;
-    use crate::{layout_and_position, Bound, Linear, Point, Rect};
+    use crate::constraints::Linear;
+    use crate::{layout_and_position, Bound, Rect};
     use emergent_drawing::functions::*;
     use emergent_drawing::{Canvas, DrawingCanvas, Vector};
 
@@ -61,10 +57,7 @@ mod test {
 
         assert_eq!(
             r,
-            Rect::new(
-                Point::from((1, 3)),
-                Point::from((1, 3)) + Vector::from((2, 4))
-            )
+            Rect::new(point(1.0, 3.0), point(1.0, 3.0) + vector(2.0, 4.0))
         );
 
         let mut canvas = DrawingCanvas::new();

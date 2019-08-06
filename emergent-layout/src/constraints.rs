@@ -175,7 +175,7 @@ fn place_bounded(
     constraints: &[Linear],
     start: finite,
     bound: length,
-    alignment: Alignment,
+    _alignment: Alignment,
 ) -> (LayoutMode, Vec<Span>) {
     let min: length = constraints.iter().map(|c| c.min).sum();
     if bound <= min {
@@ -246,7 +246,7 @@ fn place_bounded(
 
         // bound is > max size
         // TODO: use alignment to place the elements.
-        return unimplemented!();
+        unimplemented!();
     }
 
     let lengths = distribute_over_smallest_balanced(&constraints, bound - balanced_length);

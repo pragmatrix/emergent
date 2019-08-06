@@ -1,11 +1,14 @@
-use crate::{length, Bound, CompletedAxes, Layout, Linear, Rect, RectHelper, Span};
+use crate::constraints::Linear;
+use crate::layout::RectHelper;
+use crate::{length, ConstraintContext, Layout, LayoutContext, Span};
+use emergent_drawing::Rect;
 
 /// A Rect as a layout.
 ///
 /// The size of the rect acts as the fixed area constraint, and the position is set when positioned.
 impl Layout for Rect {
-    fn compute_constraints(&self, axis: usize) -> Option<Linear> {
-        let length = match axis {
+    fn compute_constraints(&self, context: &ConstraintContext) -> Option<Linear> {
+        let length = match context.axis {
             0 => Some(self.width()),
             1 => Some(self.height()),
             _ => None,
@@ -14,15 +17,14 @@ impl Layout for Rect {
         length.map(|l| Linear::fixed(l.into()))
     }
 
-    fn layout(
-        &mut self,
-        completed: &CompletedAxes,
-        axis: usize,
-        bound: Bound,
-    ) -> (length, Option<usize>) {
-        let length = self.compute_constraints(axis).unwrap().layout(bound);
+    fn layout(&mut self, context: &LayoutContext) -> (length, Option<usize>) {
+        let (axis, bound) = (context.axis, context.bound);
+        let length = self
+            .compute_constraints(&context.constraint())
+            .unwrap()
+            .layout(bound);
         self.set_length(axis, length);
-        (length, completed.first_incomplete_except(axis))
+        (length, context.completed.first_incomplete_except(axis))
     }
 
     fn position(&mut self, spans: &[Span]) {
@@ -35,7 +37,8 @@ impl Layout for Rect {
 
 #[cfg(test)]
 mod tests {
-    use crate::{layout_and_position, Bound, Rect};
+    use crate::{layout_and_position, Bound};
+    use emergent_drawing::Rect;
     #[test]
     fn unbounded_uses_rect_size_as_fixed_constraint() {
         let mut r = Rect::from(((10.0, 11.0).into(), (90.0, 99.0).into()));

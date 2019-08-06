@@ -1,7 +1,7 @@
 use emergent_drawing::scalar;
 use std::cmp::Ordering;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Deref, Div, Mul, MulAssign, Sub, SubAssign};
 
 /// A finite, non-NaN scalar.
 #[allow(non_camel_case_types)]
