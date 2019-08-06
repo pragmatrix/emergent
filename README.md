@@ -12,7 +12,7 @@ Furthermore, the testrunner should be able to create new testcases by interactin
 
 Currently, there is not a lot to see. 
 
-On Windows, `cargo run -- emergent-layout` should - with LLVM installed, and a decent Vulkan driver, and a lot of luck - compile everything, power up the testrunner, and visualize some early results of the layout engine.
+On Windows, clone the repository, then check out the submodules with `git submodule update --init` and run emergent with `cargo run -vv -- emergent-layout`. This should - with LLVM installed, and a decent Vulkan driver, and a bit of luck - compile everything, power up the testrunner, and visualize some early results of the layout engine.
 
 It does that by starting the testrunner, which starts `cargo watch` internally, which in turn runs `cargo test` on the `emergent-layout` package, captures its results, and visualizes them. From now on, changes in the `emergent-layout` packages are detected and the visualizations are updated automatically.
 
