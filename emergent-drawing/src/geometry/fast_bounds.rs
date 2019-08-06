@@ -24,11 +24,11 @@ pub trait FastBounds {
 }
 
 pub trait ComplexFastBounds {
-    fn fast_bounds(&self, text: &impl MeasureText) -> Bounds;
+    fn fast_bounds(&self, text: &dyn MeasureText) -> Bounds;
 }
 
 pub trait DrawingFastBounds {
-    fn fast_bounds(&self, text: &impl MeasureText) -> DrawingBounds;
+    fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds;
 }
 
 //
@@ -103,7 +103,7 @@ impl FastBounds for Clip {
 //
 
 impl ComplexFastBounds for Shape {
-    fn fast_bounds(&self, measure_text: &impl MeasureText) -> Bounds {
+    fn fast_bounds(&self, measure_text: &dyn MeasureText) -> Bounds {
         match self {
             Shape::Point(p) => p.fast_bounds(),
             Shape::Line(l) => l.fast_bounds(),
@@ -123,7 +123,7 @@ impl ComplexFastBounds for Shape {
 }
 
 impl DrawingFastBounds for Draw {
-    fn fast_bounds(&self, text: &impl MeasureText) -> DrawingBounds {
+    fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds {
         match self {
             Draw::Paint(_, _) => DrawingBounds::Unbounded,
             Draw::Shapes(shapes, paint) => DrawingBounds::union_all(
@@ -146,7 +146,7 @@ impl DrawingFastBounds for Draw {
 }
 
 impl DrawingFastBounds for Drawing {
-    fn fast_bounds(&self, text: &impl MeasureText) -> DrawingBounds {
+    fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds {
         DrawingBounds::union_all(self.0.iter().map(|d| d.fast_bounds(text)))
     }
 }
