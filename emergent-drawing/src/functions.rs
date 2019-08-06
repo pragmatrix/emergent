@@ -31,7 +31,7 @@ pub fn rect(p: impl Into<Point>, v: impl Into<Vector>) -> Rect {
 }
 
 pub fn font(typeface_name: impl AsRef<str>, size: scalar) -> Font {
-    Font::new(typeface_name.as_ref(), Style::NORMAL, font::Size(size))
+    Font::new(typeface_name.as_ref(), Style::NORMAL, font::Size::new(size))
 }
 
 pub fn text(p: impl Into<Point>, text: impl AsRef<str>, font: &Font) -> Text {

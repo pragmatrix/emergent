@@ -10,30 +10,6 @@ pub struct Font {
     pub size: Size,
 }
 
-// TODO: don't serialize defaults?
-#[derive(Copy, Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Default, Debug)]
-pub struct Style {
-    pub weight: Weight,
-    pub width: Width,
-    pub slant: Slant,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Size(pub scalar);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Weight(pub usize);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Width(pub usize);
-
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Slant {
-    Upright,
-    Italic,
-    Oblique,
-}
-
 impl Font {
     pub fn new(name: &str, style: Style, size: Size) -> Self {
         Font {
@@ -42,6 +18,14 @@ impl Font {
             size,
         }
     }
+}
+
+// TODO: don't serialize defaults?
+#[derive(Copy, Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Default, Debug)]
+pub struct Style {
+    pub weight: Weight,
+    pub width: Width,
+    pub slant: Slant,
 }
 
 impl Style {
@@ -58,6 +42,26 @@ impl Style {
         }
     }
 }
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Size(scalar);
+
+// TODO: may use derive_more.
+impl Deref for Size {
+    type Target = scalar;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Size {
+    pub const fn new(size: scalar) -> Self {
+        Self(size)
+    }
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Weight(usize);
 
 impl Default for Weight {
     fn default() -> Self {
@@ -85,6 +89,9 @@ impl Weight {
     pub const EXTRA_BLACK: Self = Self(900);
 }
 
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Width(usize);
+
 impl Default for Width {
     fn default() -> Self {
         Width::NORMAL
@@ -110,15 +117,15 @@ impl Width {
     pub const ULTRA_EXPANDED: Self = Self(9);
 }
 
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Slant {
+    Upright,
+    Italic,
+    Oblique,
+}
+
 impl Default for Slant {
     fn default() -> Self {
         Slant::Upright
-    }
-}
-
-impl Deref for Size {
-    type Target = scalar;
-    fn deref(&self) -> &scalar {
-        &self.0
     }
 }
