@@ -1,6 +1,6 @@
 use crate::constraints::Linear;
-use crate::{finite, length, span, Span};
-use emergent_drawing::{scalar, Font, Rect};
+use crate::{finite, length, span, Measure, Span};
+use emergent_drawing::{scalar, Rect};
 use std::convert::identity;
 
 mod border;
@@ -222,19 +222,6 @@ impl CompletedAxes {
     pub fn first_incomplete_except(&self, axis: usize) -> Option<usize> {
         self.clone().complete_axis(axis).first_incomplete()
     }
-}
-
-/// A trait to represents the functions used for external measurements.
-pub trait Measure {
-    /// Returns the length of the text in the writing direction and the length in
-    /// the line layout direction.
-    ///
-    /// If the maximum length is specified, glyphs _should_ not exceed the maximum
-    /// length in the writing direction.
-    ///
-    /// If the maximum length is None, the text should be layouted without
-    /// imposed wrapping.
-    fn text(&self, text: &str, font: &Font, max: Option<length>) -> (length, length);
 }
 
 #[cfg(test)]

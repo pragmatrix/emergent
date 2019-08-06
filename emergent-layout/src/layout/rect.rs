@@ -37,12 +37,17 @@ impl Layout for Rect {
 
 #[cfg(test)]
 mod tests {
-    use crate::{layout_and_position, Bound};
+    use crate::{layout_and_position, Bound, Measure};
     use emergent_drawing::Rect;
     #[test]
     fn unbounded_uses_rect_size_as_fixed_constraint() {
         let mut r = Rect::from(((10.0, 11.0).into(), (90.0, 99.0).into()));
-        layout_and_position(&mut r, &[Bound::Unbounded, Bound::Unbounded], &[1.0, 1.1]);
+        layout_and_position(
+            &mut r,
+            Measure::unimplemented(),
+            &[Bound::Unbounded, Bound::Unbounded],
+            &[1.0, 1.1],
+        );
         assert_eq!(r, Rect::from(((1.0, 1.1).into(), (99.0, 109.9).into())));
     }
 }

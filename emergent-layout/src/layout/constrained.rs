@@ -40,9 +40,9 @@ where
 #[cfg(test)]
 mod test {
     use crate::constraints::Linear;
-    use crate::{layout_and_position, Bound, Rect};
+    use crate::{layout_and_position, Bound, Constrain, UnimplementedMeasure};
     use emergent_drawing::functions::*;
-    use emergent_drawing::{Canvas, DrawingCanvas, Vector};
+    use emergent_drawing::{Canvas, DrawingCanvas, Rect};
 
     #[test]
     fn test_contrained_layout() {
@@ -51,6 +51,7 @@ mod test {
         let mut l = r.constrain(&constraints);
         layout_and_position(
             &mut l,
+            UnimplementedMeasure,
             &[Bound::Bounded(2.into()), Bound::Bounded(4.into())],
             &[1.0, 3.0],
         );
