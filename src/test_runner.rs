@@ -1,7 +1,8 @@
 use crate::capture::Capture;
-use crate::libtest::{TestCapture, TestCaptures, TestResult};
+use crate::libtest::TestCaptures;
 use cargo::core::compiler;
 use cargo::ops;
+use cargo::ops::{FilterRule, LibRule};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
@@ -58,7 +59,7 @@ impl TestRunRequest {
             "json",
         ];
 
-        let test_error = ops::run_tests(workspace, test_options, &libtest_args)?;
+        let _test_error = ops::run_tests(workspace, test_options, &libtest_args)?;
         let captured = capture.end();
         println!(">>> CAPTURED BEGIN");
         println!("{}", String::from_utf8_lossy(&captured));
@@ -70,33 +71,37 @@ impl TestRunRequest {
     }
 }
 
-use cargo::ops::{FilterRule, LibRule};
 #[cfg(test)]
-use std::env;
+pub mod tests {
+    use crate::libtest::{TestCapture, TestResult};
+    use crate::test_runner::TestRunRequest;
+    use std::env;
 
-#[test]
-fn run_tests_self() {
-    let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
-    let captures = request.capture_tests().unwrap();
-    println!("captures:\n{:?}", captures);
+    #[test]
+    fn run_tests_self() {
+        let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+        let captures = request.capture_tests().unwrap();
+        println!("captures:\n{:?}", captures);
 
-    let captures = captures.0;
+        let captures = captures.0;
 
-    assert!(captures.contains(&TestCapture {
-        name: "test_output_capture".into(),
-        result: TestResult::Ok(),
-        output: "CAPTURE_ME\n".into()
-    }));
+        assert!(captures.contains(&TestCapture {
+            name: "test_output_capture".into(),
+            result: TestResult::Ok(),
+            output: "CAPTURE_ME\n".into()
+        }));
 
-    assert!(captures.contains(&TestCapture {
-        name: "mod_test::test_in_mod_capture".into(),
-        result: TestResult::Ok(),
-        output: "CAPTURE_ME_IN_MOD\n".into()
-    }));
+        assert!(captures.contains(&TestCapture {
+            name: "mod_test::test_in_mod_capture".into(),
+            result: TestResult::Ok(),
+            output: "CAPTURE_ME_IN_MOD\n".into()
+        }));
 
-    assert!(captures.contains(&TestCapture {
-        name: "test_output_capture_multiline".into(),
-        result: TestResult::Ok(),
-        output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
-    }));
+        assert!(captures.contains(&TestCapture {
+            name: "test_output_capture_multiline".into(),
+            result: TestResult::Ok(),
+            output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
+        }));
+    }
+
 }

@@ -27,7 +27,7 @@ pub enum TestResult {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-enum ExtraData {
+pub enum ExtraData {
     Message(String),
     StdOut(String),
 }

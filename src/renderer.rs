@@ -1,7 +1,7 @@
 use crate::frame::Frame;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
+use vulkano::command_buffer::DynamicState;
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract, Subpass};
 use vulkano::image::SwapchainImage;
@@ -10,7 +10,7 @@ use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain;
 use vulkano::swapchain::{
-    acquire_next_image, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainCreationError,
+    PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainCreationError,
 };
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
@@ -25,15 +25,15 @@ pub struct RenderContext<W: Window> {
     surface: Arc<Surface<W>>,
     pub device: Arc<Device>,
     pub queue: Arc<Queue>,
-    vertex_buffer: Vec<Arc<BufferAccess + Send + Sync>>,
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
+    _vertex_buffer: Vec<Arc<dyn BufferAccess + Send + Sync>>,
+    render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
+    _pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
 }
 
 pub struct FrameState<W: Window> {
     dynamic_state: DynamicState,
     swapchain: Arc<Swapchain<W>>,
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+    framebuffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
 }
 
 pub trait DrawingSurface {
@@ -46,7 +46,7 @@ pub trait DrawingBackend {
     /// Creates a DrawingSurface that draws to a framebuffer.
     fn new_surface_from_framebuffer(
         &mut self,
-        framebuffer: &Arc<FramebufferAbstract + Send + Sync>,
+        framebuffer: &Arc<dyn FramebufferAbstract + Send + Sync>,
     ) -> Self::Surface;
 }
 
@@ -259,9 +259,9 @@ void main() {
         physical_device_index: physical_device.index(),
         device,
         queue,
-        vertex_buffer: vec![vertex_buffer],
+        _vertex_buffer: vec![vertex_buffer],
         render_pass,
-        pipeline,
+        _pipeline: pipeline,
     };
 
     let frame = FrameState {
@@ -287,11 +287,11 @@ impl<W: Window> RenderContext<W> {
     /// fulfilled when the frame is on screen.
     pub fn render(
         &self,
-        mut previous_render: Box<GpuFuture>,
+        mut previous_render: Box<dyn GpuFuture>,
         frame_state: &mut FrameState<W>,
         drawing_backend: &mut impl DrawingBackend,
         frame: &Frame,
-    ) -> Box<GpuFuture> {
+    ) -> Box<dyn GpuFuture> {
         previous_render.cleanup_finished();
 
         loop {
@@ -313,11 +313,11 @@ impl<W: Window> RenderContext<W> {
     /// Draw the frame's state.
     pub fn draw_and_present(
         &self,
-        previous: Box<GpuFuture>,
+        previous: Box<dyn GpuFuture>,
         frame_state: &mut FrameState<W>,
         drawing_backend: &mut impl DrawingBackend,
         frame: &Frame,
-    ) -> Result<Box<GpuFuture>, FlushError> {
+    ) -> Result<Box<dyn GpuFuture>, FlushError> {
         // for some reason we can't join this with acquire_future and drop it afterwards.
         drop(previous);
 
@@ -346,8 +346,8 @@ impl<W: Window> RenderContext<W> {
         &self,
         frame: &mut FrameState<W>,
         image_num: usize,
-    ) -> Result<Box<GpuFuture>, FlushError> {
-        let future: Box<GpuFuture> =
+    ) -> Result<Box<dyn GpuFuture>, FlushError> {
+        let future: Box<dyn GpuFuture> =
             Box::new(sync::now(self.device.clone()).then_swapchain_present(
                 self.queue.clone(),
                 frame.swapchain.clone(),
@@ -403,9 +403,9 @@ impl<W: Window> RenderContext<W> {
 /// This method is called once during initialization, then again whenever the window is resized
 fn window_size_dependent_setup<W: Window>(
     images: &[Arc<SwapchainImage<W>>],
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
     dynamic_state: &mut DynamicState,
-) -> Vec<Arc<FramebufferAbstract + Send + Sync>> {
+) -> Vec<Arc<dyn FramebufferAbstract + Send + Sync>> {
     let dimensions = images[0].dimensions();
 
     let viewport = Viewport {
@@ -424,7 +424,7 @@ fn window_size_dependent_setup<W: Window>(
                     .unwrap()
                     .build()
                     .unwrap(),
-            ) as Arc<FramebufferAbstract + Send + Sync>
+            ) as Arc<dyn FramebufferAbstract + Send + Sync>
         })
         .collect::<Vec<_>>()
 }

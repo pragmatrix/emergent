@@ -3,7 +3,7 @@ use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent_drawing as drawing;
-use emergent_drawing::{Circle, DrawTo, Line, Oval, Polygon, Shape};
+use emergent_drawing::{DrawTo, Line, Oval, Polygon, Shape};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
@@ -94,7 +94,7 @@ impl DrawingBackend for gpu::Context {
 
     fn new_surface_from_framebuffer(
         &mut self,
-        framebuffer: &Arc<FramebufferAbstract + Send + Sync>,
+        framebuffer: &Arc<dyn FramebufferAbstract + Send + Sync>,
     ) -> Self::Surface {
         let [width, height, _] = framebuffer.dimensions();
         let image_access = framebuffer.attached_image_view(0).unwrap().parent();

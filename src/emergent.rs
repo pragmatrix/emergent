@@ -4,7 +4,7 @@ use crate::test_runner::TestRunRequest;
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
-use emergent_drawing::{Drawing, DrawingTarget, Paint, Shape};
+use emergent_drawing::Drawing;
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]

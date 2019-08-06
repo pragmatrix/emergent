@@ -28,7 +28,7 @@ pub fn begin_watching(
 
     thread::spawn(move || {
         let watcher = TestWatcher {
-            args: args.clone(),
+            _args: args.clone(),
             request: req.clone(),
             notifier: notifier.clone(),
         };
@@ -45,7 +45,7 @@ pub fn begin_watching(
 }
 
 struct TestWatcher {
-    args: Args,
+    _args: Args,
     request: TestRunRequest,
     notifier: Sender<Notification>,
 }
@@ -60,7 +60,7 @@ impl TestWatcher {
 }
 
 impl run::Handler for TestWatcher {
-    fn new(args: Args) -> watchexec::error::Result<Self>
+    fn new(_args: Args) -> watchexec::error::Result<Self>
     where
         Self: Sized,
     {
@@ -72,7 +72,7 @@ impl run::Handler for TestWatcher {
         Ok(true)
     }
 
-    fn on_update(&mut self, ops: &[pathop::PathOp]) -> watchexec::error::Result<bool> {
+    fn on_update(&mut self, _ops: &[pathop::PathOp]) -> watchexec::error::Result<bool> {
         self.capture_tests();
         Ok(true)
     }
