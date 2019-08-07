@@ -3,7 +3,6 @@ use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::{App, Arg};
 use core::borrow::Borrow;
-use emergent_drawing::MeasureText;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;

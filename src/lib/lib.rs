@@ -15,8 +15,6 @@ fn test_output_capture_multiline() {
 }
 
 mod mod_test {
-    use skia_safe::Font;
-    use skia_safe::Typeface;
     use std::env;
 
     #[test]

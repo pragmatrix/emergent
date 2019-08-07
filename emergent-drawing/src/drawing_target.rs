@@ -23,19 +23,9 @@ pub trait DrawTo {
     fn draw_to(&self, target: &mut impl DrawingTarget);
 }
 
-impl Drawing {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
 impl DrawTo for Drawing {
     fn draw_to(&self, target: &mut impl DrawingTarget) {
-        self.0.iter().for_each(|draw| draw.draw_to(target));
+        self.iter().for_each(|draw| draw.draw_to(target));
     }
 }
 

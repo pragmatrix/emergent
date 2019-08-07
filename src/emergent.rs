@@ -8,7 +8,6 @@ use emergent_drawing::functions::text;
 use emergent_drawing::{
     font, Drawing, DrawingFastBounds, DrawingTarget, Font, MeasureText, Paint, Point,
 };
-use std::borrow::Borrow;
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
@@ -102,7 +101,7 @@ impl View<Frame> for Emergent {
         for capture in self.test_captures.0.iter() {
             // TODO: add a nice drawing combinator.
             // TODO: avoid the access of 0!
-            drawing.0.extend(capture.render(&*self.measure_text).0)
+            drawing.extend(capture.render(&*self.measure_text).take())
         }
 
         // TODO: we probably need a composer for drawings.

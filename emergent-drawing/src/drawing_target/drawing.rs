@@ -2,36 +2,33 @@ use crate::{BlendMode, Clip, Draw, Drawing, DrawingTarget, Paint, Shape, Transfo
 
 impl DrawingTarget for Drawing {
     fn fill(&mut self, paint: &Paint, blend_mode: BlendMode) {
-        self.0.push(Draw::Paint(paint.clone(), blend_mode));
+        self.push(Draw::Paint(paint.clone(), blend_mode));
     }
 
     fn draw(&mut self, shape: &Shape, paint: &Paint) {
-        match self.0.last_mut() {
+        match self.last_mut() {
             Some(Draw::Shapes(shapes, p)) if p == paint => {
                 shapes.push(shape.clone());
             }
-            _ => self
-                .0
-                .push(Draw::Shapes(vec![shape.clone()], paint.clone())),
+            _ => self.push(Draw::Shapes(vec![shape.clone()], paint.clone())),
         }
     }
 
     fn clip(&mut self, clip: &Clip, f: impl FnOnce(&mut Self)) {
-        let begin = self.0.len();
+        let begin = self.len();
         f(self);
-        let nested = Drawing(self.0.drain(begin..).collect());
+        let nested = Drawing::from(self.drain(begin..));
         if !nested.is_empty() {
-            self.0.push(Draw::Clipped(clip.clone(), nested));
+            self.push(Draw::Clipped(clip.clone(), nested));
         }
     }
 
     fn transform(&mut self, transformation: &Transform, f: impl FnOnce(&mut Self)) {
-        let begin = self.0.len();
+        let begin = self.len();
         f(self);
-        let nested = Drawing(self.0.drain(begin..).collect());
+        let nested = Drawing::from(self.drain(begin..));
         if !nested.is_empty() {
-            self.0
-                .push(Draw::Transformed(transformation.clone(), nested));
+            self.push(Draw::Transformed(transformation.clone(), nested));
         }
     }
 }

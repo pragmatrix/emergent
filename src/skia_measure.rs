@@ -18,7 +18,7 @@ impl drawing::MeasureText for Measure {
         let typeface = Typeface::from_name(&font.name, font.style.to_skia())
             .expect("failed to resolve typeface");
         let font = Font::from_typeface(&typeface, *font.size as f32);
-        let (advance_width, rect) = font.measure_str(str, None);
+        let (_advance_width, rect) = font.measure_str(str, None);
         let (width, height) = (rect.size().width, rect.size().height);
         bounds(
             (rect.left as drawing::scalar, rect.top as drawing::scalar),

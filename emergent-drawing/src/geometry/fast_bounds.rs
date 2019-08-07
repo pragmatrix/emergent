@@ -147,7 +147,7 @@ impl DrawingFastBounds for Draw {
 
 impl DrawingFastBounds for Drawing {
     fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds {
-        DrawingBounds::union_all(self.0.iter().map(|d| d.fast_bounds(text)))
+        DrawingBounds::union_all(self.iter().map(|d| d.fast_bounds(text)))
     }
 }
 

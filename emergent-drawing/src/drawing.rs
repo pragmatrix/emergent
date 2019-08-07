@@ -17,10 +17,42 @@ pub mod paint;
 pub use paint::Paint;
 
 mod transform;
+use std::mem;
+use std::ops::{Deref, DerefMut, Range};
 pub use transform::*;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Drawing(pub Vec<Draw>);
+pub struct Drawing(Vec<Draw>);
+
+impl<I: Iterator<Item = Draw>> From<I> for Drawing {
+    fn from(v: I) -> Self {
+        Drawing(v.collect())
+    }
+}
+
+// TODO: is this appropriate?
+impl Deref for Drawing {
+    type Target = Vec<Draw>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Drawing {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Drawing {
+    pub fn new() -> Drawing {
+        Drawing(Vec::new())
+    }
+
+    pub fn take(&mut self) -> Vec<Draw> {
+        mem::replace(&mut self.0, Vec::new())
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Draw {
