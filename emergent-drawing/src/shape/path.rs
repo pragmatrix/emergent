@@ -1,7 +1,6 @@
-use crate::functions::{point, vector};
 use crate::{
-    scalar, Angle, Arc, Bounds, Circle, Conic, FastBounds, Matrix, NearlyEqual, NearlyZero, Oval,
-    Point, Radians, Rect, RoundedRect, Scalar, Vector,
+    point::point, scalar, vector::vector, Angle, Arc, Bounds, Circle, Conic, FastBounds, Matrix,
+    NearlyEqual, NearlyZero, Oval, Point, Radians, Rect, RoundedRect, Scalar, Vector,
 };
 use serde::{Deserialize, Serialize};
 use std::iter;
@@ -165,9 +164,9 @@ impl Path {
 
         let (dir, start) = dir_start.into().unwrap_or_default();
 
-        let mut oval_iter = oval_point_iterator(&oval.0, (dir, start));
+        let mut oval_iter = oval_point_iterator(oval.rect(), (dir, start));
         let mut rect_iter = rect_point_iterator(
-            &oval.0,
+            oval.rect(),
             (dir, start + if dir == Direction::CW { 0 } else { 1 }),
         );
 
@@ -252,7 +251,7 @@ impl Path {
 
     pub fn arc_to(&mut self, arc: &Arc, force_move_to: bool) -> &Self {
         // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
-        let oval = &(arc.oval).0;
+        let oval = arc.oval.rect();
         let start_angle = arc.start;
         let sweep_angle = arc.sweep;
 

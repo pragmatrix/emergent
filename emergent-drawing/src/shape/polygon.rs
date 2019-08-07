@@ -5,4 +5,16 @@ use serde::{Deserialize, Serialize};
 // TODO: should a minimum number of ponts be constrained
 //       (this is critical for computing bounds())
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub struct Polygon(pub Vec<Point>);
+pub struct Polygon(Vec<Point>);
+
+impl Polygon {
+    pub fn points(&self) -> &[Point] {
+        &self.0
+    }
+}
+
+impl<I: IntoIterator<Item = Point>> From<I> for Polygon {
+    fn from(i: I) -> Self {
+        Self(i.into_iter().collect())
+    }
+}

@@ -1,13 +1,13 @@
 mod angle;
 pub use angle::*;
 
-mod bounds;
+pub(crate) mod bounds;
 pub use bounds::*;
 
 pub(crate) mod conic;
 pub(crate) use conic::*;
 
-mod extent;
+pub(crate) mod extent;
 pub use extent::*;
 
 mod fast_bounds;
@@ -25,8 +25,8 @@ pub use outset::*;
 mod radians;
 pub use radians::*;
 
-mod radius;
+pub(crate) mod radius;
 pub use radius::*;
 
-mod vector;
+pub(crate) mod vector;
 pub use vector::*;

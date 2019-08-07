@@ -1,4 +1,3 @@
-use crate::functions::vector;
 use crate::{scalar, Extent};
 use serde_tuple::*;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
@@ -7,6 +6,10 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 pub struct Vector {
     pub x: scalar,
     pub y: scalar,
+}
+
+pub fn vector(x: scalar, y: scalar) -> Vector {
+    Vector::new(x, y)
 }
 
 impl Vector {

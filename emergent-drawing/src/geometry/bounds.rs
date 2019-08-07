@@ -1,4 +1,3 @@
-use crate::functions::{extent, point};
 use crate::{scalar, Extent, Outset, Point, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
@@ -9,47 +8,50 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 /// vertical lines that are zero or one-dimensional and get their two-dimensionality
 /// from a Paint's stroke width, for example.
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
-pub struct Bounds(pub Point, pub Extent);
+pub struct Bounds {
+    pub point: Point,
+    pub extent: Extent,
+}
+
+pub fn bounds(point: impl Into<Point>, extent: impl Into<Extent>) -> Bounds {
+    Bounds::new(point.into(), extent.into())
+}
 
 impl Bounds {
     pub const fn new(point: Point, extent: Extent) -> Self {
-        Self(point, extent)
+        Bounds { point, extent }
     }
 
     pub fn left(&self) -> scalar {
-        self.0.x
+        self.point.x
     }
 
     pub fn top(&self) -> scalar {
-        self.0.y
+        self.point.y
     }
 
     pub fn right(&self) -> scalar {
-        self.0.x + self.1.width
+        self.point.x + self.extent.width
     }
 
     pub fn bottom(&self) -> scalar {
-        self.0.y + self.1.height
+        self.point.y + self.extent.height
     }
 
     pub fn left_top(&self) -> Point {
-        self.0
+        self.point
     }
 
     pub fn right_top(&self) -> Point {
-        self.left_top() + extent(self.extent().width, 0.0)
+        self.left_top() + Extent::new(self.extent.width, 0.0)
     }
 
     pub fn right_bottom(&self) -> Point {
-        self.left_top() + self.extent()
+        self.left_top() + self.extent
     }
 
     pub fn left_bottom(&self) -> Point {
-        self.left_top() + extent(0.0, self.extent().height)
-    }
-
-    pub fn extent(&self) -> Extent {
-        self.1
+        self.left_top() + Extent::new(0.0, self.extent.height)
     }
 
     // 0 points -> No Rect representation.
@@ -71,7 +73,7 @@ impl Bounds {
             right = right.max(x);
             bottom = bottom.max(y);
         });
-        Some(Self(
+        Some(Self::new(
             Point::from((left, top)),
             Extent::from((right - left, bottom - top)),
         ))
@@ -99,7 +101,7 @@ impl Bounds {
         let width = r - l;
         let height = b - t;
         if width >= 0.0 && height >= 0.0 {
-            Some(Bounds::new(point(l, t), extent(width, height)))
+            Some(Bounds::new(Point::new(l, t), Extent::new(width, height)))
         } else {
             None
         }
@@ -111,7 +113,10 @@ impl Bounds {
         let top = a.top().min(b.top());
         let right = a.right().max(b.right());
         let bottom = a.bottom().max(b.bottom());
-        Self::new(point(left, top), extent(right - left, bottom - top))
+        Self::new(
+            Point::new(left, top),
+            Extent::new(right - left, bottom - top),
+        )
     }
 
     /// Returns the intersection of two bounds.
@@ -124,8 +129,8 @@ impl Bounds {
         let bottom = a.bottom().min(b.bottom());
         if right > left && bottom > top {
             Some(Self::new(
-                point(left, top),
-                extent(right - left, bottom - top),
+                Point::new(left, top),
+                Extent::new(right - left, bottom - top),
             ))
         } else {
             None
@@ -135,13 +140,13 @@ impl Bounds {
 
 impl From<(Point, Extent)> for Bounds {
     fn from((p, e): (Point, Extent)) -> Self {
-        Bounds(p, e)
+        Bounds::new(p, e)
     }
 }
 
 impl AddAssign<Vector> for Bounds {
     fn add_assign(&mut self, rhs: Vector) {
-        self.0 += rhs;
+        self.point += rhs;
     }
 }
 
@@ -155,7 +160,7 @@ impl Add<Vector> for Bounds {
 
 impl SubAssign<Vector> for Bounds {
     fn sub_assign(&mut self, rhs: Vector) {
-        self.0 -= rhs
+        self.point -= rhs
     }
 }
 

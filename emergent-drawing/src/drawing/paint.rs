@@ -41,6 +41,10 @@ pub struct Paint {
     pub blend_mode: BlendMode,
 }
 
+pub fn paint() -> Paint {
+    Paint::new()
+}
+
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Style {
     Stroke,

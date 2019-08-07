@@ -1,15 +1,19 @@
-use crate::functions::{point, vector};
-use crate::{scalar, Bounds, Outset, Point, Vector};
+use crate::{point::point, scalar, vector::vector, Bounds, Outset, Point, Vector};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// A rectangle, defined by two points.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Rect(pub Point, pub Point);
+pub struct Rect(Point, Point);
+
+pub fn rect(p: impl Into<Point>, v: impl Into<Vector>) -> Rect {
+    let p = p.into();
+    Rect::new(p, p + v.into())
+}
 
 impl Rect {
-    pub fn new(p1: impl Into<Point>, p2: impl Into<Point>) -> Rect {
-        Rect(p1.into(), p2.into())
+    pub const fn new(p1: Point, p2: Point) -> Rect {
+        Rect(p1, p2)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -114,6 +118,16 @@ impl Rect {
     pub fn bounds(&self) -> Bounds {
         Bounds::from_points(&[self.0, self.1]).unwrap()
     }
+
+    /// temporary, do not use!
+    pub fn point1_mut(&mut self) -> &mut Point {
+        &mut self.0
+    }
+
+    /// temporary, do not use!
+    pub fn point2_mut(&mut self) -> &mut Point {
+        &mut self.1
+    }
 }
 
 impl AddAssign<Outset> for Rect {
@@ -163,12 +177,12 @@ impl Sub<Outset> for Rect {
 
 impl From<Bounds> for Rect {
     fn from(b: Bounds) -> Self {
-        Rect::from((b.left_top(), b.extent().into()))
+        Rect::from((b.left_top(), b.extent.into()))
     }
 }
 
 impl From<(Point, Vector)> for Rect {
     fn from((p, size): (Point, Vector)) -> Self {
-        Rect::new(p, size)
+        rect(p, size)
     }
 }

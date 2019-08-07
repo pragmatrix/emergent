@@ -1,6 +1,5 @@
-use crate::functions::{point, vector};
 use crate::path::Direction;
-use crate::{scalar, Matrix, NearlyZero, Point, Scalar, Vector};
+use crate::{scalar, vector::vector, Matrix, NearlyZero, Point, Scalar, Vector};
 
 /// A conic curve defined by three points and a weight.
 #[derive(Clone, PartialEq, Default, Debug)]
@@ -68,14 +67,14 @@ impl Conic {
         }
 
         const QUADRANT_PTS: [Point; 8] = [
-            point(1.0, 0.0),
-            point(1.0, 1.0),
-            point(0.0, 1.0),
-            point(-1.0, 1.0),
-            point(-1.0, 0.0),
-            point(-1.0, -1.0),
-            point(0.0, -1.0),
-            point(1.0, -1.0),
+            Point::new(1.0, 0.0),
+            Point::new(1.0, 1.0),
+            Point::new(0.0, 1.0),
+            Point::new(-1.0, 1.0),
+            Point::new(-1.0, 0.0),
+            Point::new(-1.0, -1.0),
+            Point::new(0.0, -1.0),
+            Point::new(1.0, -1.0),
         ];
         const QUADRANT_WEIGHT: scalar = scalar::ROOT_2_OVER_2;
 

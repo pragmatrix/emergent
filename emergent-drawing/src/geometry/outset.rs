@@ -7,7 +7,7 @@ use std::ops::Neg;
 /// - for an actual outset - all values have to be positive. For an inset,
 /// all need to be negative.
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
-pub struct Outset(pub [scalar; 4]);
+pub struct Outset([scalar; 4]);
 
 impl Outset {
     pub const EMPTY: Self = Self::new(0.0, 0.0, 0.0, 0.0);

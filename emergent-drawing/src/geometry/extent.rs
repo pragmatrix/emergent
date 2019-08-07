@@ -9,6 +9,10 @@ pub struct Extent {
     pub height: scalar,
 }
 
+pub fn extent(width: scalar, height: scalar) -> Extent {
+    Extent::new(width, height)
+}
+
 impl Extent {
     pub const EMPTY: Extent = Extent {
         width: 0.0,

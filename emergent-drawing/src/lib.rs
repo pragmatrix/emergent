@@ -12,7 +12,7 @@ pub use drawing_target::*;
 
 pub mod functions;
 
-mod geometry;
+pub(crate) mod geometry;
 pub use geometry::*;
 
 mod shape;

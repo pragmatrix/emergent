@@ -43,7 +43,7 @@ impl FastBounds for Point {
 
 impl FastBounds for Line {
     fn fast_bounds(&self) -> Bounds {
-        Bounds::from_points(&[self.0, self.1]).unwrap()
+        Bounds::from_points(&self.points()).unwrap()
     }
 }
 
@@ -55,13 +55,13 @@ impl FastBounds for Rect {
 
 impl FastBounds for Polygon {
     fn fast_bounds(&self) -> Bounds {
-        Bounds::from_points(&self.0).unwrap()
+        Bounds::from_points(self.points()).unwrap()
     }
 }
 
 impl FastBounds for Oval {
     fn fast_bounds(&self) -> Bounds {
-        self.0.fast_bounds()
+        self.rect().fast_bounds()
     }
 }
 
@@ -117,7 +117,7 @@ impl ComplexFastBounds for Shape {
             Shape::Path(p) => p.fast_bounds(),
             Shape::Image(_, _, target) => target.fast_bounds(),
             // TODO: handle empty text?
-            Shape::Text(t) => measure_text.measure_text(&t.1, &t.2),
+            Shape::Text(t) => measure_text.measure_text(&t.text, &t.font),
         }
     }
 }

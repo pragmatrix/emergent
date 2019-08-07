@@ -10,6 +10,10 @@ pub struct Font {
     pub size: Size,
 }
 
+pub fn font(typeface_name: impl AsRef<str>, size: scalar) -> Font {
+    Font::new(typeface_name.as_ref(), Style::NORMAL, Size::new(size))
+}
+
 impl Font {
     pub fn new(name: &str, style: Style, size: Size) -> Self {
         Font {

@@ -1,37 +1,36 @@
-use crate::scalar;
 use serde::{Deserialize, Serialize};
 
-mod arc;
+pub(crate) mod arc;
 pub use arc::*;
 
-mod circle;
+pub(crate) mod circle;
 pub use circle::*;
 
-mod image;
+pub(crate) mod image;
 pub use image::*;
 
-mod line;
+pub(crate) mod line;
 pub use line::*;
 
-mod oval;
+pub(crate) mod oval;
 pub use oval::*;
 
-pub mod path;
+pub(crate) mod path;
 pub use path::Path;
 
-mod point;
+pub(crate) mod point;
 pub use point::*;
 
-mod polygon;
+pub(crate) mod polygon;
 pub use polygon::*;
 
-mod rect;
+pub(crate) mod rect;
 pub use rect::*;
 
-mod rounded_rect;
+pub(crate) mod rounded_rect;
 pub use rounded_rect::*;
 
-mod text;
+pub(crate) mod text;
 pub use text::*;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -108,21 +107,5 @@ impl From<Path> for Shape {
 impl From<Text> for Shape {
     fn from(text: Text) -> Self {
         Shape::Text(text)
-    }
-}
-
-//
-// Line
-//
-
-impl From<(Point, Point)> for Line {
-    fn from((p1, p2): (Point, Point)) -> Self {
-        Line(p1, p2)
-    }
-}
-
-impl From<(scalar, scalar, scalar, scalar)> for Line {
-    fn from((p1x, p1y, p2x, p2y): (scalar, scalar, scalar, scalar)) -> Self {
-        Line::from(((p1x, p1y).into(), (p2x, p2y).into()))
     }
 }

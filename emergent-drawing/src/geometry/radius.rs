@@ -2,7 +2,7 @@ use crate::scalar;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
-/// Always postive radius.
+/// Always positive radius.
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Radius(scalar);
 

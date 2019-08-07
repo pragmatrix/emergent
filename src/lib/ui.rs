@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use emergent_drawing::functions::*;
-    use emergent_drawing::{Canvas, Color, DrawingCanvas, Paint};
+    use emergent_drawing::{circle, Canvas, Color, DrawingCanvas, Paint};
 
     #[test]
     fn draw_circle() {

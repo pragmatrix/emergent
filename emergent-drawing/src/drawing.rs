@@ -18,7 +18,7 @@ pub use paint::Paint;
 
 mod transform;
 use std::mem;
-use std::ops::{Deref, DerefMut, Range};
+use std::ops::{Deref, DerefMut};
 pub use transform::*;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]

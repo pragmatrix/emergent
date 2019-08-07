@@ -3,7 +3,7 @@ use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent_drawing as drawing;
-use emergent_drawing::{DrawTo, Line, Oval, Polygon, Shape};
+use emergent_drawing::{DrawTo, Shape};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
@@ -188,14 +188,17 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
                 self.canvas
                     .draw_point(p.to_skia(), self.paint.resolve(paint));
             }
-            Shape::Line(Line(p1, p2)) => {
-                self.canvas
-                    .draw_line(p1.to_skia(), p2.to_skia(), self.paint.resolve(paint));
+            Shape::Line(drawing::Line { point1, point2 }) => {
+                self.canvas.draw_line(
+                    point1.to_skia(),
+                    point2.to_skia(),
+                    self.paint.resolve(paint),
+                );
             }
-            Shape::Polygon(Polygon(points)) => {
+            Shape::Polygon(polygon) => {
                 self.canvas.draw_points(
                     CanvasPointMode::Polygon,
-                    points.to_skia().as_slice(),
+                    polygon.points().to_skia().as_slice(),
                     self.paint.resolve(paint),
                 );
             }
@@ -203,9 +206,9 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
                 self.canvas
                     .draw_rect(rect.to_skia(), self.paint.resolve(paint));
             }
-            Shape::Oval(Oval(oval)) => {
+            Shape::Oval(oval) => {
                 self.canvas
-                    .draw_oval(oval.to_skia(), self.paint.resolve(paint));
+                    .draw_oval(oval.rect().to_skia(), self.paint.resolve(paint));
             }
             Shape::RoundedRect(rounded_rect) => {
                 self.canvas
@@ -221,10 +224,10 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Shape::Arc(_) => unimplemented!(),
             Shape::Path(_) => unimplemented!(),
             Shape::Image(_, _, _) => unimplemented!(),
-            Shape::Text(drawing::Text(point, text, font)) => {
+            Shape::Text(drawing::Text { origin, text, font }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
                 self.canvas
-                    .draw_str(&text, point.to_skia(), &font, self.paint.resolve(paint));
+                    .draw_str(&text, origin.to_skia(), &font, self.paint.resolve(paint));
             }
         }
     }
@@ -375,9 +378,9 @@ impl ToSkia<Vector> for drawing::Vector {
     }
 }
 
-impl ToSkia<Vec<Point>> for Vec<drawing::Point> {
+impl ToSkia<Vec<Point>> for [drawing::Point] {
     fn to_skia(&self) -> Vec<Point> {
-        self.into_iter().map(|p| p.to_skia()).collect()
+        self.iter().map(|p| (*p).to_skia()).collect()
     }
 }
 
