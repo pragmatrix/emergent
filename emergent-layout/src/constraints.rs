@@ -444,7 +444,7 @@ mod tests {
         let red = paint().color(0xffff0000).clone();
         let light_grey = paint().color(0xffd0d0d0).clone();
 
-        let left = 512.0;
+        let left = 0.0;
 
         let grey = paint().color(0xff808080).clone();
         let black = paint().clone();

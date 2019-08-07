@@ -1,4 +1,6 @@
-use crate::Shape;
+use crate::{
+    Bounds, DrawingBounds, DrawingFastBounds, DrawingTarget, MeasureText, Point, Shape, Vector,
+};
 use serde::{Deserialize, Serialize};
 
 mod blend_mode;
@@ -51,6 +53,26 @@ impl Drawing {
 
     pub fn take(&mut self) -> Vec<Draw> {
         mem::replace(&mut self.0, Vec::new())
+    }
+
+    /// Based on fast_bounds(), stack a number of drawings vertically.
+    pub fn stack_v(measure_text: &dyn MeasureText, drawings: Vec<Drawing>) -> Drawing {
+        let mut p = Point::default();
+        let mut r = Drawing::new();
+        for drawing in drawings {
+            match drawing.fast_bounds(measure_text) {
+                DrawingBounds::Bounded(b) => {
+                    let align = -b.point.to_vector();
+                    let transform = Transform::Translate((p + align).to_vector());
+                    dbg!(&transform);
+                    r.push(Draw::Transformed(transform, drawing));
+                    p += Vector::new(0.0, b.height());
+                    dbg!(&p);
+                }
+                _ => {}
+            }
+        }
+        r
     }
 }
 

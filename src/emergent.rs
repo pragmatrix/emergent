@@ -95,16 +95,16 @@ impl Emergent {
 
 impl View<Frame> for Emergent {
     fn render(&self) -> Frame {
-        let mut drawing = Drawing::new();
-
+        let mut drawings = Vec::new();
         // TODO: implement Iter in TestCaptures
         for capture in self.test_captures.0.iter() {
             // TODO: add a nice drawing combinator.
             // TODO: avoid the access of 0!
-            drawing.extend(capture.render(&*self.measure_text).take())
+            drawings.push(capture.render(&*self.measure_text))
         }
 
-        // TODO: we probably need a composer for drawings.
+        let drawing = Drawing::stack_v(&*self.measure_text, drawings);
+
         Frame {
             size: self.window_size,
             drawing,
@@ -115,8 +115,8 @@ impl View<Frame> for Emergent {
 impl TestCapture {
     fn render(&self, measure_text: &dyn MeasureText) -> Drawing {
         let header = self.render_header();
-        dbg!(header.fast_bounds(measure_text));
-        self.render_output()
+        let output = self.render_output();
+        Drawing::stack_v(measure_text, vec![header, output])
     }
 
     fn render_header(&self) -> Drawing {

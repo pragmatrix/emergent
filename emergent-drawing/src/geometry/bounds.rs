@@ -54,6 +54,14 @@ impl Bounds {
         self.left_top() + Extent::new(0.0, self.extent.height)
     }
 
+    pub fn width(&self) -> scalar {
+        self.extent.width
+    }
+
+    pub fn height(&self) -> scalar {
+        self.extent.height
+    }
+
     // 0 points -> No Rect representation.
     // 1 point -> A zero sized rectangle at the point's position.
     pub fn from_points(points: &[Point]) -> Option<Self> {

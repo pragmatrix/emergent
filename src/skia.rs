@@ -3,7 +3,7 @@ use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent_drawing as drawing;
-use emergent_drawing::{DrawTo, Shape};
+use emergent_drawing::{DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
@@ -179,7 +179,7 @@ struct CanvasDrawingTarget<'canvas> {
 
 impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
     fn fill(&mut self, _paint: &drawing::Paint, _blend_mode: drawing::BlendMode) {
-        unimplemented!()
+        unimplemented!("fill")
     }
 
     fn draw(&mut self, shape: &drawing::Shape, paint: &drawing::Paint) {
@@ -221,9 +221,9 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
                     self.paint.resolve(paint),
                 );
             }
-            Shape::Arc(_) => unimplemented!(),
-            Shape::Path(_) => unimplemented!(),
-            Shape::Image(_, _, _) => unimplemented!(),
+            Shape::Arc(_) => unimplemented!("arc"),
+            Shape::Path(_) => unimplemented!("path"),
+            Shape::Image(_, _, _) => unimplemented!("image"),
             Shape::Text(drawing::Text { origin, text, font }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
                 self.canvas
@@ -233,11 +233,27 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
     }
 
     fn clip(&mut self, _clip: &drawing::Clip, _f: impl FnOnce(&mut Self)) {
-        unimplemented!()
+        unimplemented!("clip")
     }
 
-    fn transform(&mut self, _transformation: &drawing::Transform, _f: impl FnOnce(&mut Self)) {
-        unimplemented!()
+    fn transform(
+        &mut self,
+        transformation: &drawing::Transform,
+        draw_nested: impl FnOnce(&mut Self),
+    ) {
+        match transformation {
+            Transform::Identity => draw_nested(self),
+            Transform::Translate(v) => {
+                self.canvas.save();
+                let d: Vector = v.to_skia();
+                self.canvas.translate(d);
+                draw_nested(self);
+                self.canvas.restore();
+            }
+            Transform::Scale(_, _) => unimplemented!("scale"),
+            Transform::Rotate(_, _) => unimplemented!("rotate"),
+            Transform::Matrix(_) => unimplemented!("matrix"),
+        }
     }
 }
 
