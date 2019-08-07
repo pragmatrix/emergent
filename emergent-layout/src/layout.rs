@@ -227,7 +227,7 @@ impl CompletedAxes {
 #[cfg(test)]
 mod tests {
     use emergent_drawing::functions::*;
-    use emergent_drawing::{Canvas, DrawingCanvas, Radius, RoundedRect};
+    use emergent_drawing::{paint::paint, Canvas, DrawingCanvas, Radius, RoundedRect};
 
     #[test]
     fn draw_circle() {

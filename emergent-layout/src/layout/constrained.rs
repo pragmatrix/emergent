@@ -42,7 +42,7 @@ mod test {
     use crate::constraints::Linear;
     use crate::{layout_and_position, Bound, Constrain, UnimplementedMeasure};
     use emergent_drawing::functions::*;
-    use emergent_drawing::{Canvas, DrawingCanvas, Rect};
+    use emergent_drawing::{paint::paint, Canvas, DrawingCanvas, Rect};
 
     #[test]
     fn test_contrained_layout() {
