@@ -10,6 +10,10 @@ pub struct Circle {
 }
 
 impl Circle {
+    pub const fn new(center: Point, radius: Radius) -> Circle {
+        Circle { center, radius }
+    }
+
     pub fn to_oval(&self) -> Oval {
         let rv = vector(*self.radius, *self.radius);
         Oval(Rect::new(self.center - rv, self.center + rv))

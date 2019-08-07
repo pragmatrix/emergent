@@ -14,7 +14,8 @@ fn test_output_capture_multiline() {
     println!("CAPTURE_ME_LINE2");
 }
 
-mod mod_test {
+#[cfg(test)]
+mod tests {
     use std::env;
 
     #[test]

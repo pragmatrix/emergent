@@ -1,5 +1,7 @@
 use crate::font::Style;
-use crate::{font, scalar, Bounds, Extent, Font, Line, Paint, Point, Rect, Text, Vector};
+use crate::{
+    font, scalar, Bounds, Circle, Extent, Font, Line, Paint, Point, Radius, Rect, Text, Vector,
+};
 
 pub const fn point(x: scalar, y: scalar) -> Point {
     Point::new(x, y)
@@ -32,6 +34,10 @@ pub fn line_h(y: scalar, (x1, x2): (scalar, scalar)) -> Line {
 pub fn rect(p: impl Into<Point>, v: impl Into<Vector>) -> Rect {
     let p = p.into();
     Rect::new(p, p + v.into())
+}
+
+pub fn circle(center: impl Into<Point>, r: impl Into<Radius>) -> Circle {
+    Circle::new(center.into(), r.into())
 }
 
 pub fn font(typeface_name: impl AsRef<str>, size: scalar) -> Font {
