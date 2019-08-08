@@ -101,7 +101,7 @@ impl View<Frame> for App {
             drawings.push(capture.render(&*self.measure_text))
         }
 
-        let drawing = Drawing::stack_v(&*self.measure_text, drawings);
+        let drawing = Drawing::stack_v(drawings, &*self.measure_text);
 
         Frame {
             size: self.window_size,
@@ -114,7 +114,7 @@ impl TestCapture {
     fn render(&self, measure_text: &dyn MeasureText) -> Drawing {
         let header = self.render_header();
         let output = self.render_output();
-        Drawing::stack_v(measure_text, vec![header, output])
+        Drawing::stack_v(vec![header, output], measure_text)
     }
 
     fn render_header(&self) -> Drawing {

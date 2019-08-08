@@ -120,6 +120,36 @@ impl Neg for Vector {
     }
 }
 
+impl Mul for Vector {
+    type Output = Vector;
+    fn mul(mut self, rhs: Vector) -> Self::Output {
+        self *= rhs;
+        self
+    }
+}
+
+impl MulAssign for Vector {
+    fn mul_assign(&mut self, rhs: Vector) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+    }
+}
+
+impl Div for Vector {
+    type Output = Vector;
+    fn div(mut self, rhs: Vector) -> Self::Output {
+        self /= rhs;
+        self
+    }
+}
+
+impl DivAssign for Vector {
+    fn div_assign(&mut self, rhs: Vector) {
+        self.x /= rhs.x;
+        self.y /= rhs.y;
+    }
+}
+
 //
 // Vector <-> scalar
 //

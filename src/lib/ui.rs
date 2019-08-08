@@ -4,7 +4,7 @@ mod tests {
     use emergent_drawing::functions::*;
     use emergent_drawing::{
         font, paint, Color, Drawing, DrawingFastBounds, DrawingTarget, Font, Paint, Point, Rect,
-        Render,
+        Render, Vector,
     };
 
     #[test]
@@ -48,6 +48,32 @@ mod tests {
 
     #[test]
     fn stack_v() {
+        stack_vec(Vector::new(0.0, 1.0));
+    }
+
+    #[test]
+    fn stack_h() {
+        stack_vec(Vector::new(1.0, 0.0));
+    }
+
+    fn stack_vec(v: Vector) {
+        let measure = skia::measure::Measure::new();
+        let stroke_paint_green = paint()
+            .style(paint::Style::Stroke)
+            .color(0xff00ff00)
+            .clone();
+
+        let d1 = hello_world();
+        let d2 = hello_world();
+
+        let mut stacked = Drawing::stack(vec![d1, d2], &measure, v);
+        let stacked_bounds: Rect = (*stacked.fast_bounds(&measure).as_bounds().unwrap()).into();
+        dbg!(&stacked_bounds);
+        stacked.draw(stacked_bounds, &stroke_paint_green);
+        stacked.render()
+    }
+
+    fn hello_world() -> Drawing {
         let measure = skia::measure::Measure::new();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(20.0));
@@ -55,21 +81,8 @@ mod tests {
         let text = text(Point::default(), "Hello World", &font);
         drawing.draw(text, &text_paint);
         let stroke_paint = paint().style(paint::Style::Stroke).clone();
-        let stroke_paint_green = paint()
-            .style(paint::Style::Stroke)
-            .color(0xff00ff00)
-            .clone();
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
         drawing.draw(bounds, &stroke_paint);
-
-        let d1 = drawing.clone();
-        let d2 = drawing.clone();
-
-        let mut stacked = Drawing::stack_v(&measure, vec![d1, d2]);
-        let stacked_bounds: Rect = (*stacked.fast_bounds(&measure).as_bounds().unwrap()).into();
-        dbg!(&stacked_bounds);
-        stacked.draw(stacked_bounds, &stroke_paint_green);
-
-        stacked.render()
+        drawing
     }
 }
