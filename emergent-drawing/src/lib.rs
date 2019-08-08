@@ -77,13 +77,14 @@ impl Canvas<Drawing> for DrawingCanvas {
 mod tests {
     use crate::functions::{point, vector};
     use crate::{
-        paint, BlendMode, Clip, Color, Draw, Drawing, Line, Paint, Point, Rect, Shape, Vector,
+        line::line, paint, BlendMode, Clip, Color, Draw, Drawing, Line, Paint, Point, Rect, Shape,
+        Vector,
     };
 
     #[test]
     fn test_serialize() {
         let shapes = Draw::Shapes(
-            vec![Shape::Line(Line(point(10.0, 1.0), point(11.0, 1.0)))],
+            vec![Shape::Line(line(point(10.0, 1.0), point(11.0, 1.0)))],
             Paint {
                 style: paint::Style::Stroke,
                 color: Color::from(0xff000000),
@@ -99,7 +100,7 @@ mod tests {
 
         let drawing = Draw::Clipped(
             Clip::Rect(Rect::from((point(10.0, 1.0), vector(10.0, 1.0)))),
-            Drawing(vec![shapes]),
+            Drawing::from(vec![shapes]),
         );
 
         println!("{}", serde_json::to_string(&drawing).unwrap());
