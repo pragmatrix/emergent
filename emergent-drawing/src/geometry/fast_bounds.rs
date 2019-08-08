@@ -19,6 +19,16 @@ pub enum DrawingBounds {
     Bounded(Bounds),
 }
 
+impl DrawingBounds {
+    pub fn as_bounds(&self) -> Option<&Bounds> {
+        match self {
+            DrawingBounds::Empty => None,
+            DrawingBounds::Unbounded => None,
+            DrawingBounds::Bounded(b) => Some(b),
+        }
+    }
+}
+
 pub trait FastBounds {
     fn fast_bounds(&self) -> Bounds;
 }

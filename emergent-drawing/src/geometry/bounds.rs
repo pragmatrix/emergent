@@ -1,4 +1,4 @@
-use crate::{scalar, Extent, Outset, Point, Vector};
+use crate::{scalar, Extent, Outset, Point, Rect, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// A rectangle with a positive extent.
