@@ -1,9 +1,6 @@
 #[macro_use]
 extern crate bitflags;
 
-mod canvas;
-pub use canvas::*;
-
 mod drawing;
 pub use drawing::*;
 
@@ -51,25 +48,6 @@ impl Render for Drawing {
         stdout.write(b"> ").unwrap();
         stdout.write_all(rendered.as_bytes()).unwrap();
         stdout.write(b"\n").unwrap();
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct DrawingCanvas(Drawing);
-
-impl DrawingCanvas {
-    pub fn new() -> Self {
-        Self(Drawing::new())
-    }
-
-    pub fn render(&self) {
-        self.0.render()
-    }
-}
-
-impl Canvas<Drawing> for DrawingCanvas {
-    fn target(&mut self) -> &mut Drawing {
-        &mut self.0
     }
 }
 

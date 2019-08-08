@@ -3,17 +3,17 @@ mod tests {
     use crate::skia;
     use emergent_drawing::functions::*;
     use emergent_drawing::{
-        font, paint, Canvas, Color, Drawing, DrawingCanvas, DrawingFastBounds, DrawingTarget, Font,
-        Paint, Point, Rect, Render,
+        font, paint, Color, Drawing, DrawingFastBounds, DrawingTarget, Font, Paint, Point, Rect,
+        Render,
     };
 
     #[test]
     fn draw_circle() {
-        let mut canvas = DrawingCanvas::new();
+        let mut drawing = Drawing::new();
         let mut paint = &mut Paint::default();
         paint.color = Color::from(0xff0000ff);
-        canvas.draw(circle((100, 100), 100), &paint);
-        canvas.render();
+        drawing.draw(circle((100, 100), 100), &paint);
+        drawing.render();
     }
 
     #[test]

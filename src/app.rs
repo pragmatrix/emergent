@@ -5,9 +5,7 @@ use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent_drawing::functions::text;
-use emergent_drawing::{
-    font, Drawing, DrawingFastBounds, DrawingTarget, Font, MeasureText, Paint, Point,
-};
+use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText, Paint, Point};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]

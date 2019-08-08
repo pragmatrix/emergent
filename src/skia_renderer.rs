@@ -8,8 +8,7 @@ use emergent_drawing::{DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
-    font_style, gpu, scalar, BlendMode, Canvas, CanvasPointMode, Color, ColorType, Font, FontStyle,
-    Paint, PaintCap, PaintJoin, PaintStyle, Point, RRect, Rect, Size, Surface, Typeface, Vector,
+    gpu, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Surface, Typeface, Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
