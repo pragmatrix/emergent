@@ -230,7 +230,7 @@ mod tests {
     use emergent_drawing::{paint::paint, Drawing, DrawingTarget, Radius, Render, RoundedRect};
 
     #[test]
-    fn draw_circle() {
+    fn draw_rounded_rect() {
         let mut canvas = Drawing::new();
         let paint = paint().color(0xff0000f0).clone();
         let rect = rect((0, 0), (200, 100));
