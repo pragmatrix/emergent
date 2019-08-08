@@ -1,8 +1,8 @@
-use crate::emergent::Emergent;
+use crate::app::App;
 use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
-use clap::{App, Arg};
-use core::borrow::Borrow;
+use clap::Arg;
+use emergent::skia;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
@@ -10,13 +10,12 @@ use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
 use winit::{Event, EventsLoop, WindowBuilder, WindowEvent};
 
+mod app;
 mod capture;
-mod emergent;
 mod frame;
 mod libtest;
 mod renderer;
-mod skia;
-mod skia_measure;
+mod skia_renderer;
 mod test_runner;
 mod test_watcher;
 
@@ -32,7 +31,7 @@ impl renderer::Window for winit::Window {
 }
 
 fn main() {
-    let matches = App::new("Emergent")
+    let matches = clap::App::new("Emergent")
         .author("Armin Sander")
         .about("A visual testrunner for Rust")
         .arg(
@@ -62,8 +61,8 @@ fn main() {
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
-    let measure = skia_measure::Measure::new();
-    let (emergent, initial_cmd) = Emergent::new(measure, window_size, test_run_request);
+    let measure = skia::measure::Measure::new();
+    let (emergent, initial_cmd) = App::new(measure, window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
     let mut application = Application::new(emergent, executor);
     application.schedule(initial_cmd);
@@ -95,7 +94,7 @@ fn main() {
             let frame_size = frame.size;
             let window_size = render_surface.window().physical_size();
             if frame_size == window_size {
-                let _future = context.render(future, frame_state, drawing_context, frame.borrow());
+                let _future = context.render(future, frame_state, drawing_context, &frame);
             } else {
                 println!(
                     "skipping frame, wrong size, expected {:?}, window: {:?}",
@@ -120,7 +119,7 @@ fn main() {
             ..
         } => {
             let size = window_surface.window().physical_size();
-            mailbox.post(emergent::Event::WindowResized(size));
+            mailbox.post(app::Event::WindowResized(size));
             winit::ControlFlow::Continue
         }
         Event::WindowEvent {

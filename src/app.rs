@@ -16,7 +16,7 @@ pub enum Event {
     WatcherNotification(test_watcher::Notification),
 }
 
-pub struct Emergent {
+pub struct App {
     measure_text: Box<dyn MeasureText + Send>,
     window_size: (u32, u32),
     notification_receiver: Receiver<test_watcher::Notification>,
@@ -24,7 +24,7 @@ pub struct Emergent {
     latest_test_error: Option<String>,
 }
 
-impl Emergent {
+impl App {
     pub fn new(
         measure_text: impl MeasureText + Send + 'static,
         window_size: (u32, u32),
@@ -46,7 +46,7 @@ impl Emergent {
     }
 }
 
-impl Model<Event> for Emergent {
+impl Model<Event> for App {
     fn update(&mut self, event: Event) -> Cmd<Event> {
         dbg!(&event);
         match event {
@@ -60,7 +60,7 @@ impl Model<Event> for Emergent {
     }
 }
 
-impl Emergent {
+impl App {
     fn update_watcher(&mut self, notification: test_watcher::Notification) -> Cmd<Event> {
         match notification {
             Notification::TestRunCompleted(r) => {
@@ -93,7 +93,7 @@ impl Emergent {
     }
 }
 
-impl View<Frame> for Emergent {
+impl View<Frame> for App {
     fn render(&self) -> Frame {
         let mut drawings = Vec::new();
         // TODO: implement Iter in TestCaptures
@@ -126,7 +126,7 @@ impl TestCapture {
         let mut target = Drawing::new();
         let text = text(Point::new(0.0, 20.0), &self.name, header_font);
         let paint = &Paint::default();
-        target.draw(&text.into(), paint);
+        target.draw_shape(&text.into(), paint);
         target
     }
 

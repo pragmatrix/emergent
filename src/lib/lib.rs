@@ -1,6 +1,7 @@
 //! A library that is part of the tests in its role as a "library under test".
 use std::thread::JoinHandle;
 
+pub mod skia;
 mod ui;
 
 #[test]
