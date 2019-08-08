@@ -227,11 +227,11 @@ impl CompletedAxes {
 #[cfg(test)]
 mod tests {
     use emergent_drawing::functions::*;
-    use emergent_drawing::{paint::paint, Canvas, DrawingCanvas, Radius, RoundedRect};
+    use emergent_drawing::{paint::paint, Drawing, DrawingTarget, Radius, Render, RoundedRect};
 
     #[test]
     fn draw_circle() {
-        let mut canvas = DrawingCanvas::new();
+        let mut canvas = Drawing::new();
         let paint = paint().color(0xff0000f0).clone();
         let rect = rect((0, 0), (200, 100));
         canvas.draw(RoundedRect::from((rect, Radius::new(10.0))), &paint);

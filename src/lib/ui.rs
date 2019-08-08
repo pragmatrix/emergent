@@ -30,4 +30,31 @@ mod tests {
 
         drawing.render()
     }
+
+    #[test]
+    fn stack_v() {
+        let measure = skia::measure::Measure::new();
+        let mut drawing = Drawing::new();
+        let font = Font::new("", font::Style::default(), font::Size::new(20.0));
+        let text_paint = paint();
+        let text = text(Point::default(), "Hello World", &font);
+        drawing.draw(text, &text_paint);
+        let stroke_paint = paint().style(paint::Style::Stroke).clone();
+        let stroke_paint_green = paint()
+            .style(paint::Style::Stroke)
+            .color(0xff00ff00)
+            .clone();
+        let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
+        drawing.draw(bounds, &stroke_paint);
+
+        let d1 = drawing.clone();
+        let d2 = drawing.clone();
+
+        let mut stacked = Drawing::stack_v(&measure, vec![d1, d2]);
+        let stacked_bounds: Rect = (*stacked.fast_bounds(&measure).as_bounds().unwrap()).into();
+        dbg!(&stacked_bounds);
+        stacked.draw(stacked_bounds, &stroke_paint_green);
+
+        stacked.render()
+    }
 }

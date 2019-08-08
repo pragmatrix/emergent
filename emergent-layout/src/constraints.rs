@@ -421,7 +421,9 @@ impl Max {
 mod tests {
     use crate::constraints::{place_bounded, Alignment, Linear, Max};
     use crate::finite;
-    use emergent_drawing::{font::font, functions::*, paint::paint, scalar, Canvas, DrawingCanvas};
+    use emergent_drawing::{
+        font::font, functions::*, paint::paint, scalar, Drawing, DrawingTarget, Render,
+    };
 
     #[test]
     fn visualized_constraints() {
@@ -438,7 +440,7 @@ mod tests {
             },
         ];
 
-        let mut canvas = DrawingCanvas::new();
+        let mut canvas = Drawing::new();
         let blue = paint().color(0xff0000ff).clone();
         let green = paint().color(0xff00ff00).clone();
         let red = paint().color(0xffff0000).clone();

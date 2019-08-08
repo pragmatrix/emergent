@@ -42,7 +42,7 @@ mod test {
     use crate::constraints::Linear;
     use crate::{layout_and_position, Bound, Constrain, UnimplementedMeasure};
     use emergent_drawing::functions::*;
-    use emergent_drawing::{paint::paint, Canvas, DrawingCanvas, Rect};
+    use emergent_drawing::{paint::paint, Drawing, DrawingTarget, Rect, Render};
 
     #[test]
     fn test_contrained_layout() {
@@ -61,7 +61,7 @@ mod test {
             Rect::new(point(1.0, 3.0), point(1.0, 3.0) + vector(2.0, 4.0))
         );
 
-        let mut canvas = DrawingCanvas::new();
+        let mut canvas = Drawing::new();
         let paint = paint().color(0xff0000f0).clone();
         canvas.draw(r, &paint);
         canvas.render();
