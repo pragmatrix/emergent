@@ -127,7 +127,7 @@ impl ComplexFastBounds for Shape {
             Shape::Path(p) => p.fast_bounds(),
             Shape::Image(_, _, target) => target.fast_bounds(),
             // TODO: handle empty text?
-            Shape::Text(t) => measure_text.measure_text(&t.text, &t.font),
+            Shape::Text(t) => measure_text.measure_text(&t.text, &t.font) + t.origin.to_vector(),
         }
     }
 }

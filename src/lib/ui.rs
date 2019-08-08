@@ -32,6 +32,21 @@ mod tests {
     }
 
     #[test]
+    fn text_bounds_positioned() {
+        let measure = skia::measure::Measure::new();
+        let mut drawing = Drawing::new();
+        let font = Font::new("", font::Style::default(), font::Size::new(20.0));
+        let text_paint = paint();
+        let text = text((5.0, 5.0), "Hello World", &font);
+        drawing.draw(text, &text_paint);
+        let stroke_paint = paint().style(paint::Style::Stroke).clone();
+        let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
+        drawing.draw(bounds, &stroke_paint);
+
+        drawing.render()
+    }
+
+    #[test]
     fn stack_v() {
         let measure = skia::measure::Measure::new();
         let mut drawing = Drawing::new();
