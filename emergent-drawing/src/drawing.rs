@@ -26,9 +26,9 @@ pub use transform::*;
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Drawing(Vec<Draw>);
 
-impl<I: Iterator<Item = Draw>> From<I> for Drawing {
+impl<I: IntoIterator<Item = Draw>> From<I> for Drawing {
     fn from(v: I) -> Self {
-        Drawing(v.collect())
+        Drawing(v.into_iter().collect())
     }
 }
 

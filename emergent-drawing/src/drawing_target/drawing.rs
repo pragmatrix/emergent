@@ -5,7 +5,7 @@ impl DrawingTarget for Drawing {
         self.push(Draw::Paint(paint.clone(), blend_mode));
     }
 
-    fn draw(&mut self, shape: &Shape, paint: &Paint) {
+    fn draw_shape(&mut self, shape: &Shape, paint: &Paint) {
         match self.last_mut() {
             Some(Draw::Shapes(shapes, p)) if p == paint => {
                 shapes.push(shape.clone());
