@@ -498,6 +498,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "emergent-cache"
+version = "0.1.0"
+
+[[package]]
 name = "emergent-concept"
 version = "0.1.0"
 dependencies = [
@@ -521,10 +525,6 @@ version = "0.1.0"
 dependencies = [
  "emergent-drawing 0.1.0",
 ]
-
-[[package]]
-name = "emergent-producer"
-version = "0.1.0"
 
 [[package]]
 name = "env_logger"
