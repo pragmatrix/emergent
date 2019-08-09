@@ -30,6 +30,7 @@ impl TestRunRequest {
         // build library only for now.
         let compile_filter = ops::CompileFilter::Only {
             all_targets: false,
+            // Prefer to test the library of the package for now only.
             lib: LibRule::True,
             bins: FilterRule::Just(vec![]),
             examples: FilterRule::Just(vec![]),
@@ -38,6 +39,7 @@ impl TestRunRequest {
         };
 
         let mut compile_options = ops::CompileOptions::new(&config, compiler::CompileMode::Test)?;
+        compile_options.build_config.message_format = compiler::MessageFormat::Json;
         compile_options.filter = compile_filter;
 
         let test_options = &ops::TestOptions {
@@ -45,8 +47,6 @@ impl TestRunRequest {
             no_run: false,
             no_fail_fast: false,
         };
-
-        let capture = Capture::stdout();
 
         // we need a very specific set of arguments to make precise capturing of the output work.
         let libtest_args: Vec<&str> = vec![
@@ -59,8 +59,11 @@ impl TestRunRequest {
             "json",
         ];
 
-        let _test_error = ops::run_tests(workspace, test_options, &libtest_args)?;
+        let capture = Capture::stdout();
+        let test_result = ops::run_tests(workspace, test_options, &libtest_args);
         let captured = capture.end();
+
+        println!(">>> TEST RESULT: {:?}", test_result);
         println!(">>> CAPTURED BEGIN");
         println!("{}", String::from_utf8_lossy(&captured));
         println!(">>> CAPTURED END");
