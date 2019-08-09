@@ -224,6 +224,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo_metadata"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "semver 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -479,6 +491,7 @@ version = "0.1.0"
 dependencies = [
  "cargo 0.37.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cargo-watch 7.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cargo_metadata 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "emergent-drawing 0.1.0",
@@ -2176,6 +2189,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum c2-chacha 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7d64d04786e0f528460fc884753cf8dddcc466be308f6026f8e355c41a0e4101"
 "checksum cargo 0.37.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e6924b75f0de3b87ffd13f291224a2eb0f92e961b287d900863fc586f8ecd833"
 "checksum cargo-watch 7.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5295c763619c806f73b742bbd65b914d0bb7878fe23623c0ad300d8c65068b09"
+"checksum cargo_metadata 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5e904f164f39cae0c3a4f2713eb97a47ba64676a071e99a69ddfef4994694d2c"
 "checksum cc 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)" = "ce400c638d48ee0e9ab75aef7997609ec57367ccfe1463f21bf53c3eca67bf46"
 "checksum cexpr 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a7fa24eb00d5ffab90eaeaf1092ac85c04c64aaf358ea6f84505b8116d24c6af"
 "checksum cfg-if 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "b486ce3ccf7ffd79fdeb678eac06a9e6c09fc88d33836340becb8fffe87c5e33"
