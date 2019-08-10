@@ -1,5 +1,4 @@
-use crate::libtest::TestCaptures;
-use crate::test_runner::TestRunRequest;
+use crate::test_runner::{TestRunRequest, TestRunResult};
 use clap::ArgMatches;
 use crossbeam_channel;
 use crossbeam_channel::Sender;
@@ -13,7 +12,7 @@ pub enum Notification {
     /// Stopped
     WatcherStopped(Result<(), failure::Error>),
     /// A test run has been completed.
-    TestRunCompleted(Result<TestCaptures, failure::Error>),
+    TestRunCompleted(Result<TestRunResult, failure::Error>),
 }
 
 /// Begin watching and running tests and send out test captures to the channel given.

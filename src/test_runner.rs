@@ -3,13 +3,20 @@ use crate::libtest::TestCaptures;
 use cargo::core::compiler;
 use cargo::ops;
 use cargo::ops::{FilterRule, LibRule};
+use cargo_metadata::CompilerMessage;
 use std::env;
-use std::io::{Cursor, Write};
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRunRequest {
     pub project_directory: PathBuf,
+}
+
+#[derive(Debug)]
+pub enum TestRunResult {
+    CompilationFailed(Vec<CompilerMessage>, failure::Error),
+    TestsCaptured(Vec<CompilerMessage>, TestCaptures),
 }
 
 impl TestRunRequest {
@@ -21,7 +28,7 @@ impl TestRunRequest {
         }
     }
 
-    pub fn capture_tests(&self) -> Result<TestCaptures, failure::Error> {
+    pub fn capture_tests(&self) -> Result<TestRunResult, failure::Error> {
         let manifest_path = self.project_directory.join("Cargo.toml");
 
         // TODO: verify if this is correct (taken from cargo::Config::new()).
@@ -87,6 +94,8 @@ impl TestRunRequest {
             (test_result, capture.end())
         };
 
+        // TODO: use a log for that
+
         println!(">>> TEST RESULT: {:?}", test_result);
         println!(">>> CAPTURED BEGIN");
         println!("{}", String::from_utf8_lossy(&captured));
@@ -96,11 +105,24 @@ impl TestRunRequest {
 
         // parse messages from cargo:
         let mut iterator = cargo_metadata::parse_messages(cursor);
-        for msg in &mut iterator {
-            match msg {
-                Ok(msg) => println!("CARGO: {:?}", msg),
-                Err(_) => break,
+        let compiler_messages = {
+            let mut messages = Vec::new();
+            for msg in &mut iterator {
+                match msg {
+                    Ok(msg) => {
+                        if let cargo_metadata::Message::CompilerMessage(compiler_message) = msg {
+                            messages.push(compiler_message)
+                        }
+                    }
+                    Err(_) => break,
+                }
             }
+
+            messages
+        };
+
+        if let Err(e) = test_result {
+            return Ok(TestRunResult::CompilationFailed(compiler_messages, e));
         }
 
         // and interpret the rest as test captures.
@@ -109,42 +131,47 @@ impl TestRunRequest {
 
         // TODO: perhaps it's better to separate the compilation of the test code and the running of it?
 
-        // TODO: if the test_result failed (the build), we should probably not continue here.
-        TestCaptures::from_output(Cursor::new(rest))
+        Ok(TestRunResult::TestsCaptured(
+            compiler_messages,
+            TestCaptures::from_output(Cursor::new(rest))?,
+        ))
     }
 }
 
 #[cfg(test)]
 pub mod tests {
     use crate::libtest::{TestCapture, TestResult};
-    use crate::test_runner::TestRunRequest;
+    use crate::test_runner::{TestRunRequest, TestRunResult};
     use std::env;
 
     #[test]
     fn run_tests_self() {
         let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
-        let captures = request.capture_tests().unwrap();
-        println!("captures:\n{:?}", captures);
+        if let TestRunResult::TestsCaptured(_, captures) = request.capture_tests().unwrap() {
+            println!("captures:\n{:?}", captures);
 
-        let captures = captures.0;
+            let captures = captures.0;
 
-        assert!(captures.contains(&TestCapture {
-            name: "test_output_capture".into(),
-            result: TestResult::Ok(),
-            output: "CAPTURE_ME\n".into()
-        }));
+            assert!(captures.contains(&TestCapture {
+                name: "test_output_capture".into(),
+                result: TestResult::Ok(),
+                output: "CAPTURE_ME\n".into()
+            }));
 
-        assert!(captures.contains(&TestCapture {
-            name: "mod_test::test_in_mod_capture".into(),
-            result: TestResult::Ok(),
-            output: "CAPTURE_ME_IN_MOD\n".into()
-        }));
+            assert!(captures.contains(&TestCapture {
+                name: "mod_test::test_in_mod_capture".into(),
+                result: TestResult::Ok(),
+                output: "CAPTURE_ME_IN_MOD\n".into()
+            }));
 
-        assert!(captures.contains(&TestCapture {
-            name: "test_output_capture_multiline".into(),
-            result: TestResult::Ok(),
-            output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
-        }));
+            assert!(captures.contains(&TestCapture {
+                name: "test_output_capture_multiline".into(),
+                result: TestResult::Ok(),
+                output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
+            }));
+        } else {
+            assert!(false);
+        }
     }
 
 }

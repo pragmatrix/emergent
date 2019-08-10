@@ -1,6 +1,6 @@
 use crate::frame::Frame;
 use crate::libtest::{TestCapture, TestCaptures};
-use crate::test_runner::TestRunRequest;
+use crate::test_runner::{TestRunRequest, TestRunResult};
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
@@ -18,7 +18,7 @@ pub struct App {
     measure_text: Box<dyn MeasureText + Send>,
     window_size: (u32, u32),
     notification_receiver: Receiver<test_watcher::Notification>,
-    test_captures: TestCaptures,
+    test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
 }
 
@@ -35,7 +35,7 @@ impl App {
             measure_text: Box::new(measure_text),
             window_size,
             notification_receiver: receiver.clone(),
-            test_captures: TestCaptures::default(),
+            test_run_result: None,
             latest_test_error: None,
         };
 
@@ -63,8 +63,8 @@ impl App {
         match notification {
             Notification::TestRunCompleted(r) => {
                 match r {
-                    Ok(captures) => {
-                        self.test_captures = captures;
+                    Ok(run_result) => {
+                        self.test_run_result = Some(run_result);
                         self.latest_test_error = None;
                     }
                     Err(e) => {
@@ -93,15 +93,29 @@ impl App {
 
 impl View<Frame> for App {
     fn render(&self) -> Frame {
-        let mut drawings = Vec::new();
-        // TODO: implement Iter in TestCaptures
-        for capture in self.test_captures.0.iter() {
-            // TODO: add a nice drawing combinator.
-            // TODO: avoid the access of 0!
-            drawings.push(capture.render(&*self.measure_text))
-        }
+        let test_run_drawings = {
+            let mut drawings = Vec::new();
+            match &self.test_run_result {
+                Some(TestRunResult::TestsCaptured(cm, captures)) => {
+                    println!("COMPILER MSGS: {:?}", cm);
+                    // TODO: implement Iter in TestCaptures
+                    for capture in captures.0.iter() {
+                        // TODO: add a nice drawing combinator.
+                        // TODO: avoid the access of 0!
+                        drawings.push(capture.render(&*self.measure_text))
+                    }
+                    drawings
+                }
+                Some(TestRunResult::CompilationFailed(cm, e)) => {
+                    println!("COMPILATION FAILED: {:?}", e);
+                    println!("COMPILER MSGS: {:?}", cm);
+                    drawings
+                }
+                _ => drawings,
+            }
+        };
 
-        let drawing = Drawing::stack_v(drawings, &*self.measure_text);
+        let drawing = Drawing::stack_v(test_run_drawings, &*self.measure_text);
 
         Frame {
             size: self.window_size,
