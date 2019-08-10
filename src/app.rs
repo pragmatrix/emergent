@@ -4,6 +4,7 @@ use crate::test_runner::{TestRunRequest, TestRunResult};
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
+use emergent::compiler_message::ToDrawing;
 use emergent_drawing::functions::text;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText, Paint, Point};
 use tears::{Cmd, Model, View};
@@ -96,8 +97,11 @@ impl View<Frame> for App {
         let test_run_drawings = {
             let mut drawings = Vec::new();
             match &self.test_run_result {
-                Some(TestRunResult::TestsCaptured(cm, captures)) => {
-                    println!("COMPILER MSGS: {:?}", cm);
+                Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
+                    for cm in compiler_messages {
+                        drawings.push(cm.to_drawing());
+                    }
+
                     // TODO: implement Iter in TestCaptures
                     for capture in captures.0.iter() {
                         // TODO: add a nice drawing combinator.
@@ -106,9 +110,13 @@ impl View<Frame> for App {
                     }
                     drawings
                 }
-                Some(TestRunResult::CompilationFailed(cm, e)) => {
+                Some(TestRunResult::CompilationFailed(compiler_messages, e)) => {
                     println!("COMPILATION FAILED: {:?}", e);
-                    println!("COMPILER MSGS: {:?}", cm);
+                    println!("COMPILER MSGS: {:?}", compiler_messages);
+                    for cm in compiler_messages {
+                        drawings.push(cm.to_drawing());
+                    }
+
                     drawings
                 }
                 _ => drawings,
