@@ -136,7 +136,7 @@ impl TestCapture {
         // is not const_fn.
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut target = Drawing::new();
-        let text = text(Point::new(0.0, 0.0), &self.name, header_font);
+        let text = text(&self.name, header_font, None);
         let paint = &Paint::default();
         target.draw_shape(&text.into(), paint);
         target

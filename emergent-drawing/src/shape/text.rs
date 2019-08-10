@@ -13,8 +13,8 @@ pub struct Text {
     pub font: Font,
 }
 
-pub fn text(origin: impl Into<Point>, text: impl AsRef<str>, font: &Font) -> Text {
-    Text::new(origin.into(), text.as_ref(), font)
+pub fn text(text: impl AsRef<str>, font: &Font, origin: impl Into<Option<Point>>) -> Text {
+    Text::new(origin.into().unwrap_or_default(), text.as_ref(), font)
 }
 
 impl Text {

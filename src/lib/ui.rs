@@ -22,7 +22,7 @@ mod tests {
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(20.0));
         let text_paint = paint();
-        let text = text(Point::default(), "Hello World", &font);
+        let text = text("Hello World", &font, None);
         drawing.draw(text, &text_paint);
         let stroke_paint = paint().style(paint::Style::Stroke).clone();
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
@@ -37,7 +37,7 @@ mod tests {
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(20.0));
         let text_paint = paint();
-        let text = text((5.0, 5.0), "Hello World", &font);
+        let text = text("Hello World", &font, Point::new(5.0, 5.0));
         drawing.draw(text, &text_paint);
         let stroke_paint = paint().style(paint::Style::Stroke).clone();
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
@@ -78,7 +78,7 @@ mod tests {
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(20.0));
         let text_paint = paint();
-        let text = text(Point::default(), "Hello World", &font);
+        let text = text("Hello World", &font, None);
         drawing.draw(text, &text_paint);
         let stroke_paint = paint().style(paint::Style::Stroke).clone();
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
