@@ -30,8 +30,8 @@ pub use rect::*;
 pub(crate) mod rounded_rect;
 pub use rounded_rect::*;
 
-pub(crate) mod text;
-pub use text::*;
+pub mod text;
+pub use text::Text;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Shape {

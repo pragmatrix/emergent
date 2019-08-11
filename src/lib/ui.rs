@@ -3,8 +3,8 @@ mod tests {
     use crate::skia;
     use emergent_drawing::functions::*;
     use emergent_drawing::{
-        font, paint, Color, Drawing, DrawingFastBounds, DrawingTarget, Font, Paint, Point, Rect,
-        Render, Vector,
+        font, paint, text, Drawing, DrawingFastBounds, DrawingTarget, Font, Point, Rect, Render,
+        Vector, RGB,
     };
 
     #[test]
@@ -20,6 +20,25 @@ mod tests {
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(20.0));
         let text = text("Hello World", &font, None);
+        drawing.draw(text, paint());
+        let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
+        drawing.draw(bounds, paint().style(paint::Style::Stroke));
+
+        drawing.render()
+    }
+
+    #[test]
+    fn text_block_bounds() {
+        let measure = skia::measure::Measure::new();
+        let mut drawing = Drawing::new();
+        let font = Font::new("", font::Style::default(), font::Size::new(20.0));
+        let text = text::block(&font, None)
+            .text("Hello Red", 0xff0000.rgb())
+            .text(" ", ())
+            .text("And Green", 0x00ff00.rgb())
+            .eol()
+            .text("And Blue on the next line", 0x0000ff.rgb())
+            .clone();
         drawing.draw(text, paint());
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
         drawing.draw(bounds, paint().style(paint::Style::Stroke));

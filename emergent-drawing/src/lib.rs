@@ -1,3 +1,7 @@
+//! Serializable 2D Graphics Data Structures.
+//!
+//! TODO: remove all impl Into<Option<T>> and replace None with the unit value if possible.
+
 #[macro_use]
 extern crate bitflags;
 
@@ -38,11 +42,11 @@ pub trait Render {
     fn render(&self);
 }
 
-use std::io;
-use std::io::Write;
-
 impl Render for Drawing {
     fn render(&self) {
+        use std::io;
+        use std::io::Write;
+
         let rendered = serde_json::to_string(self).unwrap();
         let mut stdout = io::stdout();
         stdout.write(b"> ").unwrap();
@@ -65,7 +69,7 @@ mod tests {
             vec![Shape::Line(line(point(10.0, 1.0), point(11.0, 1.0)))],
             Paint {
                 style: paint::Style::Stroke,
-                color: Color::from(0xff000000),
+                color: Color::BLACK,
                 stroke_width: 1.0,
                 stroke_miter: 4.0,
                 stroke_cap: paint::StrokeCap::Butt,

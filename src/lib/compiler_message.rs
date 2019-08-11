@@ -9,7 +9,7 @@ pub trait ToDrawing {
 
 impl ToDrawing for CompilerMessage {
     fn to_drawing(&self) -> Drawing {
-        let message = format!("{:?}", self.message);
+        let message = format!("Hello\nSEcond line\nmsg: {:?}", self.message);
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(16.0));
         let text = text(&message, &font, None);

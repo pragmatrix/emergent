@@ -63,6 +63,52 @@ impl From<(f32, f32, f32, f32)> for Color {
     }
 }
 
+// Color Conversions
+
+pub trait ARGB {
+    fn argb(&self) -> Color;
+}
+
+pub trait RGB {
+    fn rgb(&self) -> Color;
+}
+
+pub trait RGBA {
+    fn rgba(&self) -> Color;
+}
+
+// u32
+
+impl ARGB for u32 {
+    fn argb(&self) -> Color {
+        Color::from(*self)
+    }
+}
+
+impl RGB for u32 {
+    fn rgb(&self) -> Color {
+        Color::from(*self & 0xffffff)
+    }
+}
+
+impl ARGB for (f32, f32, f32, f32) {
+    fn argb(&self) -> Color {
+        Color::from((self.1, self.2, self.3, self.0))
+    }
+}
+
+impl RGBA for (f32, f32, f32, f32) {
+    fn rgba(&self) -> Color {
+        Color::from(*self)
+    }
+}
+
+impl RGB for (f32, f32, f32) {
+    fn rgb(&self) -> Color {
+        Color::from((self.0, self.1, self.2, 1.0))
+    }
+}
+
 // A color component.
 //
 // We use the half crate here and want this to be an implementation detail for now.

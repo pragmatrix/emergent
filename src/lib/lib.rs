@@ -1,4 +1,5 @@
-//! A library that is part of the tests in its role as a "library under test".
+//! The library of the emergent testrunner.
+
 use std::thread::JoinHandle;
 
 pub mod compiler_message;

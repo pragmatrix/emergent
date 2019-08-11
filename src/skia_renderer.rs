@@ -4,12 +4,13 @@ use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
 use emergent_drawing as drawing;
+use emergent_drawing::text::With;
 use emergent_drawing::{DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
-    gpu, shaper, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Surface, Typeface,
-    Vector,
+    gpu, shaper, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Shaper, Surface,
+    Typeface, Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
@@ -174,6 +175,7 @@ impl DrawingSurface for skia_safe::Surface {
 
 struct CanvasDrawingTarget<'canvas> {
     canvas: &'canvas mut Canvas,
+    shaper: shaper::Shaper,
     paint: PaintSync,
     font: Option<FontSync>,
 }
@@ -187,48 +189,123 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
         match shape {
             Shape::Point(p) => {
                 self.canvas
-                    .draw_point(p.to_skia(), self.paint.resolve(&paint));
+                    .draw_point(p.to_skia(), self.paint.resolve(paint));
             }
             Shape::Line(drawing::Line { point1, point2 }) => {
                 self.canvas.draw_line(
                     point1.to_skia(),
                     point2.to_skia(),
-                    self.paint.resolve(&paint),
+                    self.paint.resolve(paint),
                 );
             }
             Shape::Polygon(polygon) => {
                 self.canvas.draw_points(
                     CanvasPointMode::Polygon,
                     polygon.points().to_skia().as_slice(),
-                    self.paint.resolve(&paint),
+                    self.paint.resolve(paint),
                 );
             }
             Shape::Rect(rect) => {
                 self.canvas
-                    .draw_rect(rect.to_skia(), self.paint.resolve(&paint));
+                    .draw_rect(rect.to_skia(), self.paint.resolve(paint));
             }
             Shape::Oval(oval) => {
                 self.canvas
-                    .draw_oval(oval.rect().to_skia(), self.paint.resolve(&paint));
+                    .draw_oval(oval.rect().to_skia(), self.paint.resolve(paint));
             }
             Shape::RoundedRect(rounded_rect) => {
                 self.canvas
-                    .draw_rrect(rounded_rect.to_skia(), self.paint.resolve(&paint));
+                    .draw_rrect(rounded_rect.to_skia(), self.paint.resolve(paint));
             }
             Shape::Circle(c) => {
                 self.canvas.draw_circle(
                     c.center.to_skia(),
                     c.radius.to_skia(),
-                    self.paint.resolve(&paint),
+                    self.paint.resolve(paint),
                 );
             }
             Shape::Arc(_) => unimplemented!("arc"),
             Shape::Path(_) => unimplemented!("path"),
             Shape::Image(_, _, _) => unimplemented!("image"),
-            Shape::Text(drawing::Text { origin, text, font }) => {
+            Shape::Text(drawing::Text {
+                text,
+                font,
+                origin,
+                runs,
+            }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
+                let mut origin = (*origin).to_skia();
+                let paint = self.paint.resolve(paint);
+
+                // TODO: shold the case of empty runs be unified somehow?
+                if runs.is_empty() {
+                    draw_text_run(
+                        &self.shaper,
+                        &text,
+                        &font,
+                        origin,
+                        &drawing::text::Run::Text(0..text.len(), drawing::text::properties()),
+                        self.canvas,
+                        paint,
+                    );
+                } else {
+                    for run in runs {
+                        origin = draw_text_run(
+                            &self.shaper,
+                            &text,
+                            &font,
+                            origin,
+                            run,
+                            self.canvas,
+                            paint,
+                        );
+                    }
+                }
+
+                /*
+                                // TBD: specify a proper maximum width here.
+                                let (text_blob, _end_point) = self
+                                    .shaper
+                                    .shape_text_blob(text, font, true, 200.0, Point::default())
+                                    .unwrap();
+
+                                self.canvas.draw_text_blob(
+                                    &text_blob,
+                                    origin.to_skia(),
+                                    self.paint.resolve(&paint),
+                                );
+                */
+                /*
                 self.canvas
                     .draw_str(&text, origin.to_skia(), &font, self.paint.resolve(&paint));
+                    */
+
+                /// Shape and draw a text run.
+                fn draw_text_run(
+                    shaper: &Shaper,
+                    text: &str,
+                    font: &Font,
+                    origin: Point,
+                    run: &drawing::text::Run,
+                    canvas: &mut Canvas,
+                    paint: &Paint,
+                ) -> Point {
+                    match run {
+                        drawing::text::Run::Text(range, properties) => {
+                            let (text_blob, end_point) =
+                                // TODO: support max width, right to left / bidi text..
+                                shaper.shape_text_blob(&text[range.clone()], font, true, std::f32::INFINITY, origin).unwrap();
+                            canvas.draw_text_blob(&text_blob, Point::default(), paint);
+                            end_point
+                        }
+                        drawing::text::Run::EndOfLine => {
+                            dbg!("unimplemented: EndOfLine");
+                            origin
+                        }
+                        drawing::text::Run::Block(_) => unimplemented!("text::Run::Block"),
+                        drawing::text::Run::Drawing(_, _) => unimplemented!("text::Run::Drawing"),
+                    }
+                }
             }
         }
     }
@@ -268,6 +345,7 @@ impl<'a> CanvasDrawingTarget<'a> {
 
         Self {
             canvas,
+            shaper: shaper::Shaper::new(),
             paint: PaintSync::from_paint(drawing_paint),
             font: None,
         }
@@ -291,24 +369,32 @@ impl PaintSync {
     fn from_paint(drawing_paint: drawing::Paint) -> PaintSync {
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
-        PaintSync::apply_paint(&mut paint, &drawing_paint);
+        PaintSync::apply_paint(&mut paint, drawing_paint);
         PaintSync {
             paint,
             drawing_paint,
         }
     }
 
-    fn resolve(&mut self, paint: &drawing::Paint) -> &Paint {
-        if *paint != self.drawing_paint {
+    fn resolve(&mut self, paint: drawing::Paint) -> &Paint {
+        if paint != self.drawing_paint {
             Self::apply_paint(&mut self.paint, paint);
-            self.drawing_paint = paint.clone();
+            self.drawing_paint = paint;
         }
         &self.paint
     }
 
+    fn resolve_text(
+        &mut self,
+        paint: drawing::Paint,
+        properties: drawing::text::Properties,
+    ) -> &Paint {
+        self.resolve(paint.with(properties))
+    }
+
     // defaults are here: https://skia.org/user/api/SkPaint_Reference
     // TODO: resolve the individual defaults and store them locally.
-    fn apply_paint(paint: &mut Paint, dp: &drawing::Paint) {
+    fn apply_paint(paint: &mut Paint, dp: drawing::Paint) {
         // TODO: we _do_ know which values have been changed, so probably we should apply only that.
         paint.set_style(dp.style.to_skia());
         paint.set_color(dp.color.to_skia());

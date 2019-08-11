@@ -91,36 +91,43 @@ impl Paint {
         }
     }
 
+    #[must_use]
     pub fn style(mut self, style: Style) -> Self {
         self.style = style;
         self
     }
 
+    #[must_use]
     pub fn color(mut self, color: impl Into<Color>) -> Self {
         self.color = color.into();
         self
     }
 
+    #[must_use]
     pub fn stroke_width(mut self, width: scalar) -> Self {
         self.stroke_width = width;
         self
     }
 
+    #[must_use]
     pub fn stroke_miter(mut self, miter: scalar) -> Self {
         self.stroke_miter = miter;
         self
     }
 
+    #[must_use]
     pub fn stroke_cap(mut self, cap: StrokeCap) -> Self {
         self.stroke_cap = cap;
         self
     }
 
+    #[must_use]
     pub fn stroke_join(mut self, join: StrokeCap) -> Self {
         self.stroke_cap = join;
         self
     }
 
+    #[must_use]
     pub fn blend_mode(mut self, blend_mode: BlendMode) -> Self {
         self.blend_mode = blend_mode;
         self
