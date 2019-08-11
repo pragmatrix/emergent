@@ -1,6 +1,4 @@
-use crate::{
-    Bounds, DrawingBounds, DrawingFastBounds, DrawingTarget, MeasureText, Point, Shape, Vector,
-};
+use crate::{DrawingBounds, DrawingFastBounds, MeasureText, Point, Shape, Vector};
 use serde::{Deserialize, Serialize};
 
 mod blend_mode;
