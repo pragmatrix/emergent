@@ -228,7 +228,7 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Shape::Text(drawing::Text { origin, text, font }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
                 self.canvas
-                    .draw_str(&text, origin.to_skia(), &font, self.paint.resolve(paint));
+                    .draw_str(&text, origin.to_skia(), &font, self.paint.resolve(&paint));
             }
         }
     }

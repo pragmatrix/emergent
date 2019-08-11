@@ -1,12 +1,13 @@
 use crate::{
-    Arc, Bounds, Circle, Clip, Draw, Drawing, Extent, Font, Line, Outset, Oval, Point, Polygon,
-    Rect, RoundedRect, Shape,
+    Arc, Bounds, Circle, Clip, Draw, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
+    RoundedRect, Shape, Text,
 };
 
 pub trait MeasureText {
-    // Measure the given text resulting a bounds relative to it's baseline starting point
-    // positioned at 0,0.
-    fn measure_text(&self, str: &str, font: &Font) -> Bounds;
+    /// Measure the given text bounds.
+    ///
+    /// The returned bounds are returned so that position 0,0 is the text's baseline starting point.
+    fn measure_text(&self, text: &Text) -> Bounds;
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -127,7 +128,7 @@ impl ComplexFastBounds for Shape {
             Shape::Path(p) => p.fast_bounds(),
             Shape::Image(_, _, target) => target.fast_bounds(),
             // TODO: handle empty text?
-            Shape::Text(t) => measure_text.measure_text(&t.text, &t.font) + t.origin.to_vector(),
+            Shape::Text(text) => measure_text.measure_text(&text),
         }
     }
 }
