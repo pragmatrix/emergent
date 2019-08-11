@@ -28,8 +28,8 @@ crossbeam-channel = "0.3.8"
 
 # skia
 
-skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan"] }
-skia-bindings = {path = "rust-skia/skia-bindings", features = ["vulkan"] }
+skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "shaper"] }
+skia-bindings = {path = "rust-skia/skia-bindings", features = ["vulkan", "shaper"] }
 
 # window & rendering
 
