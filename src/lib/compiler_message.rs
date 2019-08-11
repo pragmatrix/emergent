@@ -13,8 +13,7 @@ impl ToDrawing for CompilerMessage {
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(16.0));
         let text = text(&message, &font, None);
-        let paint = paint();
-        drawing.draw(text, &paint);
+        drawing.draw(text, paint());
         drawing
     }
 }

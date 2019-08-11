@@ -1,8 +1,12 @@
 use crate::{scalar, BlendMode, Color, Outset};
 use serde::{Deserialize, Serialize};
 
+// Decided to make Paint a value by implementing Copy. The compiler will
+// be able to optimize a lot of copies away and users of this API won't have to
+// think about references and cloning anymore. Another strong indicator for making
+// paint a value type is that there seems to be no need to modify it in place.
 // ref: https://skia.org/user/api/SkPaint_Reference
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Paint {
     #[serde(
         skip_serializing_if = "Paint::is_style_default",
@@ -87,37 +91,37 @@ impl Paint {
         }
     }
 
-    pub fn style(&mut self, style: Style) -> &mut Self {
+    pub fn style(mut self, style: Style) -> Self {
         self.style = style;
         self
     }
 
-    pub fn color(&mut self, color: impl Into<Color>) -> &mut Self {
+    pub fn color(mut self, color: impl Into<Color>) -> Self {
         self.color = color.into();
         self
     }
 
-    pub fn stroke_width(&mut self, width: scalar) -> &mut Self {
+    pub fn stroke_width(mut self, width: scalar) -> Self {
         self.stroke_width = width;
         self
     }
 
-    pub fn stroke_miter(&mut self, miter: scalar) -> &mut Self {
+    pub fn stroke_miter(mut self, miter: scalar) -> Self {
         self.stroke_miter = miter;
         self
     }
 
-    pub fn stroke_cap(&mut self, cap: StrokeCap) -> &mut Self {
+    pub fn stroke_cap(mut self, cap: StrokeCap) -> Self {
         self.stroke_cap = cap;
         self
     }
 
-    pub fn stroke_join(&mut self, join: StrokeCap) -> &mut Self {
+    pub fn stroke_join(mut self, join: StrokeCap) -> Self {
         self.stroke_cap = join;
         self
     }
 
-    pub fn blend_mode(&mut self, blend_mode: BlendMode) -> &mut Self {
+    pub fn blend_mode(mut self, blend_mode: BlendMode) -> Self {
         self.blend_mode = blend_mode;
         self
     }

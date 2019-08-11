@@ -1,16 +1,16 @@
 use crate::{BlendMode, Clip, Draw, Drawing, DrawingTarget, Paint, Shape, Transform};
 
 impl DrawingTarget for Drawing {
-    fn fill(&mut self, paint: &Paint, blend_mode: BlendMode) {
-        self.push(Draw::Paint(paint.clone(), blend_mode));
+    fn fill(&mut self, paint: Paint, blend_mode: BlendMode) {
+        self.push(Draw::Paint(paint, blend_mode));
     }
 
-    fn draw_shape(&mut self, shape: &Shape, paint: &Paint) {
+    fn draw_shape(&mut self, shape: &Shape, paint: Paint) {
         match self.last_mut() {
-            Some(Draw::Shapes(shapes, p)) if p == paint => {
+            Some(Draw::Shapes(shapes, p)) if *p == paint => {
                 shapes.push(shape.clone());
             }
-            _ => self.push(Draw::Shapes(vec![shape.clone()], paint.clone())),
+            _ => self.push(Draw::Shapes(vec![shape.clone()], paint)),
         }
     }
 

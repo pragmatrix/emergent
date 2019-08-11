@@ -24,7 +24,7 @@ mod tests {
         let text_paint = paint();
         let text = text("Hello World", &font, None);
         drawing.draw(text, &text_paint);
-        let stroke_paint = paint().style(paint::Style::Stroke).clone();
+        let stroke_paint = paint().style(paint::Style::Stroke);
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
         drawing.draw(bounds, &stroke_paint);
 
@@ -39,7 +39,7 @@ mod tests {
         let text_paint = paint();
         let text = text("Hello World", &font, Point::new(5.0, 5.0));
         drawing.draw(text, &text_paint);
-        let stroke_paint = paint().style(paint::Style::Stroke).clone();
+        let stroke_paint = paint().style(paint::Style::Stroke);
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
         drawing.draw(bounds, &stroke_paint);
 
@@ -58,10 +58,7 @@ mod tests {
 
     fn stack_vec(v: Vector) {
         let measure = skia::measure::Measure::new();
-        let stroke_paint_green = paint()
-            .style(paint::Style::Stroke)
-            .color(0xff00ff00)
-            .clone();
+        let stroke_paint_green = paint().style(paint::Style::Stroke).color(0xff00ff00);
 
         let d1 = hello_world();
         let d2 = hello_world();
@@ -80,7 +77,7 @@ mod tests {
         let text_paint = paint();
         let text = text("Hello World", &font, None);
         drawing.draw(text, &text_paint);
-        let stroke_paint = paint().style(paint::Style::Stroke).clone();
+        let stroke_paint = paint().style(paint::Style::Stroke);
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
         drawing.draw(bounds, &stroke_paint);
         drawing

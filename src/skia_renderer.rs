@@ -8,7 +8,8 @@ use emergent_drawing::{DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
-    gpu, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Surface, Typeface, Vector,
+    gpu, shaper, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Surface, Typeface,
+    Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
@@ -178,47 +179,47 @@ struct CanvasDrawingTarget<'canvas> {
 }
 
 impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
-    fn fill(&mut self, _paint: &drawing::Paint, _blend_mode: drawing::BlendMode) {
+    fn fill(&mut self, _paint: drawing::Paint, _blend_mode: drawing::BlendMode) {
         unimplemented!("fill")
     }
 
-    fn draw_shape(&mut self, shape: &drawing::Shape, paint: &drawing::Paint) {
+    fn draw_shape(&mut self, shape: &drawing::Shape, paint: drawing::Paint) {
         match shape {
             Shape::Point(p) => {
                 self.canvas
-                    .draw_point(p.to_skia(), self.paint.resolve(paint));
+                    .draw_point(p.to_skia(), self.paint.resolve(&paint));
             }
             Shape::Line(drawing::Line { point1, point2 }) => {
                 self.canvas.draw_line(
                     point1.to_skia(),
                     point2.to_skia(),
-                    self.paint.resolve(paint),
+                    self.paint.resolve(&paint),
                 );
             }
             Shape::Polygon(polygon) => {
                 self.canvas.draw_points(
                     CanvasPointMode::Polygon,
                     polygon.points().to_skia().as_slice(),
-                    self.paint.resolve(paint),
+                    self.paint.resolve(&paint),
                 );
             }
             Shape::Rect(rect) => {
                 self.canvas
-                    .draw_rect(rect.to_skia(), self.paint.resolve(paint));
+                    .draw_rect(rect.to_skia(), self.paint.resolve(&paint));
             }
             Shape::Oval(oval) => {
                 self.canvas
-                    .draw_oval(oval.rect().to_skia(), self.paint.resolve(paint));
+                    .draw_oval(oval.rect().to_skia(), self.paint.resolve(&paint));
             }
             Shape::RoundedRect(rounded_rect) => {
                 self.canvas
-                    .draw_rrect(rounded_rect.to_skia(), self.paint.resolve(paint));
+                    .draw_rrect(rounded_rect.to_skia(), self.paint.resolve(&paint));
             }
             Shape::Circle(c) => {
                 self.canvas.draw_circle(
                     c.center.to_skia(),
                     c.radius.to_skia(),
-                    self.paint.resolve(paint),
+                    self.paint.resolve(&paint),
                 );
             }
             Shape::Arc(_) => unimplemented!("arc"),

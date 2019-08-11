@@ -5,7 +5,7 @@ use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
-use emergent_drawing::functions::text;
+use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText, Paint, Point};
 use tears::{Cmd, Model, View};
 
@@ -145,8 +145,7 @@ impl TestCapture {
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut target = Drawing::new();
         let text = text(&self.name, header_font, None);
-        let paint = &Paint::default();
-        target.draw_shape(&text.into(), paint);
+        target.draw_shape(&text.into(), paint());
         target
     }
 

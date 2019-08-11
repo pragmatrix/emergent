@@ -441,15 +441,15 @@ mod tests {
         ];
 
         let mut canvas = Drawing::new();
-        let blue = paint().color(0xff0000ff).clone();
-        let green = paint().color(0xff00ff00).clone();
-        let red = paint().color(0xffff0000).clone();
-        let light_grey = paint().color(0xffd0d0d0).clone();
+        let blue = paint().color(0xff0000ff);
+        let green = paint().color(0xff00ff00);
+        let red = paint().color(0xffff0000);
+        let light_grey = paint().color(0xffd0d0d0);
 
         let left = 0.0;
 
-        let grey = paint().color(0xff808080).clone();
-        let black = paint().clone();
+        let grey = paint().color(0xff808080);
+        let black = paint();
 
         let v_spacing = 8.0;
         let box_height = 16.0;
