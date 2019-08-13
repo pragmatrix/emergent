@@ -3,6 +3,7 @@ use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
 use emergent::skia;
+use skia_safe::icu;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
@@ -40,6 +41,9 @@ fn main() {
                 .index(1),
         )
         .get_matches();
+
+    /// Init text shaping ICU support.
+    icu::init();
 
     let project_path = {
         let provided = matches.value_of("PATH").map(|p| path::PathBuf::from(p));
