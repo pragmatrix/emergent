@@ -1,6 +1,6 @@
 use crate::{
     Arc, Bounds, Circle, Clip, Draw, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
-    RoundedRect, Shape, Text,
+    RoundedRect, Shape, Text, Union,
 };
 
 pub trait MeasureText {
@@ -10,7 +10,11 @@ pub trait MeasureText {
     fn measure_text(&self, text: &Text) -> Bounds;
 }
 
-#[derive(Clone, PartialEq, Debug)]
+/// Combinable bounds that support the explicit  states empty and unbounded.
+///
+/// `DrawingBounds::Empty` denotes empty bounds that have no location.
+/// `DrawingBounds::Unbounded` represents an unclipped, infinite bound.
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum DrawingBounds {
     /// Nothing to be drawn.
     Empty,
@@ -182,18 +186,6 @@ impl DrawingBounds {
         }
     }
 
-    pub fn union(a: &DrawingBounds, b: &DrawingBounds) -> DrawingBounds {
-        match (a, b) {
-            (DrawingBounds::Empty, b) => b.clone(),
-            (a, DrawingBounds::Empty) => a.clone(),
-            (DrawingBounds::Unbounded, _) => DrawingBounds::Unbounded,
-            (_, DrawingBounds::Unbounded) => DrawingBounds::Unbounded,
-            (DrawingBounds::Bounded(a), DrawingBounds::Bounded(b)) => {
-                DrawingBounds::Bounded(Bounds::union(&a, &b))
-            }
-        }
-    }
-
     pub fn intersect(a: &DrawingBounds, b: &DrawingBounds) -> DrawingBounds {
         match (a, b) {
             (DrawingBounds::Empty, _) => DrawingBounds::Empty,
@@ -211,6 +203,20 @@ impl DrawingBounds {
 
     pub fn union_all(it: impl IntoIterator<Item = DrawingBounds>) -> DrawingBounds {
         it.into_iter()
-            .fold(DrawingBounds::Empty, |a, b| DrawingBounds::union(&a, &b))
+            .fold(DrawingBounds::Empty, DrawingBounds::union)
+    }
+}
+
+impl Union for DrawingBounds {
+    fn union(a: Self, b: Self) -> Self {
+        match (a, b) {
+            (DrawingBounds::Empty, b) => b.clone(),
+            (a, DrawingBounds::Empty) => a.clone(),
+            (DrawingBounds::Unbounded, _) => DrawingBounds::Unbounded,
+            (_, DrawingBounds::Unbounded) => DrawingBounds::Unbounded,
+            (DrawingBounds::Bounded(a), DrawingBounds::Bounded(b)) => {
+                DrawingBounds::Bounded(Bounds::union(a, b))
+            }
+        }
     }
 }

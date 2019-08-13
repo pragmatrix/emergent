@@ -30,3 +30,21 @@ pub use radius::*;
 
 pub(crate) mod vector;
 pub use vector::*;
+
+pub trait Union: Sized {
+    fn union(this: Self, other: Self) -> Self;
+}
+
+impl<T> Union for Option<T>
+where
+    T: Union,
+{
+    fn union(this: Self, other: Self) -> Self {
+        match (this, other) {
+            (None, None) => None,
+            (Some(this), None) => Some(this),
+            (None, Some(other)) => Some(other),
+            (Some(this), Some(other)) => Some(T::union(this, other)),
+        }
+    }
+}

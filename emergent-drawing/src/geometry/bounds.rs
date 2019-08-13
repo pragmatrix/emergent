@@ -1,4 +1,4 @@
-use crate::{scalar, Extent, Outset, Point, Vector};
+use crate::{scalar, Extent, Outset, Point, Union, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// A rectangle with a positive extent.
@@ -115,18 +115,6 @@ impl Bounds {
         }
     }
 
-    /// Returns the union of two bounds.
-    pub fn union(a: &Bounds, b: &Bounds) -> Bounds {
-        let left = a.left().min(b.left());
-        let top = a.top().min(b.top());
-        let right = a.right().max(b.right());
-        let bottom = a.bottom().max(b.bottom());
-        Self::new(
-            Point::new(left, top),
-            Extent::new(right - left, bottom - top),
-        )
-    }
-
     /// Returns the intersection of two bounds.
     ///
     /// None if they don't intersect.
@@ -143,6 +131,20 @@ impl Bounds {
         } else {
             None
         }
+    }
+}
+
+impl Union for Bounds {
+    /// Returns the union of two bounds.
+    fn union(a: Self, b: Self) -> Self {
+        let left = a.left().min(b.left());
+        let top = a.top().min(b.top());
+        let right = a.right().max(b.right());
+        let bottom = a.bottom().max(b.bottom());
+        Self::new(
+            Point::new(left, top),
+            Extent::new(right - left, bottom - top),
+        )
     }
 }
 
