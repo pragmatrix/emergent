@@ -5,7 +5,7 @@ use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
-use emergent_drawing::{DrawTo, Shape, Transform};
+use emergent_drawing::{text, DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
@@ -234,78 +234,17 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
                 runs,
             }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
-                let mut origin = (*origin).to_skia();
-                let paint = self.paint.resolve(paint);
 
-                // TODO: shold the case of empty runs be unified somehow?
-                if runs.is_empty() {
-                    draw_text_run(
-                        &self.shaper,
-                        &text,
-                        &font,
-                        origin,
-                        &drawing::text::Run::Text(0..text.len(), drawing::text::properties()),
-                        self.canvas,
-                        paint,
-                    );
-                } else {
-                    for run in runs {
-                        origin = draw_text_run(
-                            &self.shaper,
-                            &text,
-                            &font,
-                            origin,
-                            run,
-                            self.canvas,
-                            paint,
-                        );
-                    }
-                }
-
-                /*
-                                // TBD: specify a proper maximum width here.
-                                let (text_blob, _end_point) = self
-                                    .shaper
-                                    .shape_text_blob(text, font, true, 200.0, Point::default())
-                                    .unwrap();
-
-                                self.canvas.draw_text_blob(
-                                    &text_blob,
-                                    origin.to_skia(),
-                                    self.paint.resolve(&paint),
-                                );
-                */
-                /*
-                self.canvas
-                    .draw_str(&text, origin.to_skia(), &font, self.paint.resolve(&paint));
-                    */
-
-                /// Shape and draw a text run.
-                fn draw_text_run(
-                    shaper: &Shaper,
-                    text: &str,
-                    font: &Font,
-                    origin: Point,
-                    run: &drawing::text::Run,
-                    canvas: &mut Canvas,
-                    paint: &Paint,
-                ) -> Point {
-                    match run {
-                        drawing::text::Run::Text(range, properties) => {
-                            let (text_blob, end_point) =
-                                // TODO: support max width, right to left / bidi text..
-                                shaper.shape_text_blob(&text[range.clone()], font, true, std::f32::INFINITY, origin).unwrap();
-                            canvas.draw_text_blob(&text_blob, Point::default(), paint);
-                            end_point
-                        }
-                        drawing::text::Run::EndOfLine => {
-                            dbg!("unimplemented: EndOfLine");
-                            origin
-                        }
-                        drawing::text::Run::Block(_) => unimplemented!("text::Run::Block"),
-                        drawing::text::Run::Drawing(_, _) => unimplemented!("text::Run::Drawing"),
-                    }
-                }
+                draw_text_runs(
+                    &self.shaper,
+                    text,
+                    font,
+                    *origin,
+                    runs,
+                    paint,
+                    &mut self.paint,
+                    &mut self.canvas,
+                )
             }
         }
     }
@@ -332,6 +271,66 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Transform::Rotate(_, _) => unimplemented!("rotate"),
             Transform::Matrix(_) => unimplemented!("matrix"),
         }
+    }
+}
+
+fn draw_text_runs(
+    shaper: &Shaper,
+    text: &str,
+    font: &Font,
+    origin: drawing::Point,
+    runs: &[drawing::text::Run],
+    paint: drawing::Paint,
+    paint_sync: &mut PaintSync,
+    canvas: &mut Canvas,
+) {
+    // TODO: should we even support empty runs?
+    if runs.is_empty() {
+        draw_text_run(
+            shaper,
+            &text,
+            &font,
+            origin.to_skia(),
+            &drawing::text::Run::Text(0..text.len(), drawing::text::properties()),
+            paint,
+            paint_sync,
+            canvas,
+        );
+    } else {
+        let mut origin = origin.to_skia();
+        for run in runs {
+            origin = draw_text_run(shaper, &text, &font, origin, run, paint, paint_sync, canvas);
+        }
+    }
+}
+
+/// Shape and draw a text run.
+fn draw_text_run(
+    shaper: &Shaper,
+    text: &str,
+    font: &Font,
+    origin: Point,
+    run: &drawing::text::Run,
+    paint: drawing::Paint,
+    paint_sync: &mut PaintSync,
+    canvas: &mut Canvas,
+) -> Point {
+    match run {
+        drawing::text::Run::Text(range, properties) => {
+            let paint = paint_sync.resolve(paint.with(*properties));
+
+            let (text_blob, end_point) =
+                // TODO: support max width, right to left / bidi text..
+                shaper.shape_text_blob(&text[range.clone()], font, true, std::f32::INFINITY, origin).unwrap();
+            canvas.draw_text_blob(&text_blob, Point::default(), paint);
+            end_point
+        }
+        drawing::text::Run::EndOfLine => {
+            dbg!("unimplemented: EndOfLine");
+            origin
+        }
+        drawing::text::Run::Block(_) => unimplemented!("text::Run::Block"),
+        drawing::text::Run::Drawing(_, _) => unimplemented!("text::Run::Drawing"),
     }
 }
 
@@ -382,14 +381,6 @@ impl PaintSync {
             self.drawing_paint = paint;
         }
         &self.paint
-    }
-
-    fn resolve_text(
-        &mut self,
-        paint: drawing::Paint,
-        properties: drawing::text::Properties,
-    ) -> &Paint {
-        self.resolve(paint.with(properties))
     }
 
     // defaults are here: https://skia.org/user/api/SkPaint_Reference
