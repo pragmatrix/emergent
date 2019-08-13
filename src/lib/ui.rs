@@ -16,15 +16,7 @@ mod tests {
 
     #[test]
     fn text_bounds() {
-        let measure = skia::measure::Measure::new();
-        let mut drawing = Drawing::new();
-        let font = Font::new("", font::Style::default(), font::Size::new(14.0));
-        let text = text("Bounds around Text", &font, None);
-        drawing.draw(text, paint());
-        let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
-        drawing.draw(bounds, paint().style(paint::Style::Stroke));
-
-        drawing.render()
+        bounds_around_text("Bounds around Text").render()
     }
 
     #[test]
@@ -79,8 +71,8 @@ mod tests {
         let measure = skia::measure::Measure::new();
         let stroke_paint_green = paint().style(paint::Style::Stroke).color(0xff00ff00);
 
-        let d1 = bounds_around_text();
-        let d2 = bounds_around_text();
+        let d1 = bounds_around_text("Bounds around Text");
+        let d2 = bounds_around_text("Bounds around Text");
 
         let mut stacked = Drawing::stack(vec![d1, d2], &measure, v);
         let stacked_bounds: Rect = (*stacked.fast_bounds(&measure).as_bounds().unwrap()).into();
@@ -89,14 +81,19 @@ mod tests {
         stacked.render()
     }
 
-    fn bounds_around_text() -> Drawing {
+    fn bounds_around_text(txt: &str) -> Drawing {
         let measure = skia::measure::Measure::new();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
-        let text = text("Bounds around Text", &font, None);
+        let text = text(txt, &font, None);
         drawing.draw(text, paint());
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
         drawing.draw(bounds, paint().style(paint::Style::Stroke));
         drawing
+    }
+
+    #[test]
+    fn complex_text_layout() {
+        bounds_around_text("The word العربية al-arabiyyah.").render()
     }
 }
