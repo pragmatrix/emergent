@@ -5,7 +5,7 @@ use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
-use emergent_drawing::{text, DrawTo, Shape, Transform};
+use emergent_drawing::{DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
@@ -48,7 +48,7 @@ impl<W: Window> RenderContext<W> {
     }
 
     #[inline(never)]
-    pub fn new_skia_context(&self) -> Option<gpu::Context> {
+    pub fn new_skia_backend(&self) -> Option<Backend> {
         let get_proc = |gpo| match self.get_proc(gpo) {
             Some(f) => f as _,
             None => {
@@ -59,7 +59,7 @@ impl<W: Window> RenderContext<W> {
         };
 
         let backend_context = new_backend_context(&get_proc, &self);
-        gpu::Context::new_vulkan(&backend_context)
+        gpu::Context::new_vulkan(&backend_context).map(Backend::from_context)
     }
 }
 
@@ -87,11 +87,24 @@ fn new_backend_context<'lt, W: Window, GP: vk::GetProc>(
     }
 }
 
+/// The Skia backend.
+pub struct Backend {
+    context: gpu::Context,
+    shaper: Shaper,
+}
+
+impl Backend {
+    pub fn from_context(context: gpu::Context) -> Self {
+        let shaper = Shaper::new();
+        Backend { context, shaper }
+    }
+}
+
 //
 // DrawingBackend and other Traits to make Skia accessible to the renderer.
 //
 
-impl DrawingBackend for gpu::Context {
+impl DrawingBackend for Backend {
     type Surface = skia_safe::Surface;
 
     fn new_surface_from_framebuffer(
@@ -137,7 +150,7 @@ impl DrawingBackend for gpu::Context {
         );
 
         Surface::from_backend_render_target(
-            self,
+            &mut self.context,
             render_target,
             gpu::SurfaceOrigin::TopLeft,
             color_type,
@@ -146,11 +159,9 @@ impl DrawingBackend for gpu::Context {
         )
         .unwrap()
     }
-}
 
-impl DrawingSurface for skia_safe::Surface {
-    fn draw(&mut self, frame: &Frame) {
-        let canvas = self.canvas();
+    fn draw(&self, frame: &Frame, surface: &mut Surface) {
+        let canvas = surface.canvas();
         canvas.clear(Color::WHITE);
 
         // let matrix44la = look_at((0.3, 0.5, 1.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0));
@@ -166,16 +177,18 @@ impl DrawingSurface for skia_safe::Surface {
         view.apply_to_canvas(canvas.borrow_mut());
         canvas.scale((2.0, 2.0));
 
-        let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas);
+        let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas, &self.shaper);
         frame.drawing.draw_to(drawing_target);
 
-        self.flush();
+        surface.flush();
     }
 }
 
-struct CanvasDrawingTarget<'canvas> {
-    canvas: &'canvas mut Canvas,
-    shaper: shaper::Shaper,
+impl DrawingSurface for skia_safe::Surface {}
+
+struct CanvasDrawingTarget<'a> {
+    canvas: &'a mut Canvas,
+    shaper: &'a shaper::Shaper,
     paint: PaintSync,
     font: Option<FontSync>,
 }
@@ -339,12 +352,12 @@ impl<'a> CanvasDrawingTarget<'a> {
         &mut self.canvas
     }
 
-    fn from_canvas(canvas: &'a mut Canvas) -> Self {
+    fn from_canvas(canvas: &'a mut Canvas, shaper: &'a Shaper) -> Self {
         let drawing_paint = drawing::Paint::default();
 
         Self {
             canvas,
-            shaper: shaper::Shaper::new(),
+            shaper,
             paint: PaintSync::from_paint(drawing_paint),
             font: None,
         }

@@ -83,7 +83,7 @@ fn main() {
         let (context, mut frame_state) =
             renderer::create_context_and_frame_state(instance, render_surface.clone());
         let frame_state = &mut frame_state;
-        let drawing_context = &mut context.new_skia_context().unwrap();
+        let drawing_backend = &mut context.new_skia_backend().unwrap();
         let mut future: Box<dyn GpuFuture> = Box::new(sync::now(context.device.clone()));
 
         loop {
@@ -98,7 +98,7 @@ fn main() {
             let frame_size = frame.size;
             let window_size = render_surface.window().physical_size();
             if frame_size == window_size {
-                let _future = context.render(future, frame_state, drawing_context, &frame);
+                let _future = context.render(future, frame_state, drawing_backend, &frame);
             } else {
                 println!(
                     "skipping frame, wrong size, expected {:?}, window: {:?}",

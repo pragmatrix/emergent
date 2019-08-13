@@ -36,9 +36,7 @@ pub struct FrameState<W: Window> {
     framebuffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
 }
 
-pub trait DrawingSurface {
-    fn draw(&mut self, frame: &Frame);
-}
+pub trait DrawingSurface {}
 
 pub trait DrawingBackend {
     type Surface: DrawingSurface;
@@ -48,6 +46,9 @@ pub trait DrawingBackend {
         &mut self,
         framebuffer: &Arc<dyn FramebufferAbstract + Send + Sync>,
     ) -> Self::Surface;
+
+    /// Draws a frame on the Surface.
+    fn draw(&self, frame: &Frame, surface: &mut Self::Surface);
 }
 
 pub trait Window: Send + Sync + 'static {
@@ -327,7 +328,7 @@ impl<W: Window> RenderContext<W> {
 
         {
             let mut surface = drawing_backend.new_surface_from_framebuffer(framebuffer);
-            surface.draw(frame);
+            drawing_backend.draw(frame, &mut surface);
         }
 
         self.present(frame_state, image_num)
