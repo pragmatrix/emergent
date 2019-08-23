@@ -1,29 +1,27 @@
 use crate::{Color, Drawing, Font, Paint, Point};
 use serde::{Deserialize, Serialize};
 use serde_tuple::*;
-use std::ops::Range;
 
 /// Text, described by a, the font, and an origin.
 ///
 /// The origin is treated as the starting point on baseline where the text
 /// will be rendered.
-// TODO: can we share fonts?
 #[derive(Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Debug)]
 pub struct Text {
-    pub text: String,
     pub font: Font,
     pub origin: Point,
     pub runs: Vec<Run>,
 }
 
 pub fn text(text: impl AsRef<str>, font: &Font, origin: impl Into<Option<Point>>) -> Text {
-    Text::new(text.as_ref(), font, origin.into().unwrap_or_default())
+    let mut t = Text::new(font, origin.into().unwrap_or_default());
+    t.text(text, ());
+    t
 }
 
 impl Text {
-    pub fn new(text: &str, font: &Font, origin: Point) -> Self {
+    pub fn new(font: &Font, origin: Point) -> Self {
         Text {
-            text: String::from(text),
             font: font.clone(),
             origin,
             runs: Vec::new(),
@@ -37,9 +35,7 @@ impl Text {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Run {
     /// Draw Text with the given properties.
-    Text(Range<usize>, Properties),
-    /// A newline.
-    EndOfLine,
+    Text(String, Properties),
 
     /// Another text block. This can be used to render text on the same baseline
     /// with other fonts.
@@ -53,7 +49,6 @@ pub enum Run {
 /// Creates a new block of text.
 pub fn block(font: &Font, origin: impl Into<Option<Point>>) -> Text {
     Text {
-        text: String::new(),
         runs: Vec::new(),
         font: font.clone(),
         origin: origin.into().unwrap_or_default(),
@@ -61,19 +56,11 @@ pub fn block(font: &Font, origin: impl Into<Option<Point>>) -> Text {
 }
 
 impl Text {
-    /// Add a text run with the given paint.
+    /// Add a text run with the given properties.
     pub fn text(&mut self, text: impl AsRef<str>, properties: impl Into<Properties>) -> &mut Self {
         let text = text.as_ref();
-        let start = self.text.len();
-        self.text.push_str(text);
         self.runs
-            .push(Run::Text(start..self.text.len(), properties.into()));
-        self
-    }
-
-    /// Indicate the end of the current line.
-    pub fn eol(&mut self) -> &mut Self {
-        self.runs.push(Run::EndOfLine);
+            .push(Run::Text(String::from(text), properties.into()));
         self
     }
 }

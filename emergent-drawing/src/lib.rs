@@ -58,10 +58,7 @@ impl Render for Drawing {
 #[cfg(test)]
 mod tests {
     use crate::functions::{point, vector};
-    use crate::{
-        line::line, paint, BlendMode, Clip, Color, Draw, Drawing, Line, Paint, Point, Rect, Shape,
-        Vector,
-    };
+    use crate::{line::line, paint, BlendMode, Clip, Color, Draw, Drawing, Paint, Rect, Shape};
 
     #[test]
     fn test_serialize() {

@@ -33,6 +33,11 @@ pub use vector::*;
 
 pub trait Union: Sized {
     fn union(this: Self, other: Self) -> Self;
+
+    #[must_use]
+    fn union_with(self, other: Self) -> Self {
+        Self::union(self, other)
+    }
 }
 
 impl<T> Union for Option<T>

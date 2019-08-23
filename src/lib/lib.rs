@@ -3,6 +3,10 @@
 use std::thread::JoinHandle;
 
 pub mod compiler_message;
+
+mod line_breaking;
+pub use line_breaking::*;
+
 pub mod skia;
 mod ui;
 

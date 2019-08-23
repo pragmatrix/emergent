@@ -21,7 +21,7 @@ mod tests {
 
     #[test]
     fn text_block_bounds() {
-        let measure = skia::measure::Measure::new();
+        let measure = skia::text::SimpleText::new();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text::block(&font, None)
@@ -29,8 +29,7 @@ mod tests {
             .text(" ", ())
             .text("green", 0x00ff00.rgb())
             .text(" ", ())
-            .text("on the first line", Color::BLACK)
-            .eol()
+            .text("on the first line\n", Color::BLACK)
             .text("and blue on the second line", 0x0000ff.rgb())
             .clone();
         drawing.draw(text, paint());
@@ -42,7 +41,7 @@ mod tests {
 
     #[test]
     fn text_bounds_positioned() {
-        let measure = skia::measure::Measure::new();
+        let measure = skia::text::SimpleText::new();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text(
@@ -68,7 +67,7 @@ mod tests {
     }
 
     fn stack_vec(v: Vector) {
-        let measure = skia::measure::Measure::new();
+        let measure = skia::text::SimpleText::new();
         let stroke_paint_green = paint().style(paint::Style::Stroke).color(0xff00ff00);
 
         let d1 = bounds_around_text("Bounds around Text");
@@ -82,7 +81,7 @@ mod tests {
     }
 
     fn bounds_around_text(txt: &str) -> Drawing {
-        let measure = skia::measure::Measure::new();
+        let measure = skia::text::SimpleText::new();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text(txt, &font, None);

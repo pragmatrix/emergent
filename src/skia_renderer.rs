@@ -3,6 +3,7 @@ use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
+use emergent::text_as_lines;
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{DrawTo, Shape, Transform};
@@ -118,10 +119,9 @@ impl DrawingBackend for Backend {
         let format = image_access.format();
 
         let (vk_format, color_type) = match format {
-            vulkano::format::Format::B8G8R8A8Unorm => (
-                skia_bindings::VkFormat::VK_FORMAT_B8G8R8A8_UNORM,
-                ColorType::BGRA8888,
-            ),
+            vulkano::format::Format::B8G8R8A8Unorm => {
+                (vk::Format::B8G8R8A8_UNORM, ColorType::BGRA8888)
+            }
             _ => panic!("unsupported color format {:?}", format),
         };
 
@@ -134,10 +134,11 @@ impl DrawingBackend for Backend {
             vk::ImageInfo::from_image(
                 image_object as _,
                 alloc,
-                skia_bindings::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
-                skia_bindings::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                vk::ImageTiling::OPTIMAL,
+                vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
                 vk_format,
                 1,
+                None,
                 None,
                 None,
             )
@@ -240,17 +241,11 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Shape::Arc(_) => unimplemented!("arc"),
             Shape::Path(_) => unimplemented!("path"),
             Shape::Image(_, _, _) => unimplemented!("image"),
-            Shape::Text(drawing::Text {
-                text,
-                font,
-                origin,
-                runs,
-            }) => {
+            Shape::Text(drawing::Text { font, origin, runs }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
 
                 draw_text_runs(
                     &self.shaper,
-                    text,
                     font,
                     *origin,
                     runs,
@@ -289,7 +284,6 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
 
 fn draw_text_runs(
     shaper: &Shaper,
-    text: &str,
     font: &Font,
     origin: drawing::Point,
     runs: &[drawing::text::Run],
@@ -297,26 +291,40 @@ fn draw_text_runs(
     paint_sync: &mut PaintSync,
     canvas: &mut Canvas,
 ) {
-    // TODO: should we even support empty runs?
-    if runs.is_empty() {
-        draw_text_run(
-            shaper,
-            &text,
-            &font,
-            origin.to_skia(),
-            &drawing::text::Run::Text(0..text.len(), drawing::text::properties()),
-            paint,
-            paint_sync,
-            canvas,
-        );
-    } else {
-        let mut origin = origin.to_skia();
-        for run in runs {
-            origin = draw_text_run(shaper, &text, &font, origin, run, paint, paint_sync, canvas);
-        }
+    let mut origin = origin.to_skia();
+    for run in runs {
+        origin = draw_text_run(shaper, &font, origin, run, paint, paint_sync, canvas);
     }
 }
 
+fn draw_text_run(
+    shaper: &Shaper,
+    font: &Font,
+    origin: Point,
+    run: &drawing::text::Run,
+    paint: drawing::Paint,
+    paint_sync: &mut PaintSync,
+    canvas: &mut Canvas,
+) -> Point {
+    use drawing::text::Run;
+
+    let line_spacing = font.spacing();
+
+    match run {
+        Run::Text(s, properties) => {
+            for (i, line) in text_as_lines(&s).enumerate() {
+                let line_offset = Vector::new(0.0, line_spacing * i as skia_safe::scalar);
+                let paint = paint_sync.resolve(paint.with(*properties));
+                canvas.draw_str(line, origin + line_offset, font, &paint);
+            }
+            origin
+        }
+        Run::Block(_) => unimplemented!(),
+        Run::Drawing(_, _) => unimplemented!(),
+    }
+}
+
+/*
 /// Shape and draw a text run.
 fn draw_text_run(
     shaper: &Shaper,
@@ -346,6 +354,8 @@ fn draw_text_run(
         drawing::text::Run::Drawing(_, _) => unimplemented!("text::Run::Drawing"),
     }
 }
+
+*/
 
 impl<'a> CanvasDrawingTarget<'a> {
     fn _canvas(&mut self) -> &mut Canvas {

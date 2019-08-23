@@ -3,7 +3,11 @@ use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
 use emergent::skia;
-use skia_safe::icu;
+use emergent::skia::convert::ToSkia;
+use emergent::skia::text::MeasureWithShaper;
+use emergent_drawing::functions;
+use emergent_drawing::{font, Font, MeasureText};
+use skia_safe::{icu, Typeface};
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
@@ -31,6 +35,25 @@ impl renderer::Window for winit::Window {
     }
 }
 
+// TODO: add a bench for this!
+fn main_perf() {
+    icu::init();
+
+    let measure = skia::text::SimpleText::new();
+
+    let font = Font::new("", font::Style::default(), font::Size::new(20.0));
+    let text = functions::text("Hello World", &font, None);
+
+    let font = &text.font;
+    let typeface =
+        Typeface::from_name(&font.name, font.style.to_skia()).expect("failed to resolve typeface");
+    let font = skia_safe::Font::from_typeface(&typeface, *font.size as f32);
+
+    for i in 0..20000 {
+        measure.measure_text(&text);
+    }
+}
+
 fn main() {
     let matches = clap::App::new("Emergent")
         .author("Armin Sander")
@@ -42,7 +65,7 @@ fn main() {
         )
         .get_matches();
 
-    /// Init text shaping ICU support.
+    // Init text shaping ICU support.
     icu::init();
 
     let project_path = {
@@ -65,7 +88,7 @@ fn main() {
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
-    let measure = skia::measure::Measure::new();
+    let measure = skia::text::SimpleText::new();
     let (emergent, initial_cmd) = App::new(measure, window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
     let mut application = Application::new(emergent, executor);

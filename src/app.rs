@@ -1,12 +1,12 @@
 use crate::frame::Frame;
-use crate::libtest::{TestCapture, TestCaptures};
+use crate::libtest::TestCapture;
 use crate::test_runner::{TestRunRequest, TestRunResult};
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent_drawing::functions::{paint, text};
-use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText, Paint, Point};
+use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
