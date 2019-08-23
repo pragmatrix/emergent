@@ -244,10 +244,12 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Shape::Text(drawing::Text { font, origin, runs }) => {
                 let font = FontSync::resolve_opt(&mut self.font, font);
 
+                let origin = TextOrigin::new(*origin);
+
                 draw_text_runs(
                     &self.shaper,
                     font,
-                    *origin,
+                    origin,
                     runs,
                     paint,
                     &mut self.paint,
@@ -282,16 +284,34 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+struct TextOrigin {
+    /// Origin of the textbox.
+    origin: drawing::Point,
+    /// The beginning of the current line and advance relative to the origin.
+    advance: drawing::Vector,
+}
+
+impl TextOrigin {
+    pub fn new(origin: drawing::Point) -> TextOrigin {
+        let advance = Default::default();
+        TextOrigin { origin, advance }
+    }
+
+    pub fn point(&self) -> drawing::Point {
+        self.origin + self.advance
+    }
+}
+
 fn draw_text_runs(
     shaper: &Shaper,
     font: &Font,
-    origin: drawing::Point,
+    mut origin: TextOrigin,
     runs: &[drawing::text::Run],
     paint: drawing::Paint,
     paint_sync: &mut PaintSync,
     canvas: &mut Canvas,
 ) {
-    let mut origin = origin.to_skia();
     for run in runs {
         origin = draw_text_run(shaper, &font, origin, run, paint, paint_sync, canvas);
     }
@@ -300,24 +320,36 @@ fn draw_text_runs(
 fn draw_text_run(
     shaper: &Shaper,
     font: &Font,
-    origin: Point,
+    origin: TextOrigin,
     run: &drawing::text::Run,
     paint: drawing::Paint,
     paint_sync: &mut PaintSync,
     canvas: &mut Canvas,
-) -> Point {
+) -> TextOrigin {
     use drawing::text::Run;
 
-    let line_spacing = font.spacing();
+    let line_spacing = font.spacing() as drawing::scalar;
+
+    let mut current = origin;
 
     match run {
         Run::Text(s, properties) => {
+            let mut last_line_advance = 0.0;
             for (i, line) in text_as_lines(&s).enumerate() {
-                let line_offset = Vector::new(0.0, line_spacing * i as skia_safe::scalar);
+                if i != 0 {
+                    // add a newline: update the current line advance and reset x advance to zero.
+                    current.advance = drawing::Vector::new(
+                        0.0,
+                        origin.advance.y + line_spacing * i as drawing::scalar,
+                    )
+                }
                 let paint = paint_sync.resolve(paint.with(*properties));
-                canvas.draw_str(line, origin + line_offset, font, &paint);
+                // TODO: we only need that for the last line.
+                last_line_advance = font.measure_str(line, None).0 as drawing::scalar;
+                canvas.draw_str(line, current.point().to_skia(), font, &paint);
             }
-            origin
+            current.advance += drawing::Vector::new(last_line_advance, 0.0);
+            current
         }
         Run::Block(_) => unimplemented!(),
         Run::Drawing(_, _) => unimplemented!(),
