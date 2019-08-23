@@ -42,7 +42,6 @@ impl SimpleText {
     ) -> (TextOrigin, Bounds) {
         use drawing::text::Run::*;
         let (line_spacing, metrics) = font.metrics();
-        dbg!(&metrics);
         let line_spacing = line_spacing as drawing::scalar;
         match run {
             Text(str, _) => {
@@ -55,7 +54,7 @@ impl SimpleText {
                     }
                     let (advance, rect) = font.measure_str(line, None);
                     let width = rect.width();
-                    // top & bottom are taken from the font metrics.
+                    // top & height are taken from the font metrics.
                     let bounds = bounds(
                         (
                             rect.left as drawing::scalar,
