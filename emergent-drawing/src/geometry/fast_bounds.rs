@@ -10,10 +10,10 @@ pub trait MeasureText {
     fn measure_text(&self, text: &Text) -> Bounds;
 }
 
-/// Combinable bounds that support the explicit  states empty and unbounded.
+/// Joinable bounding rectangle that support the explicit states empty and unbounded.
 ///
-/// `DrawingBounds::Empty` denotes empty bounds that have no location.
-/// `DrawingBounds::Unbounded` represents an unclipped, infinite bound.
+/// `DrawingBounds::Empty` denotes empty bounds.
+/// `DrawingBounds::Unbounded` represents an infinite bound.
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum DrawingBounds {
     /// Nothing to be drawn.

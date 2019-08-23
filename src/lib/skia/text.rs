@@ -1,6 +1,5 @@
 use super::convert::ToSkia;
-use crate::text_as_lines;
-use crate::TextOrigin;
+use crate::{text_as_lines, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, Text, Union};
