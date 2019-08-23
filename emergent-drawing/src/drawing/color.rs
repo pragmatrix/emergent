@@ -87,7 +87,7 @@ impl ARGB for u32 {
 
 impl RGB for u32 {
     fn rgb(&self) -> Color {
-        Color::from(*self & 0xffffff | 0xff000000)
+        Color::from(*self | 0xff000000)
     }
 }
 
