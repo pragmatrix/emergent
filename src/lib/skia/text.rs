@@ -41,24 +41,34 @@ impl SimpleText {
         mut origin: TextOrigin,
     ) -> (TextOrigin, Bounds) {
         use drawing::text::Run::*;
-        let line_spacing = font.spacing() as drawing::scalar;
+        let (line_spacing, metrics) = font.metrics();
+        dbg!(&metrics);
+        let line_spacing = line_spacing as drawing::scalar;
         match run {
             Text(str, _) => {
                 let mut combined = None;
                 let mut last_line_advance = 0.0;
+
                 for (i, line) in text_as_lines(str).enumerate() {
                     if i != 0 {
                         origin.newline(line_spacing)
                     }
                     let (advance, rect) = font.measure_str(line, None);
-                    last_line_advance = advance as drawing::scalar;
-                    let (width, height) = (rect.size().width, rect.size().height);
+                    let width = rect.width();
+                    // top & bottom are taken from the font metrics.
                     let bounds = bounds(
-                        (rect.left as drawing::scalar, rect.top as drawing::scalar),
-                        (width as drawing::scalar, height as drawing::scalar),
+                        (
+                            rect.left as drawing::scalar,
+                            metrics.ascent as drawing::scalar,
+                        ),
+                        (
+                            width as drawing::scalar,
+                            (-metrics.ascent + metrics.descent) as drawing::scalar,
+                        ),
                     ) + origin.point().to_vector();
 
                     combined = combined.union_with(Some(bounds));
+                    last_line_advance = advance as drawing::scalar;
                 }
 
                 origin.advance(last_line_advance);
