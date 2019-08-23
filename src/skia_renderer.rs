@@ -334,7 +334,7 @@ fn draw_text_run(
 
     match run {
         Run::Text(s, properties) => {
-            let mut last_line_advance = 0.0;
+            let mut last_line = None;
             for (i, line) in text_as_lines(&s).enumerate() {
                 if i != 0 {
                     // add a newline: update the current line advance and reset x advance to zero.
@@ -344,11 +344,15 @@ fn draw_text_run(
                     )
                 }
                 let paint = paint_sync.resolve(paint.with(*properties));
-                // TODO: we only need that for the last line.
-                last_line_advance = font.measure_str(line, None).0 as drawing::scalar;
+                last_line = Some(line);
                 canvas.draw_str(line, current.point().to_skia(), font, &paint);
             }
-            current.advance += drawing::Vector::new(last_line_advance, 0.0);
+
+            if let Some(last_line) = last_line {
+                let last_line_advance = font.measure_str(last_line, None).0 as drawing::scalar;
+                current.advance += drawing::Vector::new(last_line_advance, 0.0);
+            };
+
             current
         }
         Run::Block(_) => unimplemented!(),
