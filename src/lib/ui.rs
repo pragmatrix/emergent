@@ -20,7 +20,7 @@ mod tests {
     }
 
     #[test]
-    fn text_block_bounds() {
+    fn text_multiline_block_bounds() {
         let measure = skia::text::SimpleText::new();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
@@ -31,6 +31,25 @@ mod tests {
             .text(" ", ())
             .text("on the first line\n", Color::BLACK)
             .text("and blue on the second line", 0x0000ff.rgb())
+            .clone();
+        drawing.draw(text, paint());
+        let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
+        drawing.draw(bounds, paint().style(paint::Style::Stroke));
+
+        drawing.render()
+    }
+
+    #[test]
+    fn text_run_bounds() {
+        let measure = skia::text::SimpleText::new();
+        let mut drawing = Drawing::new();
+        let font = Font::new("", font::Style::default(), font::Size::new(14.0));
+        let text = text::block(&font, None)
+            .text("red", 0xff0000.rgb())
+            .text(" ", ())
+            .text("green", 0x00ff00.rgb())
+            .text(" ", ())
+            .text("blue", 0x0000ff.rgb())
             .clone();
         drawing.draw(text, paint());
         let bounds: Rect = (*drawing.fast_bounds(&measure).as_bounds().unwrap()).into();
