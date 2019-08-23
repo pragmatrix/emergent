@@ -1,11 +1,12 @@
 use super::convert::ToSkia;
 use crate::text_as_lines;
+use crate::TextOrigin;
 use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, Text, Union};
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
 
-/// Simple measurement and text rendering.
+// Simple measurement and text rendering.
 pub struct SimpleText;
 
 impl SimpleText {
@@ -21,9 +22,11 @@ impl drawing::MeasureText for SimpleText {
             .expect("failed to resolve typeface");
         let font = Font::from_typeface(&typeface, *font.size as f32);
 
+        let mut origin = TextOrigin::new(text.origin);
         let mut combined = None;
         for run in &text.runs {
-            let bounds = self.measure_run(run, &font, text.origin);
+            let (new_origin, bounds) = self.measure_run(run, &font, origin);
+            origin = new_origin;
             combined = combined.union_with(Some(bounds));
         }
         combined.expect("empty text")
@@ -31,29 +34,36 @@ impl drawing::MeasureText for SimpleText {
 }
 
 impl SimpleText {
-    fn measure_run(&self, run: &drawing::text::Run, font: &Font, origin: drawing::Point) -> Bounds {
+    fn measure_run(
+        &self,
+        run: &drawing::text::Run,
+        font: &Font,
+        mut origin: TextOrigin,
+    ) -> (TextOrigin, Bounds) {
         use drawing::text::Run::*;
         let line_spacing = font.spacing() as drawing::scalar;
         match run {
             Text(str, _) => {
                 let mut combined = None;
+                let mut last_line_advance = 0.0;
                 for (i, line) in text_as_lines(str).enumerate() {
-                    let line_offset =
-                        drawing::Vector::new(0.0, line_spacing * (i as drawing::scalar));
+                    if i != 0 {
+                        origin.newline(line_spacing)
+                    }
                     let (advance, rect) = font.measure_str(line, None);
+                    last_line_advance = advance as drawing::scalar;
                     let (width, height) = (rect.size().width, rect.size().height);
-                    let (_, bounds) = (
-                        advance,
-                        bounds(
-                            (rect.left as drawing::scalar, rect.top as drawing::scalar),
-                            (width as drawing::scalar, height as drawing::scalar),
-                        ) + origin.to_vector()
-                            + line_offset,
-                    );
+                    let bounds = bounds(
+                        (rect.left as drawing::scalar, rect.top as drawing::scalar),
+                        (width as drawing::scalar, height as drawing::scalar),
+                    ) + origin.point().to_vector();
 
                     combined = combined.union_with(Some(bounds));
                 }
-                combined.expect("empty run")
+
+                origin.advance(last_line_advance);
+
+                (origin, combined.expect("empty run"))
             }
             Block(_) => unimplemented!(),
             Drawing(_, _) => unimplemented!(),
@@ -117,7 +127,7 @@ fn measure_text_run(
     run: &drawing::text::Run,
 ) -> (Option<drawing::Bounds>, Point) {
     match run {
-        drawing::text::Run::Text(text, properties) => {
+        drawing::text::Run::Text(text, _properties) => {
             let (text_blob, end_point) =
                 // TODO: support max width, right to left / bidi text..
                 shaper.shape_text_blob(text, font, true, 100000.0, origin).unwrap();

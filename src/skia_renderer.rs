@@ -3,7 +3,7 @@ use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
-use emergent::text_as_lines;
+use emergent::{text_as_lines, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{DrawTo, Shape, Transform};
@@ -284,25 +284,6 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-struct TextOrigin {
-    /// Origin of the textbox.
-    origin: drawing::Point,
-    /// The beginning of the current line and advance relative to the origin.
-    advance: drawing::Vector,
-}
-
-impl TextOrigin {
-    pub fn new(origin: drawing::Point) -> TextOrigin {
-        let advance = Default::default();
-        TextOrigin { origin, advance }
-    }
-
-    pub fn point(&self) -> drawing::Point {
-        self.origin + self.advance
-    }
-}
-
 fn draw_text_runs(
     shaper: &Shaper,
     font: &Font,
@@ -337,11 +318,7 @@ fn draw_text_run(
             let mut last_line = None;
             for (i, line) in text_as_lines(&s).enumerate() {
                 if i != 0 {
-                    // add a newline: update the current line advance and reset x advance to zero.
-                    current.advance = drawing::Vector::new(
-                        0.0,
-                        origin.advance.y + line_spacing * i as drawing::scalar,
-                    )
+                    current.newline(line_spacing);
                 }
                 let paint = paint_sync.resolve(paint.with(*properties));
                 last_line = Some(line);
@@ -350,7 +327,7 @@ fn draw_text_run(
 
             if let Some(last_line) = last_line {
                 let last_line_advance = font.measure_str(last_line, None).0 as drawing::scalar;
-                current.advance += drawing::Vector::new(last_line_advance, 0.0);
+                current.advance(last_line_advance);
             };
 
             current

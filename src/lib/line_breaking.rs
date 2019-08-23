@@ -1,5 +1,6 @@
 //! Line breaking algorithms.
 
+use emergent_drawing::{scalar, Point, Vector};
 use std::iter;
 
 /// Breaks a string into lines by splitting at \n characters.
@@ -33,6 +34,41 @@ pub fn text_as_lines(text: &str) -> impl Iterator<Item = &str> {
     };
 
     iter::from_fn(f)
+}
+
+/// Representation of a text origin position.
+///
+/// Useful when drawing lines.
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct TextOrigin {
+    /// Origin of the textbox.
+    origin: Point,
+
+    /// The offset from the origin to the point to draw.
+    advance: Vector,
+}
+
+impl TextOrigin {
+    pub fn new(origin: Point) -> TextOrigin {
+        TextOrigin {
+            origin,
+            advance: Vector::default(),
+        }
+    }
+
+    pub fn point(&self) -> Point {
+        self.origin + self.advance
+    }
+
+    /// Add a newline: reset horizontal advance and move one line down.
+    pub fn newline(&mut self, line_spacing: scalar) {
+        self.advance = Vector::new(0.0, self.advance.y + line_spacing)
+    }
+
+    /// Add horizontal advance.
+    pub fn advance(&mut self, advance: scalar) {
+        self.advance.x += advance
+    }
 }
 
 #[cfg(test)]
