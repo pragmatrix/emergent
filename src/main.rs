@@ -37,25 +37,6 @@ impl renderer::Window for winit::Window {
     }
 }
 
-// TODO: add a bench for this!
-fn main_perf() {
-    icu::init();
-
-    let measure = skia::text::SimpleText::new();
-
-    let font = Font::new("", font::Style::default(), font::Size::new(20.0));
-    let text = functions::text("Hello World", &font, None);
-
-    let font = &text.font;
-    let typeface =
-        Typeface::from_name(&font.name, font.style.to_skia()).expect("failed to resolve typeface");
-    let font = skia_safe::Font::from_typeface(&typeface, *font.size as f32);
-
-    for i in 0..20000 {
-        measure.measure_text(&text);
-    }
-}
-
 fn main() {
     // TODO: push logs internally as soon the window is open?
     env_logger::init();
@@ -158,11 +139,30 @@ fn main() {
             event: WindowEvent::CloseRequested,
             ..
         } => {
-            dbg!("close requested");
+            info!("close requested");
             winit::ControlFlow::Break
         }
         _ => winit::ControlFlow::Continue,
     });
 
-    dbg!("events loop out");
+    info!("events loop out");
+}
+
+// TODO: add a bench for this!
+fn shaper_perf() {
+    icu::init();
+
+    let measure = skia::text::SimpleText::new();
+
+    let font = Font::new("", font::Style::default(), font::Size::new(20.0));
+    let text = functions::text("Hello World", &font, None);
+
+    let font = &text.font;
+    let typeface =
+        Typeface::from_name(&font.name, font.style.to_skia()).expect("failed to resolve typeface");
+    let font = skia_safe::Font::from_typeface(&typeface, *font.size as f32);
+
+    for i in 0..20000 {
+        measure.measure_text(&text);
+    }
 }
