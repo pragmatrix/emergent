@@ -77,6 +77,22 @@ pub trait RGBA {
     fn rgba(&self) -> Color;
 }
 
+// u8
+
+impl RGB for (u8, u8, u8) {
+    fn rgb(&self) -> Color {
+        (0xff, self.0, self.1, self.2).argb()
+    }
+}
+
+impl ARGB for (u8, u8, u8, u8) {
+    fn argb(&self) -> Color {
+        Color::from(
+            (self.0 as u32) << 24 | (self.1 as u32) << 16 | (self.2 as u32) << 8 | self.3 as u32,
+        )
+    }
+}
+
 // u32
 
 impl ARGB for u32 {
