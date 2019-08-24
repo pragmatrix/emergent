@@ -5,19 +5,25 @@ use crate::index;
 use crate::term::color;
 use std::io;
 
+/// Attributes for a span of text.
 #[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
 pub struct Attributes {
+    /// Terminal color index.
     pub color: Option<u8>,
+    /// Render in bold?
     pub bold: bool,
 }
 
+/// Attributed text resulting from interpreting ANSI terminal escape sequences.
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct AttributedText {
+    /// The string.
     pub text: String,
+    /// Attributes of the text.
     pub attributes: Attributes,
 }
 
-/// Runs the input string through the ansi terminal and returns spans of colored text.
+/// Processes the input string with an ANSI terminal parser and returns spans of attributed text.
 pub fn attribute_str(input: &str) -> Vec<AttributedText> {
     if !input.is_ascii() {
         warn!("input is not ascii: {}", &input);
@@ -25,6 +31,7 @@ pub fn attribute_str(input: &str) -> Vec<AttributedText> {
     attribute_bytes(input.as_bytes())
 }
 
+/// Processes the bytes with an ANSI terminal parser and returns spans of attributed text.
 pub fn attribute_bytes(bytes: &[u8]) -> Vec<AttributedText> {
     let mut handler = TextAttributeHandler::default();
     let mut processor = ansi::Processor::new();
@@ -52,7 +59,6 @@ impl ansi::Handler for TextAttributeHandler {
         self.add_char('\n');
     }
 
-    /// set a terminal attribute
     fn terminal_attribute(&mut self, attr: ansi::Attr) {
         use ansi::Attr::*;
 

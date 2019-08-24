@@ -1,4 +1,4 @@
-//! A crate the implements terminal related features that are used in the emergent project.
+//! A package the implements terminal related features that are used in the emergent project.
 //!
 //! Most of it was taken from the
 //! Alacritty project rev 629ea247cdccc33c6df0037f357ba9be48c7178d and slightly modified.
