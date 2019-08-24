@@ -1,26 +1,61 @@
 //! Rendering of compiler messages.
 
 use cargo_metadata::CompilerMessage;
-use emergent_drawing::{font, functions::*, Drawing, DrawingTarget, Font};
+use emergent_drawing::{font, functions::*, Drawing, DrawingTarget, Font, Paint, Render};
+use emergent_terminal::color_formatter;
 
 pub trait ToDrawing {
     fn to_drawing(&self) -> Drawing;
 }
 
+struct ANSIString(Vec<u8>);
+
+impl ANSIString {
+    pub fn from_str(str: &str) -> Option<ANSIString> {
+        if str.is_ascii() {
+            Some(ANSIString(str.as_bytes().iter().copied().collect()))
+        } else {
+            None
+        }
+    }
+}
+
+impl ToDrawing for ANSIString {
+    fn to_drawing(&self) -> Drawing {
+        let mut drawing = Drawing::new();
+
+        // TODO: probably need a concept for a default font?
+        let font = Font::new("Fira Code", font::Style::default(), font::Size::new(11.0));
+
+        let mut block = text_block(&font, None);
+
+        for colored_text in color_formatter::format_bytes(&self.0) {
+            block.text(colored_text.text, ());
+        }
+
+        drawing.draw(block, Paint::default());
+        drawing
+    }
+}
+
 impl ToDrawing for CompilerMessage {
     fn to_drawing(&self) -> Drawing {
         let mut drawing = Drawing::new();
-        let msg = match &self.message.rendered {
-            Some(rendered) => &rendered,
+        match &self.message.rendered {
+            Some(rendered) => {
+                let ansi = ANSIString::from_str(rendered).unwrap();
+                ansi.to_drawing()
+            }
             // TODO: test non-rendered messages (are there any?)
-            None => &self.message.message,
-        };
-
-        // TODO: find some way to define font families and select proper default fonts for each platform.
-        let font = Font::new("Fira Code", font::Style::default(), font::Size::new(14.0));
-        let text = text(&msg, &font, None);
-        drawing.draw(text, paint());
-        drawing
+            None => {
+                let msg = &self.message.message;
+                // TODO: find some way to define font families and select proper default fonts for each platform.
+                let font = Font::new("Fira Code", font::Style::default(), font::Size::new(11.0));
+                let text = text(&msg, &font, None);
+                drawing.draw(text, paint());
+                drawing
+            }
+        }
     }
 }
 
