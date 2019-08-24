@@ -14,7 +14,8 @@ members = [
   "emergent-cache",
   "emergent-drawing",
   "emergent-layout", 
-  "emergent-concept"
+  "emergent-concept",
+  "emergent-terminal"
 ]
 
 [dependencies]
