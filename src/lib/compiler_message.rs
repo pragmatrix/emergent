@@ -1,8 +1,11 @@
 //! Rendering of compiler messages.
 
 use cargo_metadata::CompilerMessage;
-use emergent_drawing::{font, functions::*, Drawing, DrawingTarget, Font, Paint, Render};
-use emergent_terminal::color_formatter;
+use emergent_drawing::{
+    font, functions::*, Color, Drawing, DrawingTarget, Font, Paint, Render, RGB,
+};
+use emergent_terminal::term;
+use emergent_terminal::text_attributor;
 
 pub trait ToDrawing {
     fn to_drawing(&self) -> Drawing;
@@ -29,8 +32,19 @@ impl ToDrawing for ANSIString {
 
         let mut block = text_block(&font, None);
 
-        for colored_text in color_formatter::format_bytes(&self.0) {
-            block.text(colored_text.text, ());
+        let indexed_colors = term::color::List::from(&emergent_terminal::config::Colors::default());
+f
+        for colored_text in text_attributor::attribute_bytes(&self.0) {
+            let color = {
+                match colored_text.attributes.color {
+                    Some(index) => {
+                        let term_color = indexed_colors[index];
+                        (term_color.r, term_color.g, term_color.b).rgb()
+                    }
+                    None => Color::BLACK,
+                }
+            };
+            block.text(colored_text.text, color);
         }
 
         drawing.draw(block, Paint::default());
