@@ -28,7 +28,7 @@ crossbeam-channel = "0.3.8"
 
 # skia
 
-skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "textlayout"] }
+skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "shaper"] }
 
 # window & rendering
 
