@@ -47,7 +47,7 @@ impl App {
 
 impl Model<Event> for App {
     fn update(&mut self, event: Event) -> Cmd<Event> {
-        dbg!(&event);
+        debug!("{:?}", &event);
         match event {
             Event::WindowResized(new_size) => self.window_size = new_size,
             Event::WatcherNotification(wn) => {

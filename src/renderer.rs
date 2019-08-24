@@ -371,7 +371,7 @@ impl<W: Window> RenderContext<W> {
     }
 
     pub fn recreate_swapchain(&self, frame: &mut FrameState<W>) {
-        dbg!("recreating swapchain");
+        debug!("recreating swapchain");
         let window = self.surface.window();
         let dimensions = window.physical_size();
 

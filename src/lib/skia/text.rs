@@ -140,10 +140,10 @@ fn measure_text_run(
                 // TODO: support max width, right to left / bidi text..
                 shaper.shape_text_blob(text, font, true, 100000.0, origin).unwrap();
             // TODO: handle empty bounds returned from Skia here?
-            dbg!("text: {}", text);
-            dbg!("origin: {}", origin);
-            dbg!("bounds: {}", text_blob.bounds());
-            dbg!("end_point: {}", end_point);
+            trace!("text: {}", text);
+            trace!("origin: {:?}", origin);
+            trace!("bounds: {:?}", text_blob.bounds());
+            trace!("end_point: {:?}", end_point);
 
             (Some(skia_rect_to_bounds(text_blob.bounds())), end_point)
         }

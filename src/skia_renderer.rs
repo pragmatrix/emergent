@@ -53,8 +53,8 @@ impl<W: Window> RenderContext<W> {
         let get_proc = |gpo| match self.get_proc(gpo) {
             Some(f) => f as _,
             None => {
-                dbg!("lookup failed for");
-                dbg!(unsafe { gpo.name() });
+                warn!("lookup failed for:");
+                warn!("  {:?}", unsafe { gpo.name() });
                 ptr::null()
             }
         };
@@ -125,7 +125,7 @@ impl DrawingBackend for Backend {
             _ => panic!("unsupported color format {:?}", format),
         };
 
-        // dbg!(image_access.final_layout_requirement());
+        // debug!(image_access.final_layout_requirement());
         // dbg!(image_access.initial_layout_requirement());
 
         let alloc = vk::Alloc::default();

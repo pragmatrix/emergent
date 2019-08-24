@@ -1,5 +1,8 @@
 //! The library of the emergent testrunner.
 
+#[macro_use]
+extern crate log;
+
 use std::thread::JoinHandle;
 
 pub mod compiler_message;

@@ -7,6 +7,7 @@ use emergent::skia::convert::ToSkia;
 use emergent::skia::text::MeasureWithShaper;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
+use std::io::Write;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
@@ -39,7 +40,7 @@ impl renderer::Window for winit::Window {
 
 fn main() {
     // TODO: push logs internally as soon the window is open?
-    env_logger::init();
+    env_logger::builder().default_format_timestamp(false).init();
 
     let matches = clap::App::new("Emergent")
         .author("Armin Sander")
@@ -63,7 +64,7 @@ fn main() {
             .unwrap_or(current_path)
     };
 
-    dbg!(&project_path);
+    info!("path: {:?}", &project_path);
 
     let instance = renderer::new_instance();
 
@@ -80,7 +81,7 @@ fn main() {
     let mut application = Application::new(emergent, executor);
     application.schedule(initial_cmd);
 
-    dbg!("spawning application & renderer loop");
+    info!("spawning application & renderer loop");
 
     // events loop does not implement Send, so we keep it in the main thread, but
     // instead push the renderer loop out.
@@ -109,7 +110,7 @@ fn main() {
             if frame_size == window_size {
                 let _future = context.render(future, frame_state, drawing_backend, &frame);
             } else {
-                println!(
+                warn!(
                     "skipping frame, wrong size, expected {:?}, window: {:?}",
                     frame_size, window_size
                 );
@@ -123,7 +124,7 @@ fn main() {
             application.update();
         }
 
-        // dbg!("shutting down renderer loop");
+        debug!("shutting down renderer loop");
     });
 
     events_loop.run_forever(move |event| match event {
