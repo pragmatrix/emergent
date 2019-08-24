@@ -8,6 +8,7 @@
 extern crate log;
 
 mod ansi;
+pub mod color_schemes;
 pub mod config;
 mod index;
 pub mod term;

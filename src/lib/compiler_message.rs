@@ -4,8 +4,8 @@ use cargo_metadata::CompilerMessage;
 use emergent_drawing::{
     font, functions::*, Color, Drawing, DrawingTarget, Font, Paint, Render, RGB,
 };
-use emergent_terminal::term;
 use emergent_terminal::text_attributor;
+use emergent_terminal::{color_schemes, term};
 
 pub trait ToDrawing {
     fn to_drawing(&self) -> Drawing;
@@ -32,8 +32,8 @@ impl ToDrawing for ANSIString {
 
         let mut block = text_block(&font, None);
 
-        let indexed_colors = term::color::List::from(&emergent_terminal::config::Colors::default());
-f
+        let indexed_colors = term::color::List::from(color_schemes::light::PAPER);
+
         for colored_text in text_attributor::attribute_bytes(&self.0) {
             let color = {
                 match colored_text.attributes.color {
