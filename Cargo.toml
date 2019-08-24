@@ -53,7 +53,7 @@ serde_json = "1.0.39"
 
 # test runner
 
-cargo = "0.38.0"
+cargo = { git = "https://github.com/rust-lang/cargo.git", rev = "cacc3dba09b41c1f8ae34951c2ce95da416f8d4b" }
 failure = "0.1.5"
 shh = "1.0.0"
 cargo_metadata = "0.8.1"

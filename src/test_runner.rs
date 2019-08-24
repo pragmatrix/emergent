@@ -69,7 +69,11 @@ impl TestRunRequest {
 
             let mut compile_options =
                 ops::CompileOptions::new(&config, compiler::CompileMode::Test)?;
-            compile_options.build_config.message_format = compiler::MessageFormat::Json;
+            compile_options.build_config.message_format = compiler::MessageFormat::Json {
+                render_diagnostics: false,
+                short: false,
+                ansi: true,
+            };
             compile_options.filter = compile_filter;
 
             let test_options = &ops::TestOptions {
