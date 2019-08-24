@@ -14,6 +14,9 @@ use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
 use winit::{Event, EventsLoop, WindowBuilder, WindowEvent};
 
+#[macro_use]
+extern crate log;
+
 mod app;
 mod capture;
 mod frame;
@@ -54,6 +57,9 @@ fn main_perf() {
 }
 
 fn main() {
+    // TODO: push logs internally as soon the window is open?
+    env_logger::init();
+
     let matches = clap::App::new("Emergent")
         .author("Armin Sander")
         .about("A visual testrunner for Rust")

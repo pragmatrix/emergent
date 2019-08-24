@@ -23,17 +23,17 @@ members = [
 # project local dependencies
 tears = { path = "tears" }
 emergent-drawing = { path = "emergent-drawing" }
+emergent-terminal = { path = "emergent-terminal" }
 
 # channels
 crossbeam-channel = "0.3.8"
 
 # skia
-
 skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "shaper"] }
 
 # window & rendering
-
 winit = "0.19"
+
 # we need a custom vulkano build that sets the request Vulkan instance version
 # to the same version as the physical device's version,
 # because of the version consistency Skia expects.
@@ -42,10 +42,13 @@ vulkano = { path = "vulkano/vulkano" }
 vulkano-win = { path = "vulkano/vulkano-win" }
 vulkano-shaders = { path = "vulkano/vulkano-shaders" }
 
-#winit = "0.18"
 #vulkano = "0.11.1"
 #vulkano-win = "0.11.1"
 #vulkano-shaders = "0.11.1"
+
+# logging
+log = "0.4.8"
+env_logger = "0.6.2"
 
 # serialization
 
