@@ -43,7 +43,8 @@ impl SimpleText {
         let (line_spacing, metrics) = font.metrics();
         let line_spacing = line_spacing as drawing::scalar;
         match run {
-            Text(str, _) => {
+            // TODO: support font style properties, these might affect measurements!
+            Text(str, _properties) => {
                 let mut combined = None;
                 let mut last_line_advance = 0.0;
 
@@ -134,8 +135,9 @@ fn measure_text_run(
     origin: Point,
     run: &drawing::text::Run,
 ) -> (Option<drawing::Bounds>, Point) {
+    use drawing::text::Run::*;
     match run {
-        drawing::text::Run::Text(text, _properties) => {
+        Text(text, _properties) => {
             let (text_blob, end_point) =
                 // TODO: support max width, right to left / bidi text..
                 shaper.shape_text_blob(text, font, true, 100000.0, origin).unwrap();
@@ -147,8 +149,8 @@ fn measure_text_run(
 
             (Some(skia_rect_to_bounds(text_blob.bounds())), end_point)
         }
-        drawing::text::Run::Block(_) => unimplemented!("text::Run::Block"),
-        drawing::text::Run::Drawing(_, _) => unimplemented!("text::Run::Drawing"),
+        Block(_) => unimplemented!("text::Run::Block"),
+        Drawing(_, _) => unimplemented!("text::Run::Drawing"),
     }
 }
 

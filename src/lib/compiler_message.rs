@@ -1,9 +1,7 @@
 //! Rendering of compiler messages.
 
 use cargo_metadata::CompilerMessage;
-use emergent_drawing::{
-    font, functions::*, Color, Drawing, DrawingTarget, Font, Paint, Render, RGB,
-};
+use emergent_drawing::{font, functions::*, Drawing, DrawingTarget, Font, Paint, RGB};
 use emergent_terminal::text_attributor;
 use emergent_terminal::{color_schemes, term};
 
@@ -39,12 +37,23 @@ impl ToDrawing for ANSIString {
                 match colored_text.attributes.color {
                     Some(index) => {
                         let term_color = indexed_colors[index];
-                        (term_color.r, term_color.g, term_color.b).rgb()
+                        Some((term_color.r, term_color.g, term_color.b).rgb())
                     }
-                    None => Color::BLACK,
+                    None => None,
                 }
             };
-            block.text(colored_text.text, color);
+
+            let mut properties = text_properties();
+            properties.color = color;
+            properties.style = {
+                if colored_text.attributes.bold {
+                    Some(font::Style::BOLD)
+                } else {
+                    None
+                }
+            };
+
+            block.text(colored_text.text, properties);
         }
 
         drawing.draw(block, Paint::default());

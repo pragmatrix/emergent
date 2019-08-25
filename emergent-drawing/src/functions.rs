@@ -5,5 +5,6 @@ pub use crate::paint::paint;
 pub use crate::point::point;
 pub use crate::rect::rect;
 pub use crate::text::block as text_block;
+pub use crate::text::properties as text_properties;
 pub use crate::text::text;
 pub use crate::vector::vector;

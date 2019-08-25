@@ -1,4 +1,4 @@
-use crate::{Color, Drawing, Font, Paint, Point};
+use crate::{font, Color, Drawing, Font, Paint, Point, Vector};
 use serde::{Deserialize, Serialize};
 use serde_tuple::*;
 
@@ -29,9 +29,7 @@ impl Text {
     }
 }
 
-/// Text runs describing that describe formatted text.
-///
-/// Inspired by WPF.
+/// Text runs that describe formatted text fragments.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Run {
     /// Draw Text with the given properties.
@@ -40,10 +38,9 @@ pub enum Run {
     /// Another text block. This can be used to render text on the same baseline
     /// with other fonts.
     Block(Text),
-    /// Drawing layouted on the text line at baseline + point.
-    ///
-    /// Size is defined by fast_bounds().
-    Drawing(Drawing, Point),
+
+    /// Render a drawing on the current text's baseline with an additional translation.
+    Drawing(Drawing, Vector),
 }
 
 /// Creates a new block of text.
@@ -65,14 +62,15 @@ impl Text {
     }
 }
 
-/// Properties for that descripe how the text should be rendered.
-///
-/// Value type semantics.
+/// Properties that affect how text should be rendered.
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Properties {
-    /// A custom color for text. If not set, uses the color of the current Paint.
+    /// A color for text. If not set, uses the color of the current paint.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<Color>,
+    /// The fot style of the text. If not set, uses the current font's style.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub style: Option<font::Style>,
 }
 
 pub fn properties() -> Properties {
@@ -84,6 +82,17 @@ impl Properties {
         self.color = Some(color);
         self
     }
+
+    pub fn style(mut self, style: font::Style) -> Self {
+        self.style = Some(style);
+        self
+    }
+}
+
+impl From<()> for Properties {
+    fn from(_: ()) -> Self {
+        properties()
+    }
 }
 
 impl From<Color> for Properties {
@@ -92,9 +101,9 @@ impl From<Color> for Properties {
     }
 }
 
-impl From<()> for Properties {
-    fn from(_: ()) -> Self {
-        properties()
+impl From<font::Style> for Properties {
+    fn from(style: font::Style) -> Self {
+        properties().style(style)
     }
 }
 

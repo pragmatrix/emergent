@@ -6,7 +6,7 @@ use emergent::skia::convert::ToSkia;
 use emergent::{text_as_lines, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
-use emergent_drawing::{DrawTo, Shape, Transform};
+use emergent_drawing::{font, DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
@@ -189,9 +189,9 @@ impl DrawingSurface for skia_safe::Surface {}
 
 struct CanvasDrawingTarget<'a> {
     canvas: &'a mut Canvas,
-    shaper: &'a shaper::Shaper,
+    // shaper: &'a shaper::Shaper,
     paint: PaintSync,
-    font: Option<FontSync>,
+    font: FontSync,
 }
 
 impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
@@ -242,19 +242,8 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
             Shape::Path(_) => unimplemented!("path"),
             Shape::Image(_, _, _) => unimplemented!("image"),
             Shape::Text(drawing::Text { font, origin, runs }) => {
-                let font = FontSync::resolve_opt(&mut self.font, font);
-
                 let origin = TextOrigin::new(*origin);
-
-                draw_text_runs(
-                    &self.shaper,
-                    font,
-                    origin,
-                    runs,
-                    paint,
-                    &mut self.paint,
-                    &mut self.canvas,
-                )
+                self.draw_text_runs(font, origin, runs, paint)
             }
         }
     }
@@ -284,56 +273,60 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
     }
 }
 
-fn draw_text_runs(
-    shaper: &Shaper,
-    font: &Font,
-    mut origin: TextOrigin,
-    runs: &[drawing::text::Run],
-    paint: drawing::Paint,
-    paint_sync: &mut PaintSync,
-    canvas: &mut Canvas,
-) {
-    for run in runs {
-        origin = draw_text_run(shaper, &font, origin, run, paint, paint_sync, canvas);
-    }
-}
-
-fn draw_text_run(
-    shaper: &Shaper,
-    font: &Font,
-    origin: TextOrigin,
-    run: &drawing::text::Run,
-    paint: drawing::Paint,
-    paint_sync: &mut PaintSync,
-    canvas: &mut Canvas,
-) -> TextOrigin {
-    use drawing::text::Run;
-
-    let line_spacing = font.spacing() as drawing::scalar;
-
-    let mut current = origin;
-
-    match run {
-        Run::Text(s, properties) => {
-            let mut last_line = None;
-            for (i, line) in text_as_lines(&s).enumerate() {
-                if i != 0 {
-                    current.newline(line_spacing);
-                }
-                let paint = paint_sync.resolve(paint.with(*properties));
-                last_line = Some(line);
-                canvas.draw_str(line, current.point().to_skia(), font, &paint);
-            }
-
-            if let Some(last_line) = last_line {
-                let last_line_advance = font.measure_str(last_line, None).0 as drawing::scalar;
-                current.advance(last_line_advance);
-            };
-
-            current
+impl CanvasDrawingTarget<'_> {
+    fn draw_text_runs(
+        &mut self,
+        font: &drawing::Font,
+        mut origin: TextOrigin,
+        runs: &[drawing::text::Run],
+        paint: drawing::Paint,
+    ) {
+        for run in runs {
+            origin = self.draw_text_run(font, origin, run, paint);
         }
-        Run::Block(_) => unimplemented!(),
-        Run::Drawing(_, _) => unimplemented!(),
+    }
+
+    fn draw_text_run(
+        &mut self,
+        font: &drawing::Font,
+        origin: TextOrigin,
+        run: &drawing::text::Run,
+        paint: drawing::Paint,
+    ) -> TextOrigin {
+        use drawing::text::Run;
+        let mut current = origin;
+
+        match run {
+            Run::Text(s, properties) => {
+                // TODO: this clones the typeface string!
+                let mut run_font = font.clone();
+                if let Some(style) = properties.style {
+                    run_font.style = style;
+                }
+                let font = self.font.resolve(&run_font);
+                let line_spacing = font.spacing() as drawing::scalar;
+
+                let mut last_line = None;
+                for (i, line) in text_as_lines(&s).enumerate() {
+                    if i != 0 {
+                        current.newline(line_spacing);
+                    }
+                    let paint = self.paint.resolve(paint.with(*properties));
+                    last_line = Some(line);
+                    self.canvas
+                        .draw_str(line, current.point().to_skia(), font, &paint);
+                }
+
+                if let Some(last_line) = last_line {
+                    let last_line_advance = font.measure_str(last_line, None).0 as drawing::scalar;
+                    current.advance(last_line_advance);
+                };
+
+                current
+            }
+            Run::Block(_) => unimplemented!(),
+            Run::Drawing(_, _) => unimplemented!(),
+        }
     }
 }
 
@@ -380,18 +373,11 @@ impl<'a> CanvasDrawingTarget<'a> {
 
         Self {
             canvas,
-            shaper,
+            // shaper,
             paint: PaintSync::from_paint(drawing_paint),
-            font: None,
+            // TODO: clarify if we need a notion of a default font.
+            font: FontSync::new(),
         }
-    }
-
-    fn _resolve_font(&mut self, font: &drawing::Font) -> &Font {
-        if self.font.is_none() {
-            self.font = Some(FontSync::from_font(font));
-        };
-
-        self.font.as_mut().unwrap().resolve(font)
     }
 }
 
@@ -440,6 +426,15 @@ struct FontSync {
 }
 
 impl FontSync {
+    pub fn new() -> FontSync {
+        // TODO: we need a notion of a default font.
+        Self::from_font(&drawing::Font::new(
+            "",
+            font::Style::NORMAL,
+            font::Size::new(12.0),
+        ))
+    }
+
     pub fn from_font(font: &drawing::Font) -> FontSync {
         let (typeface, _sk_font) = Self::create_typeface_and_font(font);
         let sk_font = Font::from_typeface(&typeface, font.size.to_skia());
@@ -447,17 +442,6 @@ impl FontSync {
             drawing_font: font.clone(),
             typeface,
             font: sk_font,
-        }
-    }
-
-    pub fn resolve_opt<'a>(fso: &'a mut Option<FontSync>, font: &drawing::Font) -> &'a Font {
-        match fso {
-            None => {
-                *fso = Some(Self::from_font(font));
-                fso.as_mut().unwrap().resolve(font)
-            }
-
-            Some(fs) => fs.resolve(font),
         }
     }
 
