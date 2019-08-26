@@ -13,6 +13,7 @@ use tears::{Cmd, Model, View};
 pub enum Event {
     WindowResized((u32, u32)),
     WatcherNotification(test_watcher::Notification),
+    Refresh,
 }
 
 pub struct App {
@@ -54,6 +55,7 @@ impl Model<Event> for App {
                 self.update_watcher(wn);
                 return self.receive_watcher_notifications();
             }
+            Event::Refresh => {}
         }
         Cmd::None
     }

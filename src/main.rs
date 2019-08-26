@@ -140,32 +140,34 @@ fn main() {
     });
 
     events_loop.run_forever(move |event| match event {
-        Event::WindowEvent {
-            event: WindowEvent::Resized(_),
-            ..
-        } => {
-            let size = window_surface.window().physical_size();
-            mailbox.post(app::Event::WindowResized(size));
-            {
-                let actual_placement = WindowPlacement::from_window(window_surface.window());
-                if most_recent_window_placement != actual_placement {
-                    actual_placement.map(|l| l.store());
-                    most_recent_window_placement = actual_placement
+        Event::WindowEvent { event, .. } => match event {
+            WindowEvent::Resized(_) => {
+                let size = window_surface.window().physical_size();
+                mailbox.post(app::Event::WindowResized(size));
+                {
+                    let actual_placement = WindowPlacement::from_window(window_surface.window());
+                    if most_recent_window_placement != actual_placement {
+                        actual_placement.map(|l| l.store());
+                        most_recent_window_placement = actual_placement
+                    }
                 }
+                winit::ControlFlow::Continue
             }
-            winit::ControlFlow::Continue
-        }
-        Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } => {
-            info!("close requested");
-            winit::ControlFlow::Break
-        }
-        Event::WindowEvent {
-            event: WindowEvent::CursorMoved { .. },
-            ..
-        } => winit::ControlFlow::Continue,
+            WindowEvent::Refresh => {
+                // TODO: not sure if this should go through the app.
+                mailbox.post(app::Event::Refresh);
+                winit::ControlFlow::Continue
+            }
+            WindowEvent::CloseRequested => {
+                info!("close requested");
+                winit::ControlFlow::Break
+            }
+            WindowEvent::CursorMoved { .. } => winit::ControlFlow::Continue,
+            _ => {
+                debug!("unhandled window event: {:?}", event);
+                winit::ControlFlow::Continue
+            }
+        },
         e => {
             trace!("unhandled event: {:?}", e);
             winit::ControlFlow::Continue
