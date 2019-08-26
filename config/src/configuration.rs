@@ -14,10 +14,10 @@ pub trait Configuration: Serialize + serde::de::DeserializeOwned {
 
     fn load() -> Option<Self> {
         let path = get_config_file_path::<Self>();
-        match fs::read_to_string(&path) {
-            Err(_) => None,
-            Ok(str) => serde_json::from_str(&str).expect("failed to deserialize configuration"),
-        }
+        let str = fs::read_to_string(&path).ok()?;
+        serde_json::from_str(&str)
+            .map_err(|e| error!("deserialization failed: {}", e))
+            .ok()
     }
 
     fn delete() {

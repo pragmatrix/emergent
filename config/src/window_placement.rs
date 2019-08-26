@@ -5,66 +5,10 @@ use std::path::PathBuf;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
 use winit::{Window, WindowBuilder};
 
-#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct WindowLocation {
-    pub left: f64,
-    pub top: f64,
-    pub width: f64,
-    pub height: f64,
-}
-
 pub enum Initial {
     Default,
     Size(LogicalSize),
     PositionAndSize(PhysicalPosition, LogicalSize),
-}
-
-impl Configuration for WindowLocation {
-    fn config_path() -> PathBuf {
-        "emergent/window-location".into()
-    }
-}
-
-impl WindowLocation {
-    pub fn from_initial(initial: Initial) -> Option<WindowLocation> {
-        match initial {
-            Initial::Default => None,
-            Initial::Size(_) => None,
-            Initial::PositionAndSize(pos, size) => Some(Self {
-                left: pos.x,
-                top: pos.y,
-                width: size.width,
-                height: size.height,
-            }),
-        }
-    }
-
-    pub fn from_window(window: &Window) -> Option<WindowLocation> {
-        if is_minimized(window) {
-            return None;
-        };
-        let factor = window.get_hidpi_factor();
-        let pos = window.get_position().unwrap();
-        let physical = PhysicalPosition::from_logical(pos, factor);
-        let size = window.get_inner_size().unwrap();
-        Some(Self {
-            left: physical.x,
-            top: physical.y,
-            width: size.width,
-            height: size.height,
-        })
-    }
-
-    /// Stores the current location and size of the window.
-    pub fn store(&self) {
-        self.save();
-        debug!("Saved window location: {:?}", self);
-    }
-}
-
-fn is_minimized(window: &Window) -> bool {
-    let sz = window.get_inner_size().unwrap();
-    sz.width == 0.0 && sz.height == 0.0
 }
 
 impl Initial {
@@ -134,6 +78,62 @@ impl Initial {
             window.set_position(logical);
         }
     }
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct WindowLocation {
+    pub left: f64,
+    pub top: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+impl Configuration for WindowLocation {
+    fn config_path() -> PathBuf {
+        "emergent/window-location".into()
+    }
+}
+
+impl WindowLocation {
+    pub fn from_initial(initial: Initial) -> Option<WindowLocation> {
+        match initial {
+            Initial::Default => None,
+            Initial::Size(_) => None,
+            Initial::PositionAndSize(pos, size) => Some(Self {
+                left: pos.x,
+                top: pos.y,
+                width: size.width,
+                height: size.height,
+            }),
+        }
+    }
+
+    pub fn from_window(window: &Window) -> Option<WindowLocation> {
+        if is_minimized(window) {
+            return None;
+        };
+        let factor = window.get_hidpi_factor();
+        let pos = window.get_position().unwrap();
+        let physical = PhysicalPosition::from_logical(pos, factor);
+        let size = window.get_inner_size().unwrap();
+        Some(Self {
+            left: physical.x,
+            top: physical.y,
+            width: size.width,
+            height: size.height,
+        })
+    }
+
+    /// Stores the current location and size of the window.
+    pub fn store(&self) {
+        self.save();
+        debug!("Saved window location: {:?}", self);
+    }
+}
+
+fn is_minimized(window: &Window) -> bool {
+    let sz = window.get_inner_size().unwrap();
+    sz.width == 0.0 && sz.height == 0.0
 }
 
 #[cfg(test)]
