@@ -4,7 +4,7 @@ use crate::test_runner::TestRunRequest;
 use clap::Arg;
 use emergent::skia;
 use emergent::skia::convert::ToSkia;
-use emergent_config::WindowLocation;
+use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
 use std::{env, path, thread};
@@ -69,21 +69,21 @@ fn main() {
 
     let mut events_loop = EventsLoop::new();
 
-    let initial_window_location = emergent_config::window_location::Initial::load();
+    let initial_window_placement = emergent_config::window_placement::Initial::load();
 
     let window_surface = {
         let default_window_size = winit::dpi::LogicalSize::new(1024.0, 768.0);
 
         let mut builder = WindowBuilder::new();
-        builder = initial_window_location.apply_size(builder, default_window_size);
+        builder = initial_window_placement.apply_size(builder, default_window_size);
         let surface = builder
             .build_vk_surface(&events_loop, instance.clone())
             .unwrap();
-        initial_window_location.apply_position(surface.window(), None);
+        initial_window_placement.apply_position(surface.window(), None);
         surface
     };
 
-    let mut current_window_location = WindowLocation::from_initial(initial_window_location);
+    let mut most_recent_window_placement = WindowPlacement::from_initial(initial_window_placement);
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
@@ -134,15 +134,6 @@ fn main() {
             future = Box::new(sync::now(context.device.clone()));
 
             application.update();
-
-            // TODO: do this asynchronously somehow.
-            {
-                let current_location = WindowLocation::from_window(render_surface.window());
-                if current_window_location != current_location {
-                    current_location.map(|l| l.store());
-                    current_window_location = current_location
-                }
-            }
         }
 
         debug!("shutting down renderer loop");
@@ -155,6 +146,13 @@ fn main() {
         } => {
             let size = window_surface.window().physical_size();
             mailbox.post(app::Event::WindowResized(size));
+            {
+                let actual_placement = WindowPlacement::from_window(window_surface.window());
+                if most_recent_window_placement != actual_placement {
+                    actual_placement.map(|l| l.store());
+                    most_recent_window_placement = actual_placement
+                }
+            }
             winit::ControlFlow::Continue
         }
         Event::WindowEvent {
@@ -164,7 +162,14 @@ fn main() {
             info!("close requested");
             winit::ControlFlow::Break
         }
-        _ => winit::ControlFlow::Continue,
+        Event::WindowEvent {
+            event: WindowEvent::CursorMoved { .. },
+            ..
+        } => winit::ControlFlow::Continue,
+        e => {
+            trace!("unhandled event: {:?}", e);
+            winit::ControlFlow::Continue
+        }
     });
 
     info!("events loop out");
