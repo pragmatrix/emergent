@@ -4,10 +4,9 @@ use crate::test_runner::TestRunRequest;
 use clap::Arg;
 use emergent::skia;
 use emergent::skia::convert::ToSkia;
-use emergent::skia::text::MeasureWithShaper;
+use emergent_config::WindowLocation;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
-use std::io::Write;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor, View};
 use vulkano::sync;
@@ -69,9 +68,22 @@ fn main() {
     let instance = renderer::new_instance();
 
     let mut events_loop = EventsLoop::new();
-    let window_surface = WindowBuilder::new()
-        .build_vk_surface(&events_loop, instance.clone())
-        .unwrap();
+
+    let initial_window_location = emergent_config::window_location::Initial::load();
+
+    let window_surface = {
+        let default_window_size = winit::dpi::LogicalSize::new(1024.0, 768.0);
+
+        let mut builder = WindowBuilder::new();
+        builder = initial_window_location.apply_size(builder, default_window_size);
+        let surface = builder
+            .build_vk_surface(&events_loop, instance.clone())
+            .unwrap();
+        initial_window_location.apply_position(surface.window(), None);
+        surface
+    };
+
+    let mut current_window_location = WindowLocation::from_initial(initial_window_location);
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
@@ -122,6 +134,15 @@ fn main() {
             future = Box::new(sync::now(context.device.clone()));
 
             application.update();
+
+            // TODO: do this asynchronously somehow.
+            {
+                let current_location = WindowLocation::from_window(render_surface.window());
+                if current_window_location != current_location {
+                    current_location.map(|l| l.store());
+                    current_window_location = current_location
+                }
+            }
         }
 
         debug!("shutting down renderer loop");

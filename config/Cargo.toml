@@ -1,0 +1,12 @@
+[package]
+name = "emergent-config"
+version = "0.1.0"
+authors = ["Armin Sander <armin@replicator.org>"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0.99", features = ["derive"] }
+serde_json = "1.0.40"
+winit = "0.19"
+dirs = "2.0.2"
+log = "0.4.8"

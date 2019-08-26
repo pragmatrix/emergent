@@ -11,6 +11,7 @@ path = "src/lib/lib.rs"
 [workspace]
 exclude = ["rust-skia", "vulkano"]
 members = [
+  "config",
   "emergent-cache",
   "emergent-drawing",
   "emergent-layout", 
@@ -24,6 +25,7 @@ members = [
 tears = { path = "tears" }
 emergent-drawing = { path = "emergent-drawing" }
 emergent-terminal = { path = "emergent-terminal" }
+emergent-config = { path = "config" }
 
 # channels
 crossbeam-channel = "0.3.8"
