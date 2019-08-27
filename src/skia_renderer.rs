@@ -2,7 +2,7 @@
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
-use emergent::{text_as_lines, Frame, TextOrigin};
+use emergent::{text_as_lines, Frame, TextOrigin, DPI};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{font, DrawTo, Shape, Transform};
@@ -177,7 +177,8 @@ impl DrawingBackend for Backend {
         view.apply_to_canvas(canvas.borrow_mut());
         canvas.scale((2.0, 2.0));
 
-        let drawing_target = &mut CanvasDrawingTarget::from_canvas(canvas, &self.shaper);
+        let drawing_target =
+            &mut CanvasDrawingTarget::from_canvas(canvas, frame.area.dpi, &self.shaper);
         frame.drawing.draw_to(drawing_target);
 
         surface.flush();
@@ -189,6 +190,7 @@ impl DrawingSurface for skia_safe::Surface {}
 struct CanvasDrawingTarget<'a> {
     canvas: &'a mut Canvas,
     // shaper: &'a shaper::Shaper,
+    dpi: DPI,
     paint: PaintSync,
     font: FontSync,
 }
@@ -367,15 +369,16 @@ impl<'a> CanvasDrawingTarget<'a> {
         &mut self.canvas
     }
 
-    fn from_canvas(canvas: &'a mut Canvas, shaper: &'a Shaper) -> Self {
+    fn from_canvas(canvas: &'a mut Canvas, dpi: DPI, shaper: &'a Shaper) -> Self {
         let drawing_paint = drawing::Paint::default();
 
         Self {
             canvas,
+            dpi,
             // shaper,
             paint: PaintSync::from_paint(drawing_paint),
             // TODO: clarify if we need a notion of a default font.
-            font: FontSync::new(),
+            font: FontSync::new(dpi),
         }
     }
 }
@@ -419,25 +422,26 @@ impl PaintSync {
 }
 
 struct FontSync {
+    dpi: DPI,
     drawing_font: drawing::Font,
     typeface: Typeface,
     font: Font,
 }
 
 impl FontSync {
-    pub fn new() -> FontSync {
+    pub fn new(dpi: DPI) -> FontSync {
         // TODO: we need a notion of a default font.
-        Self::from_font(&drawing::Font::new(
-            "",
-            font::Style::NORMAL,
-            font::Size::new(12.0),
-        ))
+        Self::from_font(
+            dpi,
+            &drawing::Font::new("", font::Style::NORMAL, font::Size::new(12.0)),
+        )
     }
 
-    pub fn from_font(font: &drawing::Font) -> FontSync {
-        let (typeface, _sk_font) = Self::create_typeface_and_font(font);
-        let sk_font = Font::from_typeface(&typeface, font.size.to_skia());
+    pub fn from_font(dpi: DPI, font: &drawing::Font) -> FontSync {
+        let (typeface, _sk_font) = Self::create_typeface_and_font(dpi, font);
+        let sk_font = Font::from_typeface(&typeface, dpi.scale_font_points(*font.size) as f32);
         Self {
+            dpi,
             drawing_font: font.clone(),
             typeface,
             font: sk_font,
@@ -446,21 +450,24 @@ impl FontSync {
 
     pub fn resolve(&mut self, font: &drawing::Font) -> &Font {
         if font.name != self.drawing_font.name || font.style != self.drawing_font.style {
-            let (tf, f) = Self::create_typeface_and_font(font);
+            let (tf, f) = Self::create_typeface_and_font(self.dpi, font);
             self.typeface = tf;
             self.font = f;
             self.drawing_font = font.clone();
         } else if font.size != self.drawing_font.size {
-            self.font = Font::from_typeface(&self.typeface, font.size.to_skia());
+            self.font = Font::from_typeface(
+                &self.typeface,
+                self.dpi.scale_font_points(*font.size) as f32,
+            );
             self.drawing_font.size = font.size
         }
 
         &self.font
     }
 
-    pub fn create_typeface_and_font(font: &drawing::Font) -> (Typeface, Font) {
+    pub fn create_typeface_and_font(dpi: DPI, font: &drawing::Font) -> (Typeface, Font) {
         let typeface = Typeface::from_name(&font.name, font.style.to_skia()).unwrap_or_default();
-        let sk_font = Font::from_typeface(&typeface, font.size.to_skia());
+        let sk_font = Font::from_typeface(&typeface, dpi.scale_font_points(*font.size) as f32);
         (typeface, sk_font)
     }
 }

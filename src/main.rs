@@ -126,6 +126,8 @@ fn main() {
         debug!("shutting down renderer loop");
     });
 
+    use winit::ControlFlow;
+
     events_loop.run_forever(move |event| match event {
         Event::WindowEvent { event, .. } => match event {
             WindowEvent::Resized(_) => {
@@ -134,32 +136,37 @@ fn main() {
                 if window_placement.update(window_surface.window()) {
                     window_placement.store()
                 }
-                winit::ControlFlow::Continue
+                ControlFlow::Continue
             }
             WindowEvent::Moved(_) => {
                 if window_placement.update(window_surface.window()) {
                     window_placement.store()
                 }
-                winit::ControlFlow::Continue
+                ControlFlow::Continue
+            }
+            WindowEvent::HiDpiFactorChanged(_) => {
+                let area_layout = window_surface.window().area_layout();
+                mailbox.post(app::Event::AreaLayoutChanged(area_layout));
+                ControlFlow::Continue
             }
             WindowEvent::Refresh => {
                 // TODO: not sure if this should go through the app.
                 mailbox.post(app::Event::Refresh);
-                winit::ControlFlow::Continue
+                ControlFlow::Continue
             }
             WindowEvent::CloseRequested => {
                 info!("close requested");
-                winit::ControlFlow::Break
+                ControlFlow::Break
             }
             WindowEvent::CursorMoved { .. } => winit::ControlFlow::Continue,
             event => {
                 debug!("unhandled window event: {:?}", event);
-                winit::ControlFlow::Continue
+                ControlFlow::Continue
             }
         },
         event => {
             trace!("unhandled event: {:?}", event);
-            winit::ControlFlow::Continue
+            ControlFlow::Continue
         }
     });
 
