@@ -75,15 +75,16 @@ fn main() {
         let default_window_size = winit::dpi::LogicalSize::new(1024.0, 768.0);
 
         let mut builder = WindowBuilder::new();
-        builder = initial_window_placement.apply_size(builder, default_window_size);
         let surface = builder
             .build_vk_surface(&events_loop, instance.clone())
             .unwrap();
-        initial_window_placement.apply_position(surface.window(), None);
+        initial_window_placement.apply_to_window(surface.window());
         surface
     };
 
-    let mut most_recent_window_placement = WindowPlacement::from_initial(initial_window_placement);
+    let mut window_placement = WindowPlacement::from_window(window_surface.window())
+        .expect("Failed to resolve initial window placement.");
+    info!("window placement: {:?}", window_placement);
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().physical_size();
@@ -119,6 +120,7 @@ fn main() {
 
             let frame_size = frame.size;
             let window_size = render_surface.window().physical_size();
+            info!("window size: {:?}", window_size);
             if frame_size == window_size {
                 let _future = context.render(future, frame_state, drawing_backend, &frame);
             } else {
@@ -144,12 +146,14 @@ fn main() {
             WindowEvent::Resized(_) => {
                 let size = window_surface.window().physical_size();
                 mailbox.post(app::Event::WindowResized(size));
-                {
-                    let actual_placement = WindowPlacement::from_window(window_surface.window());
-                    if most_recent_window_placement != actual_placement {
-                        actual_placement.map(|l| l.store());
-                        most_recent_window_placement = actual_placement
-                    }
+                if window_placement.update(window_surface.window()) {
+                    window_placement.store()
+                }
+                winit::ControlFlow::Continue
+            }
+            WindowEvent::Moved(_) => {
+                if window_placement.update(window_surface.window()) {
+                    window_placement.store()
                 }
                 winit::ControlFlow::Continue
             }
@@ -163,13 +167,13 @@ fn main() {
                 winit::ControlFlow::Break
             }
             WindowEvent::CursorMoved { .. } => winit::ControlFlow::Continue,
-            _ => {
+            event => {
                 debug!("unhandled window event: {:?}", event);
                 winit::ControlFlow::Continue
             }
         },
-        e => {
-            trace!("unhandled event: {:?}", e);
+        event => {
+            trace!("unhandled event: {:?}", event);
             winit::ControlFlow::Continue
         }
     });
