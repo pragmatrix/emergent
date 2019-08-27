@@ -1,4 +1,4 @@
-use crate::frame::Frame;
+use emergent::{AreaLayout, Frame};
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::DynamicState;
@@ -52,7 +52,7 @@ pub trait DrawingBackend {
 }
 
 pub trait Window: Send + Sync + 'static {
-    fn physical_size(&self) -> (u32, u32);
+    fn area_layout(&self) -> AreaLayout;
 }
 
 pub fn new_instance() -> Arc<Instance> {
@@ -111,7 +111,7 @@ pub fn create_context_and_frame_state<W: Window>(
         let format = caps.supported_formats[0].0;
 
         let window = surface.window();
-        let initial_dimensions = window.physical_size();
+        let initial_dimensions = window.area_layout().dimensions;
 
         Swapchain::new(
             device.clone(),
@@ -361,7 +361,7 @@ impl<W: Window> RenderContext<W> {
     /// Returns true if the dimensions of the swapchain do not match the window's physical size.
     pub fn need_to_recreate_swapchain(&self, frame: &FrameState<W>) -> bool {
         let window = self.surface.window();
-        let win_size = window.physical_size();
+        let win_size = window.area_layout().dimensions;
         let sc_size = {
             let [width, height] = frame.swapchain.dimensions();
             (width, height)
@@ -373,7 +373,7 @@ impl<W: Window> RenderContext<W> {
     pub fn recreate_swapchain(&self, frame: &mut FrameState<W>) {
         debug!("recreating swapchain");
         let window = self.surface.window();
-        let dimensions = window.physical_size();
+        let dimensions = window.area_layout().dimensions;
 
         let (new_swapchain, new_images) = match frame
             .swapchain

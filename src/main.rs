@@ -19,23 +19,12 @@ extern crate log;
 
 mod app;
 mod capture;
-mod frame;
 mod libtest;
 mod renderer;
 mod skia_renderer;
 mod test_runner;
 mod test_watcher;
-
-impl renderer::Window for winit::Window {
-    fn physical_size(&self) -> (u32, u32) {
-        if let Some(dimensions) = self.get_inner_size() {
-            let dimensions: (u32, u32) = dimensions.to_physical(self.get_hidpi_factor()).into();
-            dimensions
-        } else {
-            panic!("window does not exist anymore")
-        }
-    }
-}
+mod winit_window;
 
 fn main() {
     // TODO: push logs internally as soon the window is open?
@@ -72,10 +61,7 @@ fn main() {
     let initial_window_placement = emergent_config::window_placement::Initial::load();
 
     let window_surface = {
-        let default_window_size = winit::dpi::LogicalSize::new(1024.0, 768.0);
-
-        let mut builder = WindowBuilder::new();
-        let surface = builder
+        let surface = WindowBuilder::new()
             .build_vk_surface(&events_loop, instance.clone())
             .unwrap();
         initial_window_placement.apply_to_window(surface.window());
@@ -87,7 +73,7 @@ fn main() {
     info!("window placement: {:?}", window_placement);
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
-    let window_size = window_surface.window().physical_size();
+    let window_size = window_surface.window().area_layout();
     let measure = skia::text::SimpleText::new();
     let (emergent, initial_cmd) = App::new(measure, window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
@@ -118,15 +104,14 @@ fn main() {
                 context.recreate_swapchain(frame_state)
             }
 
-            let frame_size = frame.size;
-            let window_size = render_surface.window().physical_size();
-            info!("window size: {:?}", window_size);
-            if frame_size == window_size {
+            let area_layout = render_surface.window().area_layout();
+            info!("window area layout: {:?}", area_layout);
+            if frame.area == area_layout {
                 let _future = context.render(future, frame_state, drawing_backend, &frame);
             } else {
                 warn!(
-                    "skipping frame, wrong size, expected {:?}, window: {:?}",
-                    frame_size, window_size
+                    "skipping frame, wrong layout, expected {:?}, window: {:?}",
+                    frame.area, area_layout
                 );
             }
 
@@ -144,8 +129,8 @@ fn main() {
     events_loop.run_forever(move |event| match event {
         Event::WindowEvent { event, .. } => match event {
             WindowEvent::Resized(_) => {
-                let size = window_surface.window().physical_size();
-                mailbox.post(app::Event::WindowResized(size));
+                let area_layout = window_surface.window().area_layout();
+                mailbox.post(app::Event::AreaLayoutChanged(area_layout));
                 if window_placement.update(window_surface.window()) {
                     window_placement.store()
                 }

@@ -1,24 +1,24 @@
-use crate::frame::Frame;
 use crate::libtest::TestCapture;
 use crate::test_runner::{TestRunRequest, TestRunResult};
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
+use emergent::{AreaLayout, Frame};
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
 pub enum Event {
-    WindowResized((u32, u32)),
+    AreaLayoutChanged(AreaLayout),
     WatcherNotification(test_watcher::Notification),
     Refresh,
 }
 
 pub struct App {
     measure_text: Box<dyn MeasureText + Send>,
-    window_size: (u32, u32),
+    area_layout: AreaLayout,
     notification_receiver: Receiver<test_watcher::Notification>,
     test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
@@ -27,7 +27,7 @@ pub struct App {
 impl App {
     pub fn new(
         measure_text: impl MeasureText + Send + 'static,
-        window_size: (u32, u32),
+        area_layout: AreaLayout,
         req: TestRunRequest,
     ) -> (Self, Cmd<Event>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
@@ -35,7 +35,7 @@ impl App {
 
         let emergent = Self {
             measure_text: Box::new(measure_text),
-            window_size,
+            area_layout,
             notification_receiver: receiver.clone(),
             test_run_result: None,
             latest_test_error: None,
@@ -50,7 +50,7 @@ impl Model<Event> for App {
     fn update(&mut self, event: Event) -> Cmd<Event> {
         debug!("{:?}", &event);
         match event {
-            Event::WindowResized(new_size) => self.window_size = new_size,
+            Event::AreaLayoutChanged(area_layout) => self.area_layout = area_layout,
             Event::WatcherNotification(wn) => {
                 self.update_watcher(wn);
                 return self.receive_watcher_notifications();
@@ -128,7 +128,7 @@ impl View<Frame> for App {
         let drawing = Drawing::stack_v(test_run_drawings, &*self.measure_text);
 
         Frame {
-            size: self.window_size,
+            area: self.area_layout,
             drawing,
         }
     }

@@ -5,6 +5,9 @@ extern crate log;
 
 use std::thread::JoinHandle;
 
+mod frame;
+pub use frame::*;
+
 pub mod compiler_message;
 
 mod line_breaking;

@@ -1,17 +1,16 @@
 ///! Vulkan <-> Skia <-> emergent::drawing interop.
-use crate::frame::Frame;
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
 use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
-use emergent::{text_as_lines, TextOrigin};
+use emergent::{text_as_lines, Frame, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{font, DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::utils::View3D;
 use skia_safe::{
-    gpu, shaper, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Shaper, Surface,
-    Typeface, Vector,
+    gpu, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Shaper, Surface, Typeface,
+    Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
