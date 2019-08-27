@@ -5,4 +5,4 @@ authors = ["Armin Sander <armin@replicator.org>"]
 edition = "2018"
 
 [dependencies]
-emergent-drawing = { path = "../emergent-drawing" }
+emergent-drawing = { path = "../drawing" }

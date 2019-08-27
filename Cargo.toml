@@ -11,20 +11,20 @@ path = "src/lib/lib.rs"
 [workspace]
 exclude = ["rust-skia", "vulkano"]
 members = [
+  "cache",
+  "concept",
   "config",
-  "emergent-cache",
-  "emergent-drawing",
-  "emergent-layout", 
-  "emergent-concept",
-  "emergent-terminal"
+  "drawing",
+  "layout",
+  "terminal"
 ]
 
 [dependencies]
 
 # project local dependencies
 tears = { path = "tears" }
-emergent-drawing = { path = "emergent-drawing" }
-emergent-terminal = { path = "emergent-terminal" }
+emergent-drawing = { path = "drawing" }
+emergent-terminal = { path = "terminal" }
 emergent-config = { path = "config" }
 
 # channels
