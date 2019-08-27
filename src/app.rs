@@ -4,6 +4,7 @@ use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
+use emergent::skia::text::SimpleText;
 use emergent::{AreaLayout, Frame};
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
@@ -17,7 +18,6 @@ pub enum Event {
 }
 
 pub struct App {
-    measure_text: Box<dyn MeasureText + Send>,
     area_layout: AreaLayout,
     notification_receiver: Receiver<test_watcher::Notification>,
     test_run_result: Option<TestRunResult>,
@@ -25,16 +25,11 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(
-        measure_text: impl MeasureText + Send + 'static,
-        area_layout: AreaLayout,
-        req: TestRunRequest,
-    ) -> (Self, Cmd<Event>) {
+    pub fn new(area_layout: AreaLayout, req: TestRunRequest) -> (Self, Cmd<Event>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
         test_watcher::begin_watching(req, sender).unwrap();
 
         let emergent = Self {
-            measure_text: Box::new(measure_text),
             area_layout,
             notification_receiver: receiver.clone(),
             test_run_result: None,
@@ -96,6 +91,7 @@ impl App {
 
 impl View<Frame> for App {
     fn render(&self) -> Frame {
+        let measure = SimpleText::new(self.area_layout.dpi);
         let test_run_drawings = {
             let mut drawings = Vec::new();
             match &self.test_run_result {
@@ -108,7 +104,7 @@ impl View<Frame> for App {
                     for capture in captures.0.iter() {
                         // TODO: add a nice drawing combinator.
                         // TODO: avoid the access of 0!
-                        drawings.push(capture.render(&*self.measure_text))
+                        drawings.push(capture.render(&measure))
                     }
                     drawings
                 }
@@ -125,7 +121,7 @@ impl View<Frame> for App {
             }
         };
 
-        let drawing = Drawing::stack_v(test_run_drawings, &*self.measure_text);
+        let drawing = Drawing::stack_v(test_run_drawings, &measure);
 
         Frame {
             area: self.area_layout,

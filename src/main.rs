@@ -2,8 +2,8 @@ use crate::app::App;
 use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
-use emergent::skia;
 use emergent::skia::convert::ToSkia;
+use emergent::{skia, DPI};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
@@ -74,8 +74,7 @@ fn main() {
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().area_layout();
-    let measure = skia::text::SimpleText::new();
-    let (emergent, initial_cmd) = App::new(measure, window_size, test_run_request);
+    let (emergent, initial_cmd) = App::new(window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
     let mut application = Application::new(emergent, executor);
     application.schedule(initial_cmd);
@@ -177,7 +176,7 @@ fn main() {
 fn shaper_perf() {
     icu::init();
 
-    let measure = skia::text::SimpleText::new();
+    let measure = skia::text::SimpleText::default();
 
     let font = Font::new("", font::Style::default(), font::Size::new(20.0));
     let text = functions::text("Hello World", &font, None);

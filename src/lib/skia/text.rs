@@ -1,16 +1,24 @@
 use super::convert::ToSkia;
-use crate::{text_as_lines, TextOrigin};
+use crate::{text_as_lines, TextOrigin, DPI};
 use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, Text, Union};
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
 
 // Simple measurement and text rendering.
-pub struct SimpleText;
+pub struct SimpleText {
+    dpi: DPI,
+}
+
+impl Default for SimpleText {
+    fn default() -> Self {
+        Self::new(DPI::DEFAULT_SCREEN)
+    }
+}
 
 impl SimpleText {
-    pub fn new() -> SimpleText {
-        SimpleText
+    pub fn new(dpi: DPI) -> SimpleText {
+        SimpleText { dpi }
     }
 }
 
@@ -19,7 +27,7 @@ impl drawing::MeasureText for SimpleText {
         let font = &text.font;
         let typeface = Typeface::from_name(&font.name, font.style.to_skia())
             .expect("failed to resolve typeface");
-        let font = Font::from_typeface(&typeface, *font.size as f32);
+        let font = Font::from_typeface(&typeface, self.dpi.scale_font_points(*font.size) as f32);
 
         let mut origin = TextOrigin::new(text.origin);
         let mut combined = None;
@@ -83,18 +91,21 @@ impl SimpleText {
 // TODO: Use a font cache that is shared between rendering and measuring.
 // TODO: Implement a LRU measure cache for text.
 pub struct MeasureWithShaper {
+    pub dpi: DPI,
     pub shaper: Shaper,
 }
 
 impl MeasureWithShaper {
-    pub fn new() -> MeasureWithShaper {
+    pub fn new(dpi: DPI) -> MeasureWithShaper {
         MeasureWithShaper {
+            dpi,
             shaper: Shaper::new(),
         }
     }
 
-    pub fn new_primitive() -> MeasureWithShaper {
+    pub fn new_primitive(dpi: DPI) -> MeasureWithShaper {
         MeasureWithShaper {
+            dpi,
             shaper: Shaper::new_primitive(),
         }
     }
@@ -105,7 +116,7 @@ impl drawing::MeasureText for MeasureWithShaper {
         let font = &text.font;
         let typeface = Typeface::from_name(&font.name, font.style.to_skia())
             .expect("failed to resolve typeface");
-        let font = Font::from_typeface(&typeface, *font.size as f32);
+        let font = Font::from_typeface(&typeface, self.dpi.scale_font_points(*font.size) as f32);
 
         // if there is no text we return the bounds of the text's origin point for now.
         measure_text_runs(&self.shaper, &font, text.origin, &text.runs)

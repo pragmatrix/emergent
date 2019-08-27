@@ -170,12 +170,12 @@ impl DrawingBackend for Backend {
         // let result = matrix44la * matrix44;
         // dbg!(result.has_perspective());
 
-        let view = View3D::default();
+        // let view = View3D::default();
         // view.rotate_y(10.0);
         // view.rotate_x(10.0);
 
-        view.apply_to_canvas(canvas.borrow_mut());
-        canvas.scale((2.0, 2.0));
+        // view.apply_to_canvas(canvas.borrow_mut());
+        // canvas.scale((2.0, 2.0));
 
         let drawing_target =
             &mut CanvasDrawingTarget::from_canvas(canvas, frame.area.dpi, &self.shaper);
