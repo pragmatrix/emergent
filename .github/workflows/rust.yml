@@ -23,5 +23,17 @@ jobs:
     - name: Build
       run: cargo build -vv --release
 
-    - name: Run tests
+    - name: Run Tests
       run: cargo test -vv --release
+
+  rustfmt:
+    name: Check Rust Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          submodules: true
+      - name: Install Rust
+        run: rustup update stable && rustup default stable && rustup component add rustfmt
+      - run: cargo fmt -- --check
