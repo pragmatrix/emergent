@@ -234,7 +234,7 @@ mod tests {
         let mut canvas = Drawing::new();
         let paint = paint().color(0xff0000f0);
         let rect = rect((0, 0), (200, 100));
-        canvas.draw(RoundedRect::from((rect, Radius::new(10.0))), &paint);
+        canvas.draw(RoundedRect::from((rect, Radius::new(10.0))), paint);
         canvas.render();
     }
 }
