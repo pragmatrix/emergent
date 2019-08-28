@@ -15,7 +15,7 @@ use vulkano::swapchain::{
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct Vertex {
     position: [f32; 2],
 }
