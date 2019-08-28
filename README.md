@@ -22,7 +22,13 @@ change to Rust beta (needed for ANSI message formatting)
 rustup default beta
 ```
 
-and run emergent with
+**on Windows** [Ninja](https://github.com/ninja-build/ninja) is needed to compile [shaderc-sys](https://crates.io/crates/shaderc-sys). Best to install the [Chocolatey](https://chocolatey.org/) package:
+
+```bash
+choco install ninja
+```
+
+and then compile & run emergent with
 
 ```bash
 cargo run
