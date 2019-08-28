@@ -16,7 +16,7 @@ So far emergent is not in a state that it can be used to test other packages bes
 
 Emergent runs with [Vulkan](https://en.wikipedia.org/wiki/Vulkan_(API)) graphic drivers only. **On Windows**, they are most likely available already, **on Linux** [this article on linuxconfig.org](https://linuxconfig.org/install-and-test-vulkan-on-linux) might get you started, and **on macOS** with Metal support, [install the Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for Mac and configure MoltenVK by setting the `DYLD_LIBRARY_PATH`, `VK_LAYER_PATH`, and `VK_ICD_FILENAMES` environment variables as described in `Documentation/getting_started_macos.html`.
 
-Furthermore, the compilation steps need an [LLVM](https://llvm.org/) installation. **On Linux** or **on macOS** LLVM should be available, **on Windows** LLVM can be installed via the [Chocolatey](https://chocolatey.org/) package:
+Furthermore, the compilation steps need an [LLVM](https://llvm.org/) installation. **On Linux** or **on macOS** LLVM should be available, **on Windows** LLVM can be installed with [Chocolatey](https://chocolatey.org/):
 
 ```bash
 choco install llvm
@@ -36,7 +36,7 @@ change to Rust beta (needed for ANSI message formatting)
 rustup default beta
 ```
 
-**on Windows** [Ninja](https://github.com/ninja-build/ninja) is needed to compile [shaderc-sys](https://crates.io/crates/shaderc-sys). Best to install the [Chocolatey](https://chocolatey.org/) package:
+**on Windows** [Ninja](https://github.com/ninja-build/ninja) is needed to compile [shaderc-sys](https://crates.io/crates/shaderc-sys)
 
 ```bash
 choco install ninja
