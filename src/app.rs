@@ -93,9 +93,12 @@ impl View<Frame> for App {
     fn render(&self) -> Frame {
         let measure = SimpleText::new(self.area_layout.dpi);
         let test_run_drawings = {
-            let mut drawings = Vec::new();
             match &self.test_run_result {
+                Some(TestRunResult::CompilationFailed(compiler_messages, e)) => {
+                    compiler_messages.iter().map(|cm| cm.to_drawing()).collect()
+                }
                 Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
+                    let mut drawings = Vec::new();
                     for cm in compiler_messages {
                         drawings.push(cm.to_drawing());
                     }
@@ -108,16 +111,7 @@ impl View<Frame> for App {
                     }
                     drawings
                 }
-                Some(TestRunResult::CompilationFailed(compiler_messages, e)) => {
-                    println!("COMPILATION FAILED: {:?}", e);
-                    println!("COMPILER MSGS: {:?}", compiler_messages);
-                    for cm in compiler_messages {
-                        drawings.push(cm.to_drawing());
-                    }
-
-                    drawings
-                }
-                _ => drawings,
+                _ => Vec::new(),
             }
         };
 
@@ -126,7 +120,7 @@ impl View<Frame> for App {
         Frame {
             area: self.area_layout,
             drawing,
-        }
+    }
     }
 }
 
