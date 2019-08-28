@@ -2,8 +2,7 @@
 
 use cargo_metadata::CompilerMessage;
 use emergent_drawing::{font, functions::*, Drawing, DrawingTarget, Font, Paint, RGB};
-use emergent_terminal::text_attributor;
-use emergent_terminal::{color_schemes, term};
+use emergent_terminal::{color_schemes, term, text_attributor};
 
 pub trait ToDrawing {
     fn to_drawing(&self) -> Drawing;
@@ -26,7 +25,7 @@ impl ToDrawing for ANSIString {
         let mut drawing = Drawing::new();
 
         // TODO: probably need a concept for a default font?
-        let font = Font::new("Fira Code", font::Style::default(), font::Size::new(14.0));
+        let font = Font::new("Fira Code", font::Style::default(), font::Size::new(10.0));
 
         let mut block = text_block(&font, None);
 
