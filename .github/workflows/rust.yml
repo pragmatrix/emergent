@@ -20,6 +20,11 @@ jobs:
         fetch-depth: 1
         submodules: true
 
+    - name: Install Ninja (needed for shaderc-sys)
+      run: |
+        choco install ninja
+      if: runner.os == 'Windows'
+
     - name: Build
       run: cargo build -vv --release
 
