@@ -25,6 +25,11 @@ jobs:
         choco install ninja
       if: runner.os == 'Windows'
 
+    - name: Ninja --version
+      run: |
+        ninja --version
+      if: runner.os == 'Windows'
+
     - name: Build
       run: cargo build -vv --release
 
