@@ -53,25 +53,27 @@ My strategy is to ...
 
 All these components are developed _very carefully_ in lock-step with the testrunner. Strictly adhering to the the [first principle](https://en.wikipedia.org/wiki/First_principle) that a component and all its functionality _must_ be fully visualizable, simulatable, reproducible, and as a result, testable.
 
-## History and Context
+## History, Context, and Vision
 
 I've had the vision of live programming for a long time and dived deep into languages, frameworks, built countless prototypes, visited conferences, but never felt that I or the live programming community was able to realize what I've imagined.
 
 Years ago while working on a an Visual Studio extension that executed F# code live and rendered the result into the editor, I realized that focusing on live programming - while seemingly motivating at first - is doomed to fail when attempted in isolation.
 
-I think that live programming does not make sense except for a [good demo](https://www.youtube.com/watch?v=PUv66718DII), because developers spend most of the time refactoring. This is because the creation of new features is the trivial part of programming, but modifying an environment that supports all existing features _while_ enabling new features is the complex part.
+I now think that live programming does not make sense except for a [good demo](https://www.youtube.com/watch?v=PUv66718DII), because developers spend most of the time refactoring. This is because the creation of new features is the trivial part of programming, but modifying an environment that supports all existing features _while_ enabling new features is the complex part.
 
 The live programming research community answers this problem with creating specifically suited live programming languages or environments, and some of the researchers even created several over the years.
 
 Somehow, all that investment does not seem to lead to solution that is usable. And I think I know why. From my point of view, live programming is merely a by-product of a larger solution to a problem that is much more pressing, and that is live testing.
 
-This project should enable live testing up until the point we can test _any_ imagined aspect of the software in development. The result will be much more than live programming ever attempted, it will be an accessible representation of the application in any state at any time. A god view into the multiverse of the application under test that can be navigated, extended, tested, and compared with previous snapshots. All that without being constrained to a specific programming language or IDE.
+This project should enable live testing up until the point we can test _any_ imagined aspect of the software in development. The result will be much more than live programming ever attempted, it will be an accessible representation of the application in any state at any time. A timeless god view into the multiverse of the application under test that can be navigated, extended, tested, and compared with previous snapshots.
 
-To realize that, I think we need to push only _one_ recently developed idea to its extreme.
+To realize that, I think we need to push only _one_ recently developed concept a bit further.
 
-Basically it is event sourcing und unidirectional data flow that makes all of it possible, React and Flux were the first popular concepts that tried to project interaction to the input - output model of simple console applications _and_ simplified state handling at the same time. And that lead to The Elm Architecture, which disrupted MVC and is currently the pinnacle of application logic design.
+Basically it is event sourcing und unidirectional data flow that makes all of it possible, React and Flux were the first popular concepts that tried to map interaction to the input - output model of simple console applications _and_ simplified state handling at the same time. And that lead to The Elm Architecture, which is finally disrupting MVC _and_ puts itself at the pinnacle of application logic design.
 
 If all input to an application can be serialized and the application's state and side-effects captured in full, it is possible to put the application into a sandbox, provide environments to it, and simulate its results in form of its state and visual output.
+
+Of course all that is a rather idealistic goal, but I think that we can learn a lot by just trying.
 
 ## Copyright & License 
 
