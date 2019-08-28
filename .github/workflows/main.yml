@@ -9,6 +9,7 @@ jobs:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
         rust: [beta, nightly]
+      fail-fast: false
 
     steps:
     - uses: hecrj/setup-rust-action@master
@@ -34,7 +35,7 @@ jobs:
       run: cargo build -vv --release
 
     - name: Run Tests
-      run: cargo test -vv --release
+      run: cargo test -vv --release --all
 
   rustfmt:
     name: Check Rust Formatting
