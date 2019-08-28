@@ -10,15 +10,13 @@ Furthermore, the testrunner should be able to create new testcases by interactin
 
 ## Building & Running Tests
 
-Currently, there is not a lot to see. 
-
-On Windows, clone the repository, cd into it, and then check out the submodules with
+**On Windows or macOS**, clone the repository, cd into it, and then check out the submodules with
 
 ```bash
 git submodule update --init
 ```
 
-switch to rust beta (needed for ansi message formatting)
+change to Rust beta (needed for ANSI message formatting)
 
 ```bash
 rustup default beta
@@ -30,9 +28,9 @@ and run emergent with
 cargo run
 ```
 
-This should - with LLVM installed, and a decent Vulkan driver, and a bit of luck - compile everything, power up the testrunner, and visualize some early results of some of the internal test cases.
+This should - with LLVM installed, and a decent Vulkan driver, and a bit of luck - compile everything, power up the testrunner, and visualize some early results of some of the emergent library test cases.
 
-It does that by starting the testrunner, which starts `cargo watch` internally, which in turn runs `cargo test` on the `emergent-layout` package, captures its results, and visualizes them. From now on, changes in the `emergent-layout` packages are detected and the visualizations are updated automatically.
+It does that by starting the testrunner, which starts `cargo watch` internally, which in turn runs `cargo test` on the emergent library, captures its results, and visualizes them. From now on, changes are detected and the visualizations are updated automatically.
 
 ## Strategy
 
@@ -40,7 +38,7 @@ My strategy is to ...
 
 - make a **graphics library** with a GPU backend and high quality perspective anti-aliasing available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
 - create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet), [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
-  My goals for a drawing library is a complete, fast, and compact serializable representation with a minum set of external functional dependencies, like text measurements and path combinators, for example.
+  My goals for a drawing library is a complete, fast, and compact serializable representation with a minimum set of external functional dependencies, like text measurements and path combinators, for example.
   And for the layout engine, it should be built from one-dimensional combinators and scale up to three or four dimensions while providing a simplified set of combinators to create 2D layouts.
 - create an **application component system** that looks like a combination of TEA and React. While React focuses on UI components, TEA focuses on having one single application state. I think by layering multiple TEAs, an optimal combination of both worlds is possible. Conceptually, this is probably the hardest part to realize.
 - create an **interpolation** layer, that enables **animations**. This should work similar to the DOM diffing algorithms that enable incremental updates, but also produce animations that are independent of layout hierarchies and placement.
