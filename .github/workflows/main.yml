@@ -35,7 +35,7 @@ jobs:
       run: cargo build -vv --release
 
     - name: Run Tests
-      run: cargo test -vv --release --all
+      run: cargo test -vv --release --all -- --test-threads 1
 
   rustfmt:
     name: Check Rust Formatting
