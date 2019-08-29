@@ -17,6 +17,11 @@ jobs:
       with:
         rust-version: ${{ matrix.rust }}
 
+    - name: Install Clippy
+      run: |
+        rustup component add clippy
+      shell: bash
+
     - uses: actions/checkout@v1
       with:
         fetch-depth: 1
