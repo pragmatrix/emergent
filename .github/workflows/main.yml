@@ -33,9 +33,11 @@ jobs:
 
     - name: Build
       run: cargo build -vv --release
+      shell: bash
 
     - name: Run Tests
       run: cargo test -vv --release --all -- --test-threads 1
+      shell: bash
 
   rustfmt:
     name: Check Rust Formatting
