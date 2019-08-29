@@ -12,7 +12,8 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: hecrj/setup-rust-action@master
+    - name: Install Rust
+      uses: hecrj/setup-rust-action@master
       with:
         rust-version: ${{ matrix.rust }}
 
