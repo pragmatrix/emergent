@@ -21,12 +21,12 @@ jobs:
         fetch-depth: 1
         submodules: true
 
-    - name: Install Ninja (needed for shaderc-sys)
+    - name: Install Ninja (needed for shaderc-sys, Windows only)
       run: |
         choco install ninja
       if: runner.os == 'Windows'
 
-    - name: Ninja --version
+    - name: Ninja --version (Windows only)
       run: |
         ninja --version
       if: runner.os == 'Windows'
