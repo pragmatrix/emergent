@@ -14,12 +14,52 @@ So far emergent is not in a state that it can be used to test other packages bes
 
 ### Prerequisites
 
-Emergent runs with [Vulkan](https://en.wikipedia.org/wiki/Vulkan_(API)) graphic drivers only. **On Windows**, they are most likely available already, **on Linux** [this article on linuxconfig.org](https://linuxconfig.org/install-and-test-vulkan-on-linux) might get you started, and **on macOS** with Metal support, [install the Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for Mac and configure MoltenVK by setting the `DYLD_LIBRARY_PATH`, `VK_LAYER_PATH`, and `VK_ICD_FILENAMES` environment variables as described in `Documentation/getting_started_macos.html`.
+#### Rust
 
-Furthermore, the compilation steps need an [LLVM](https://llvm.org/) installation. **On Linux** or **on macOS** LLVM should be available, **on Windows** LLVM can be installed with [Chocolatey](https://chocolatey.org/):
+Emergent currently needs at least Rust version `1.38`, at the time of this writing, `1.38` is in beta.
+
+To install the latest version of Rust go to https://www.rust-lang.org/tools/install and make sure that `rustc --version` returns at least `1.38`, if not, switch to the beta channel with:
+
+```bash
+rustup default beta
+```
+
+And the Skia binding generator, `rustfmt` is needed:
+
+```bash
+rustup component add rustfmt
+```
+
+#### Vulkan Drivers
+
+Emergent runs with [Vulkan](https://en.wikipedia.org/wiki/Vulkan_(API)) graphic drivers `>= 1.1` only. **On Windows**, they are most likely available already, **on Linux** [this article on linuxconfig.org](https://linuxconfig.org/install-and-test-vulkan-on-linux) might get you started (run `vulkaninfo` to see what's there, for a software renderer, use [Kazan](https://github.com/kazan-3d/kazan)), and **on macOS** with Metal support, [install the Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for Mac and configure MoltenVK by setting the `DYLD_LIBRARY_PATH`, `VK_LAYER_PATH`, and `VK_ICD_FILENAMES` environment variables as described in `Documentation/getting_started_macos.html`.
+
+#### LLVM
+
+Furthermore, the compilation steps need an [LLVM](https://llvm.org/) installation. **On Linux** or **on macOS** LLVM should be available if not install the packages `llvm` and then perhaps `clang` if the command line tool does not come with it, **on Windows** LLVM can be installed with [Chocolatey](https://chocolatey.org/):
 
 ```bash
 choco install llvm
+```
+
+#### On Linux
+
+On Linux the package `pkg-config` and `openssl` libraries need to be available to compile [openssl-sys](https://crates.io/crates/openssl-sys).
+
+[Installation instructions can be found on docs.rs](https://docs.rs/openssl/0.10.24/openssl/#automatic).
+
+Also make sure that the packages `cmake` and `python`, `python3-distutils` are installed for [shaderc-sys](https://crates.io/crates/shaderc-sys). and the header `fontconfig/fontconfig.h` is available (package `libfontconfig1-dev` on Ubuntu 18/19).
+
+And even though emergent need only Vulkan support, OpenGL header files need to be available to compile the Skia library: http://www.codebind.com/linux-tutorials/install-opengl-ubuntu-linux/ (packages `libglu1-mesa-dev` `freeglut3-dev` `mesa-common-dev` on Ubuntu 18)
+
+In addition to that the `bz2` library needs to be linked with (package `libbz2-dev` on Ubuntu 18).
+
+#### On Windows
+
+**on Windows** [Ninja](https://github.com/ninja-build/ninja) is needed to compile [shaderc-sys](https://crates.io/crates/shaderc-sys):
+
+```bash
+choco install ninja
 ```
 
 ### Building & Running Tests
@@ -28,18 +68,6 @@ Clone the repository, cd into it, and then check out the submodules with
 
 ```bash
 git submodule update --init
-```
-
-change to Rust beta (needed for ANSI message formatting)
-
-```bash
-rustup default beta
-```
-
-**on Windows** [Ninja](https://github.com/ninja-build/ninja) is needed to compile [shaderc-sys](https://crates.io/crates/shaderc-sys)
-
-```bash
-choco install ninja
 ```
 
 and then compile & run emergent with
