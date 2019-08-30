@@ -138,22 +138,22 @@ impl ComplexFastBounds for Shape {
 }
 
 impl DrawingFastBounds for Draw {
-    fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds {
+    fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds {
         match self {
             Draw::Paint(_, _) => DrawingBounds::Unbounded,
             Draw::Shapes(shapes, paint) => DrawingBounds::union_all(
                 shapes
                     .iter()
-                    .map(|s| DrawingBounds::Bounded(s.fast_bounds(text))),
+                    .map(|s| DrawingBounds::Bounded(s.fast_bounds(measure))),
             )
             .outset(&paint.fast_outset()),
             Draw::Clipped(clip, drawing) => {
                 let clip = DrawingBounds::Bounded(clip.fast_bounds());
-                let drawing = drawing.fast_bounds(text);
+                let drawing = drawing.fast_bounds(measure);
                 DrawingBounds::intersect(&clip, &drawing)
             }
             Draw::Transformed(transform, drawing) => {
-                let drawing_bounds = drawing.fast_bounds(text);
+                let drawing_bounds = drawing.fast_bounds(measure);
                 drawing_bounds.map_bounded(|b| transform.to_matrix().map_bounds(*b))
             }
         }
