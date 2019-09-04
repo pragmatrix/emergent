@@ -54,10 +54,17 @@ impl Drawing {
         }
     }
 
+    /// Returns the drawing transformed.
     pub fn transformed(self, transform: Transform) -> Self {
-        // TODO: check if we can directly combine the transform with the latest
-        // for example Rotate => Rotate.
-        Drawing::Transformed(transform, self.into())
+        use Drawing::*;
+        match self {
+            Empty => Empty,
+            Transformed(t, drawing) => match Transform::optimized(&t, &transform) {
+                Some(optimized) => Transformed(optimized, drawing),
+                None => Transformed(transform, Transformed(t, drawing).into()),
+            },
+            _ => Transformed(transform, self.into()),
+        }
     }
 
     /// Push a drawing in the front of the current drawing.
