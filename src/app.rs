@@ -120,7 +120,7 @@ impl View<Frame> for App {
         Frame {
             area: self.area_layout,
             drawing,
-    }
+        }
     }
 }
 
