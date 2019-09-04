@@ -37,7 +37,7 @@ pub enum Drawing {
 
 impl Default for Drawing {
     fn default() -> Self {
-        Drawing::Empty
+        Drawing::new()
     }
 }
 
