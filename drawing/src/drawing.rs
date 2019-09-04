@@ -28,6 +28,7 @@ pub enum Drawing {
     Transformed(Transform, Box<Drawing>),
     /// Intersect the current clip with the given Clip and draw the nested drawing.
     Clipped(Clip, Box<Drawing>),
+    /// Draw Drawings from back to front.
     BackToFront(Vec<Drawing>),
     /// Fill the current clipping area with the current paint and `BlendMode`.
     Fill(BlendMode),
