@@ -180,7 +180,7 @@ impl DrawingBackend for Backend {
         let drawing_target =
             &mut CanvasDrawingTarget::from_canvas(canvas, frame.area.dpi, &self.shaper);
         frame
-            .drawing
+            .presentation
             .draw_to(drawing::Paint::default(), drawing_target);
 
         surface.flush();

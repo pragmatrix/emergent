@@ -100,39 +100,16 @@ impl Drawing {
             _ => None,
         }
     }
+}
 
-    pub fn stack_h(drawings: Vec<Drawing>, measure_text: &dyn MeasureText) -> Drawing {
-        Self::stack(drawings, measure_text, Vector::new(1.0, 0.0))
+impl Clipped for Drawing {
+    fn clipped(self, clip: Clip) -> Self {
+        Drawing::Clipped(clip, self.into())
     }
+}
 
-    pub fn stack_v(drawings: Vec<Drawing>, measure_text: &dyn MeasureText) -> Drawing {
-        Self::stack(drawings, measure_text, Vector::new(0.0, 1.0))
-    }
-
-    /// Stack a number of drawings vertically based on fast_bounds() computation.
-    ///
-    /// The direction to stack the drawings is computed from the delta vector
-    /// which is multiplied with the bounds before to compute the location of
-    /// the next drawing.
-    pub fn stack(
-        drawings: Vec<Drawing>,
-        measure_text: &dyn MeasureText,
-        d: impl Into<Vector>,
-    ) -> Drawing {
-        let d = d.into();
-        let mut p = Point::default();
-        let mut r = Vec::new();
-        for drawing in drawings {
-            match drawing.fast_bounds(measure_text) {
-                DrawingBounds::Bounded(b) => {
-                    let align = -b.point.to_vector();
-                    let transform = Transform::Translate((p + align).to_vector());
-                    r.push(Drawing::Transformed(transform, drawing.into()));
-                    p += Vector::from(b.extent) * d
-                }
-                _ => {}
-            }
-        }
-        Drawing::BackToFront(r)
+impl Transformed for Drawing {
+    fn transformed(self, transform: Transform) -> Self {
+        Drawing::Transformed(transform, self.into())
     }
 }

@@ -1,4 +1,5 @@
 use crate::scalar;
+use serde::{Deserialize, Serialize};
 use std::ops::Neg;
 
 /// An outset area around a rectangle or bounds.
@@ -6,7 +7,7 @@ use std::ops::Neg;
 /// Previously named Padding, then renamed to precisely specify that
 /// - for an actual outset - all values have to be positive. For an inset,
 /// all need to be negative.
-#[derive(Copy, Clone, PartialEq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, Default, Debug)]
 pub struct Outset([scalar; 4]);
 
 impl Outset {

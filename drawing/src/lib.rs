@@ -19,6 +19,8 @@ pub use geometry::*;
 mod shape;
 pub use shape::*;
 
+pub mod simple_layout;
+
 mod toolbox;
 pub(crate) use toolbox::*;
 

@@ -545,6 +545,7 @@ dependencies = [
  "crossbeam-channel 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "emergent-config 0.1.0",
  "emergent-drawing 0.1.0",
+ "emergent-presentation 0.1.0",
  "emergent-terminal 0.1.0",
  "env_logger 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -600,6 +601,14 @@ name = "emergent-layout"
 version = "0.1.0"
 dependencies = [
  "emergent-drawing 0.1.0",
+]
+
+[[package]]
+name = "emergent-presentation"
+version = "0.1.0"
+dependencies = [
+ "emergent-drawing 0.1.0",
+ "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

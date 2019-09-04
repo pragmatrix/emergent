@@ -1,6 +1,7 @@
 use crate::{Angle, Matrix, Point, Vector};
 use serde::{Deserialize, Serialize};
 
+/// A serializable description of a 2D transformation.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Transform {
     Identity,
@@ -8,6 +9,11 @@ pub enum Transform {
     Scale(Vector, Point),
     Rotate(Angle, Point),
     Matrix(Matrix),
+}
+
+/// This trait is implemented for types that can represent themselves in a transformed form.
+pub trait Transformed {
+    fn transformed(self, transform: Transform) -> Self;
 }
 
 impl Transform {

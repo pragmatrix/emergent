@@ -1,6 +1,6 @@
 use crate::{
-    Arc, Bounds, Circle, Clip, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
-    RoundedRect, Shape, Text, Union,
+    Arc, Bounds, Circle, Clip, Clipped, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
+    RoundedRect, Shape, Text, Transform, Transformed, Union,
 };
 
 pub trait MeasureText {
@@ -24,6 +24,12 @@ pub enum DrawingBounds {
     Bounded(Bounds),
 }
 
+impl From<Bounds> for DrawingBounds {
+    fn from(bounds: Bounds) -> Self {
+        DrawingBounds::Bounded(bounds)
+    }
+}
+
 impl DrawingBounds {
     pub fn as_bounds(&self) -> Option<&Bounds> {
         match self {
@@ -34,16 +40,29 @@ impl DrawingBounds {
     }
 }
 
+impl Clipped for DrawingBounds {
+    fn clipped(self, clip: Clip) -> Self {
+        let clip = clip.fast_bounds().into();
+        Self::intersect(&clip, &self)
+    }
+}
+
+impl Transformed for DrawingBounds {
+    fn transformed(self, transform: Transform) -> Self {
+        self.map_bounded(|b| transform.to_matrix().map_bounds(*b))
+    }
+}
+
 pub trait FastBounds {
     fn fast_bounds(&self) -> Bounds;
 }
 
 pub trait ComplexFastBounds {
-    fn fast_bounds(&self, text: &dyn MeasureText) -> Bounds;
+    fn fast_bounds(&self, measure: &dyn MeasureText) -> Bounds;
 }
 
 pub trait DrawingFastBounds {
-    fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds;
+    fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds;
 }
 
 //
@@ -136,6 +155,7 @@ impl ComplexFastBounds for Shape {
         }
     }
 }
+
 impl DrawingFastBounds for Drawing {
     fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds {
         use Drawing::*;

@@ -7,7 +7,10 @@ use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::SimpleText;
 use emergent::{AreaLayout, Frame};
 use emergent_drawing::functions::{paint, text};
+use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
+use emergent_presentation::{Area, Present, Presentation};
+use std::ops::Index;
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]
@@ -92,56 +95,65 @@ impl App {
 impl View<Frame> for App {
     fn render(&self) -> Frame {
         let measure = SimpleText::new(self.area_layout.dpi);
-        let test_run_drawings = {
+        let test_run_presentations = {
             match &self.test_run_result {
-                Some(TestRunResult::CompilationFailed(compiler_messages, e)) => {
-                    compiler_messages.iter().map(|cm| cm.to_drawing()).collect()
-                }
+                Some(TestRunResult::CompilationFailed(compiler_messages, e)) => compiler_messages
+                    .iter()
+                    .map(|cm| cm.to_drawing().present())
+                    .collect(),
                 Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
-                    let mut drawings = Vec::new();
+                    let mut presentations = Vec::new();
                     for cm in compiler_messages {
-                        drawings.push(cm.to_drawing());
+                        presentations.push(cm.to_drawing().present());
                     }
 
                     // TODO: implement Iter in TestCaptures
                     for capture in captures.0.iter() {
                         // TODO: add a nice drawing combinator.
                         // TODO: avoid the access of 0!
-                        drawings.push(capture.render(&measure))
+                        presentations.push(capture.present(&measure))
                     }
-                    drawings
+                    presentations
                 }
                 _ => Vec::new(),
             }
         };
 
-        let drawing = Drawing::stack_v(test_run_drawings, &measure);
+        let presentation = Presentation::BackToFront(Presentation::layout_vertically(
+            test_run_presentations,
+            &measure,
+        ));
 
         Frame {
             area: self.area_layout,
-            drawing,
+            presentation,
         }
     }
 }
 
 impl TestCapture {
-    fn render(&self, measure_text: &dyn MeasureText) -> Drawing {
-        let header = self.render_header();
-        let output = self.render_output();
-        Drawing::stack_v(vec![header, output], measure_text)
+    fn present(&self, measure: &dyn MeasureText) -> Presentation {
+        let header = self.present_header();
+        let output = self.draw_output().present();
+        Presentation::BackToFront(Presentation::layout_vertically(
+            vec![header, output],
+            measure,
+        ))
     }
 
-    fn render_header(&self) -> Drawing {
+    pub const HEADER_AREA: Area = Area::new("header");
+
+    fn present_header(&self) -> Presentation {
         // TODO: const fn? once_cell, the empty string is converted to a String which
         // is not const_fn.
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
-        let mut target = Drawing::new();
+        let mut drawing = Drawing::new();
         let text = text(&self.name, header_font, None);
-        target.draw_shape(&text.into(), paint());
-        target
+        drawing.draw_shape(&text.into(), paint());
+        drawing.present().in_area(Self::HEADER_AREA)
     }
 
-    fn render_output(&self) -> Drawing {
+    fn draw_output(&self) -> Drawing {
         // TODO: render invalid output as text and mark it appropriately
         if !self.output.starts_with("> ") {
             return Drawing::new();

@@ -16,6 +16,7 @@ members = [
   "config",
   "drawing",
   "layout",
+  "presentation",
   "terminal"
 ]
 
@@ -26,6 +27,7 @@ tears = { path = "tears" }
 emergent-drawing = { path = "drawing" }
 emergent-terminal = { path = "terminal" }
 emergent-config = { path = "config" }
+emergent-presentation = { path = "presentation" }
 
 # channels
 crossbeam-channel = "0.3.8"

@@ -3,8 +3,8 @@ mod tests {
     use crate::skia;
     use emergent_drawing::functions::*;
     use emergent_drawing::{
-        font, paint, text, Color, Drawing, DrawingFastBounds, DrawingTarget, Font, Point, Rect,
-        Render, Vector, RGB,
+        font, paint, simple_layout, text, Color, Drawing, DrawingFastBounds, DrawingTarget, Font,
+        Point, Rect, Render, Vector, RGB,
     };
 
     #[test]
@@ -76,12 +76,12 @@ mod tests {
     }
 
     #[test]
-    fn stack_v() {
+    fn layout_vertically() {
         stack_vec(Vector::new(0.0, 1.0));
     }
 
     #[test]
-    fn stack_h() {
+    fn layout_horizontally() {
         stack_vec(Vector::new(1.0, 0.0));
     }
 
@@ -92,7 +92,7 @@ mod tests {
         let d1 = bounds_around_text("Bounds around Text");
         let d2 = bounds_around_text("Bounds around Text");
 
-        let mut stacked = Drawing::stack(vec![d1, d2], &measure, v);
+        let mut stacked = Drawing::BackToFront(simple_layout::stacked(vec![d1, d2], &measure, v));
         let stacked_bounds: Rect = (*stacked.fast_bounds(&measure).as_bounds().unwrap()).into();
         dbg!(&stacked_bounds);
         stacked.draw(stacked_bounds, stroke_paint_green);
