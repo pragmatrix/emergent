@@ -19,6 +19,9 @@ pub use geometry::*;
 mod shape;
 pub use shape::*;
 
+mod toolbox;
+pub(crate) use toolbox::*;
+
 //
 // Scalar type. f64.
 //

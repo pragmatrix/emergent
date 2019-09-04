@@ -1,5 +1,5 @@
 use crate::{
-    Arc, Bounds, Circle, Clip, Draw, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
+    Arc, Bounds, Circle, Clip, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
     RoundedRect, Shape, Text, Union,
 };
 
@@ -136,33 +136,27 @@ impl ComplexFastBounds for Shape {
         }
     }
 }
-
-impl DrawingFastBounds for Draw {
+impl DrawingFastBounds for Drawing {
     fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds {
+        use Drawing::*;
         match self {
-            Draw::Paint(_, _) => DrawingBounds::Unbounded,
-            Draw::Shapes(shapes, paint) => DrawingBounds::union_all(
-                shapes
-                    .iter()
-                    .map(|s| DrawingBounds::Bounded(s.fast_bounds(measure))),
-            )
-            .outset(&paint.fast_outset()),
-            Draw::Clipped(clip, drawing) => {
+            Empty => DrawingBounds::Empty,
+            WithPaint(_, drawing) => drawing.fast_bounds(measure),
+            Transformed(transform, drawing) => {
+                let nested_bounds = drawing.fast_bounds(measure);
+                nested_bounds.map_bounded(|b| transform.to_matrix().map_bounds(*b))
+            }
+            Clipped(clip, drawing) => {
                 let clip = DrawingBounds::Bounded(clip.fast_bounds());
                 let drawing = drawing.fast_bounds(measure);
                 DrawingBounds::intersect(&clip, &drawing)
             }
-            Draw::Transformed(transform, drawing) => {
-                let drawing_bounds = drawing.fast_bounds(measure);
-                drawing_bounds.map_bounded(|b| transform.to_matrix().map_bounds(*b))
+            BackToFront(drawings) => {
+                DrawingBounds::union_all(drawings.iter().map(|d| d.fast_bounds(measure)))
             }
+            Fill(_) => DrawingBounds::Unbounded,
+            Shape(shape) => DrawingBounds::Bounded(shape.fast_bounds(measure)),
         }
-    }
-}
-
-impl DrawingFastBounds for Drawing {
-    fn fast_bounds(&self, text: &dyn MeasureText) -> DrawingBounds {
-        DrawingBounds::union_all(self.iter().map(|d| d.fast_bounds(text)))
     }
 }
 

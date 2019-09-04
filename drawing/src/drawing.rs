@@ -17,40 +17,84 @@ pub mod paint;
 pub use paint::Paint;
 
 mod transform;
-use std::mem;
-use std::ops::{Deref, DerefMut};
 pub use transform::*;
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Drawing(Vec<Draw>);
-
-impl<I: IntoIterator<Item = Draw>> From<I> for Drawing {
-    fn from(v: I) -> Self {
-        Drawing(v.into_iter().collect())
-    }
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Drawing {
+    Empty,
+    /// Draw the nested drawing with the current paint.
+    WithPaint(Paint, Box<Drawing>),
+    /// Draw a drawing transformed with the current matrix.
+    Transformed(Transform, Box<Drawing>),
+    /// Intersect the current clip with the given Clip and draw the nested drawing.
+    Clipped(Clip, Box<Drawing>),
+    BackToFront(Vec<Drawing>),
+    /// Fill the current clipping area with the current paint and `BlendMode`.
+    Fill(BlendMode),
+    /// Draw the shape with the current `Clip`, `Transform` and `Paint`.
+    Shape(Shape),
 }
 
-// TODO: is this appropriate?
-impl Deref for Drawing {
-    type Target = Vec<Draw>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Drawing {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+impl Default for Drawing {
+    fn default() -> Self {
+        Drawing::Empty
     }
 }
 
 impl Drawing {
-    pub fn new() -> Drawing {
-        Drawing(Vec::new())
+    pub const fn new() -> Self {
+        Drawing::Empty
     }
 
-    pub fn take(&mut self) -> Vec<Draw> {
-        mem::replace(&mut self.0, Vec::new())
+    /// Creates a drawing with the default paint set to `paint`.
+    pub fn with_paint(self, paint: Paint) -> Self {
+        match self.default_paint() {
+            Some(p) if *p == paint => self,
+            _ => Drawing::WithPaint(paint, self.into()),
+        }
+    }
+
+    pub fn transformed(self, transform: Transform) -> Self {
+        // TODO: check if we can directly combine the transform with the latest
+        // for example Rotate => Rotate.
+        Drawing::Transformed(transform, self.into())
+    }
+
+    /// Push a drawing in the front of the current drawing.
+    pub fn below(self, topmost: Drawing) -> Self {
+        use Drawing::*;
+        match self {
+            Empty => topmost,
+            BackToFront(mut v) => {
+                v.push(topmost);
+                BackToFront(v)
+            }
+            drawing => BackToFront(vec![drawing, topmost]),
+        }
+    }
+
+    pub fn above(self, below: Drawing) -> Self {
+        below.below(self)
+    }
+
+    pub fn clipped(self, clip: Clip) -> Self {
+        Drawing::Clipped(clip, self.into())
+    }
+
+    /// The default paint that is used for all drawings.
+    ///
+    /// Returns `None` if the drawing does not specify a default paint.
+    pub fn default_paint(&self) -> Option<&Paint> {
+        use Drawing::*;
+        match self {
+            Empty => None,
+            WithPaint(paint, _) => Some(paint),
+            Transformed(_, drawing) => drawing.default_paint(),
+            Clipped(_, drawing) => drawing.default_paint(),
+            Fill(_) => None,
+            BackToFront(_) => None,
+            Shape(_) => None,
+        }
     }
 
     pub fn stack_h(drawings: Vec<Drawing>, measure_text: &dyn MeasureText) -> Drawing {
@@ -73,35 +117,18 @@ impl Drawing {
     ) -> Drawing {
         let d = d.into();
         let mut p = Point::default();
-        let mut r = Drawing::new();
+        let mut r = Vec::new();
         for drawing in drawings {
             match drawing.fast_bounds(measure_text) {
                 DrawingBounds::Bounded(b) => {
                     let align = -b.point.to_vector();
                     let transform = Transform::Translate((p + align).to_vector());
-                    r.push(Draw::Transformed(transform, drawing));
+                    r.push(Drawing::Transformed(transform, drawing.into()));
                     p += Vector::from(b.extent) * d
                 }
                 _ => {}
             }
         }
-        r
+        Drawing::BackToFront(r)
     }
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Draw {
-    /// Fill the current clipping area with the given paint and blend mode.
-    Paint(Paint, BlendMode),
-
-    /// Draw a number of shapes with the same paint.
-    Shapes(Vec<Shape>, Paint),
-
-    // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
-    // TODO: Also Skia supports do_anti_alias for clipping.
-    /// Intersect the current clip with the given Clip and draw the nested drawing.
-    Clipped(Clip, Drawing),
-
-    /// Draw a drawing transformed with the current matrix.
-    Transformed(Transform, Drawing),
 }

@@ -1,5 +1,5 @@
 //! Function based API to specify drawings.
-use crate::{BlendMode, Clip, Draw, Drawing, Paint, Shape, Transform};
+use crate::{BlendMode, Clip, Drawing, Paint, Shape, Transform};
 
 pub mod drawing;
 
@@ -25,29 +25,24 @@ pub trait DrawingTarget {
 
 /// A trait for something that is drawable to a drawing target.
 pub trait DrawTo {
-    fn draw_to(&self, target: &mut impl DrawingTarget);
+    fn draw_to(&self, current_paint: Paint, target: &mut impl DrawingTarget);
 }
 
 impl DrawTo for Drawing {
-    fn draw_to(&self, target: &mut impl DrawingTarget) {
-        self.iter().for_each(|draw| draw.draw_to(target));
-    }
-}
-
-impl DrawTo for Draw {
-    fn draw_to(&self, target: &mut impl DrawingTarget) {
+    fn draw_to(&self, current_paint: Paint, target: &mut impl DrawingTarget) {
+        use Drawing::*;
         match self {
-            Draw::Paint(paint, blend_mode) => target.fill(*paint, *blend_mode),
-            Draw::Shapes(shapes, paint) => {
-                // TODO: optimize paint reuse here?
-                shapes
-                    .iter()
-                    .for_each(|shape| target.draw_shape(shape, *paint))
+            Empty => {}
+            WithPaint(paint, drawing) => drawing.draw_to(*paint, target),
+            Transformed(transform, drawing) => {
+                target.transform(transform, |dt| drawing.draw_to(current_paint, dt))
             }
-            Draw::Clipped(clip, drawing) => target.clip(clip, |dt| drawing.draw_to(dt)),
-            Draw::Transformed(transform, drawing) => {
-                target.transform(transform, |dt| drawing.draw_to(dt));
-            }
+            Clipped(clip, drawing) => target.clip(clip, |dt| drawing.draw_to(current_paint, dt)),
+            BackToFront(drawings) => drawings
+                .iter()
+                .for_each(|d| d.draw_to(current_paint, target)),
+            Fill(blend_mode) => target.fill(current_paint, *blend_mode),
+            Shape(shape) => target.draw_shape(shape, current_paint),
         }
     }
 }
