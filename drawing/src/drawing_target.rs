@@ -12,6 +12,8 @@ pub trait DrawingTarget {
     fn fill(&mut self, paint: Paint, blend_mode: BlendMode);
     /// Draw a shape.
     fn draw_shape(&mut self, shape: &Shape, paint: Paint);
+    /// Draw a nested drawing.
+    fn draw_drawing(&mut self, drawing: &Drawing);
     /// Intersect clip with the current clipping area and draw a nested drawing.
     fn clip(&mut self, clip: &Clip, f: impl FnOnce(&mut Self));
     /// Apply the matrix transformation to the current matrix and draw a nested drawing.
@@ -28,6 +30,7 @@ pub trait DrawTo {
     fn draw_to(&self, target: &mut impl DrawingTarget);
 }
 
+/*
 impl DrawTo for Drawing {
     fn draw_to(&self, target: &mut impl DrawingTarget) {
         self.iter().for_each(|draw| draw.draw_to(target));
@@ -51,3 +54,5 @@ impl DrawTo for Draw {
         }
     }
 }
+
+*/

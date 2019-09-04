@@ -5,6 +5,12 @@
 #[macro_use]
 extern crate bitflags;
 
+mod chain;
+pub(crate) use chain::*;
+
+mod map_chain;
+pub(crate) use map_chain::*;
+
 mod drawing;
 pub use drawing::*;
 
@@ -18,6 +24,9 @@ pub use geometry::*;
 
 mod shape;
 pub use shape::*;
+
+mod transform_chain;
+pub use transform_chain::*;
 
 //
 // Scalar type. f64.

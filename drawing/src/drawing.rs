@@ -1,4 +1,7 @@
-use crate::{DrawingBounds, DrawingFastBounds, MeasureText, Point, Shape, Vector};
+use crate::{
+    DrawingBounds, DrawingFastBounds, DrawingTarget, LinkChain, MeasureText, Point, Ref, Shape,
+    Vector,
+};
 use serde::{Deserialize, Serialize};
 
 mod blend_mode;
@@ -17,19 +20,43 @@ pub mod paint;
 pub use paint::Paint;
 
 mod transform;
-use std::mem;
-use std::ops::{Deref, DerefMut};
 pub use transform::*;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
-pub struct Drawing(Vec<Draw>);
+pub struct Drawing {
+    /// A transform chain the commands refer to.
+    transforms: LinkChain<Transform>,
+    /// A clip chain that derives the clip graph that is used.
+    clips: LinkChain<Clip>,
 
+    commands: Vec<(Ref<Clip>, Ref<Transform>, Draw)>,
+
+    /// Optional drawing bounds that resulted from a fast_bounds() invocation.
+    #[serde(skip)]
+    bounds: Option<DrawingBounds>,
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum Draw {
+    /// Fill the current clipping area with the given paint and blend mode.
+    Paint(Paint, BlendMode),
+
+    /// Draw a number of shapes with the same paint.
+    Shapes(Vec<Shape>, Paint),
+
+    /// Draw a nested drawing.
+    Drawing(Drawing),
+}
+
+/*
 impl<I: IntoIterator<Item = Draw>> From<I> for Drawing {
     fn from(v: I) -> Self {
         Drawing(v.into_iter().collect())
     }
 }
+*/
 
+/*
 // TODO: is this appropriate?
 impl Deref for Drawing {
     type Target = Vec<Draw>;
@@ -44,14 +71,43 @@ impl DerefMut for Drawing {
     }
 }
 
+*/
+
 impl Drawing {
     pub fn new() -> Drawing {
-        Drawing(Vec::new())
+        Default::default()
     }
 
+    /// Return the most recent Draw
+    pub fn last_mut(&mut self) -> Option<&mut Draw> {
+        self.commands.last_mut().map(|(_, _, d)| d)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.commands.is_empty()
+    }
+
+    /// Push a draw with the recent transformation and clip.
+    pub fn push(&mut self, draw: Draw) {
+        let (clip, transform) = self.state();
+        self.commands.push((clip, transform, draw));
+    }
+
+    /// Returns the current state.
+    ///
+    /// This is the most recent clip and transformation.
+    pub fn state(&self) -> (Ref<Clip>, Ref<Transform>) {
+        match self.commands.last() {
+            Some((c, t, _)) => (*c, *t),
+            None => (Ref::Identity, Ref::Identity),
+        }
+    }
+
+    /*
     pub fn take(&mut self) -> Vec<Draw> {
         mem::replace(&mut self.0, Vec::new())
     }
+    */
 
     pub fn stack_h(drawings: Vec<Drawing>, measure_text: &dyn MeasureText) -> Drawing {
         Self::stack(drawings, measure_text, Vector::new(1.0, 0.0))
@@ -79,7 +135,7 @@ impl Drawing {
                 DrawingBounds::Bounded(b) => {
                     let align = -b.point.to_vector();
                     let transform = Transform::Translate((p + align).to_vector());
-                    r.push(Draw::Transformed(transform, drawing));
+                    r.transform(&transform, |d| d.draw_drawing(&drawing));
                     p += Vector::from(b.extent) * d
                 }
                 _ => {}
@@ -87,21 +143,4 @@ impl Drawing {
         }
         r
     }
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum Draw {
-    /// Fill the current clipping area with the given paint and blend mode.
-    Paint(Paint, BlendMode),
-
-    /// Draw a number of shapes with the same paint.
-    Shapes(Vec<Shape>, Paint),
-
-    // TODO: Skia supports ClipOp::Difference, which I suppose is quite unusual.
-    // TODO: Also Skia supports do_anti_alias for clipping.
-    /// Intersect the current clip with the given Clip and draw the nested drawing.
-    Clipped(Clip, Drawing),
-
-    /// Draw a drawing transformed with the current matrix.
-    Transformed(Transform, Drawing),
 }

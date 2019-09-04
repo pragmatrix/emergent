@@ -14,6 +14,8 @@ impl DrawingTarget for Drawing {
         }
     }
 
+    fn draw_drawing(&mut self, drawing: &Drawing) {}
+
     fn clip(&mut self, clip: &Clip, f: impl FnOnce(&mut Self)) {
         let begin = self.len();
         f(self);
