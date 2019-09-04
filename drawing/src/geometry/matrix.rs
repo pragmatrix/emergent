@@ -559,7 +559,7 @@ fn invert(v: scalar) -> scalar {
 fn is_degenerate_2x2(scale_x: scalar, skew_x: scalar, skew_y: scalar, scale_y: scalar) -> bool {
     // Skia: 3a2e3e75232d225e6f5e7c3530458be63bbb355a
     let perp_dot = scale_x * scale_y - skew_x * skew_y;
-    return perp_dot.nearly_zero(scalar::NEARLY_ZERO * scalar::NEARLY_ZERO);
+    perp_dot.nearly_zero(scalar::NEARLY_ZERO * scalar::NEARLY_ZERO)
 }
 
 #[cfg(test)]
@@ -616,7 +616,7 @@ mod tests {
         let s2 = rotation2.y;
 
         // We do a relative check here because large scale factors cause problems with an absolute check
-        let result = nearly_equal_relative(
+        nearly_equal_relative(
             mat.scale_x(),
             scale_x * c1 * c2 - scale_y * s1 * s2,
             scalar::NEARLY_ZERO,
@@ -632,8 +632,7 @@ mod tests {
             mat.scale_y(),
             -scale_x * s1 * s2 + scale_y * c1 * c2,
             scalar::NEARLY_ZERO,
-        );
-        return result;
+        )
     }
 
     fn nearly_equal_relative(a: scalar, b: scalar, tolerance: scalar) -> bool {
@@ -647,10 +646,6 @@ mod tests {
         let b = b.abs();
         let largest = if b > a { b } else { a };
 
-        if diff <= largest * tolerance {
-            return true;
-        }
-
-        return false;
+        diff <= largest * tolerance
     }
 }
