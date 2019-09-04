@@ -94,13 +94,9 @@ impl Drawing {
     pub fn default_paint(&self) -> Option<&Paint> {
         use Drawing::*;
         match self {
-            Empty => None,
             WithPaint(paint, _) => Some(paint),
-            Transformed(_, drawing) => drawing.default_paint(),
-            Clipped(_, drawing) => drawing.default_paint(),
-            Fill(_) => None,
-            BackToFront(_) => None,
-            Shape(_) => None,
+            Transformed(_, drawing) | Clipped(_, drawing) => drawing.default_paint(),
+            _ => None,
         }
     }
 
