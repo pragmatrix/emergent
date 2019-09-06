@@ -29,7 +29,7 @@ pub enum Presentation {
     Empty,
     /// Defines a presentation scope.
     /// This qualifies all nested names with the scope's name.
-    Scoped(AreaRef, Box<Presentation>),
+    Scoped(String, Box<Presentation>),
     /// Defines a named area around a presentation, including an Outset.
     Area(AreaRef, Outset, Box<Presentation>),
     /// Defines a named area by providing a Clip at the current drawing position.
@@ -54,6 +54,16 @@ impl Clipped for Presentation {
 impl Transformed for Presentation {
     fn transformed(self, transform: Transform) -> Self {
         Presentation::Transformed(transform, self.into())
+    }
+}
+
+pub trait BackToFront {
+    fn back_to_front(self) -> Presentation;
+}
+
+impl<T: IntoIterator<Item = Presentation>> BackToFront for T {
+    fn back_to_front(self) -> Presentation {
+        Presentation::BackToFront(self.into_iter().collect())
     }
 }
 
@@ -115,5 +125,9 @@ impl Presentation {
 
     pub fn in_area_with_outset(self, area: Area, outset: impl Into<Outset>) -> Self {
         Presentation::Area(area.into(), outset.into(), self.into())
+    }
+
+    pub fn scoped(self, name: impl Into<String>) -> Self {
+        Presentation::Scoped(name.into(), self.into())
     }
 }
