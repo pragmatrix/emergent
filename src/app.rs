@@ -9,7 +9,7 @@ use emergent::{AreaLayout, Frame};
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
-use emergent_presentation::{Area, Present, Presentation};
+use emergent_presentation::{Area, BackToFront, Present, Presentation};
 use std::ops::Index;
 use tears::{Cmd, Model, View};
 
@@ -135,10 +135,9 @@ impl TestCapture {
     fn present(&self, measure: &dyn MeasureText) -> Presentation {
         let header = self.present_header();
         let output = self.draw_output().present();
-        Presentation::BackToFront(Presentation::layout_vertically(
-            vec![header, output],
-            measure,
-        ))
+        Presentation::layout_vertically(vec![header, output], measure)
+            .back_to_front()
+            .scoped(&self.name)
     }
 
     pub const HEADER_AREA: Area = Area::new("header");
