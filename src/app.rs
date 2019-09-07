@@ -96,7 +96,7 @@ impl View<Frame> for App {
         let measure = SimpleText::new(self.area_layout.dpi);
         let test_run_presentations = {
             match &self.test_run_result {
-                Some(TestRunResult::CompilationFailed(compiler_messages, e)) => compiler_messages
+                Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => compiler_messages
                     .iter()
                     .map(|cm| cm.to_drawing().present())
                     .collect(),
