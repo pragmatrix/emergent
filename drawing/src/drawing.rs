@@ -1,4 +1,4 @@
-use crate::{DrawingBounds, DrawingFastBounds, MeasureText, Point, Shape, Vector};
+use crate::{BackToFront, DrawingBounds, DrawingFastBounds, MeasureText, Point, Shape, Vector};
 use serde::{Deserialize, Serialize};
 
 mod blend_mode;
@@ -39,6 +39,12 @@ pub enum Drawing {
 impl Default for Drawing {
     fn default() -> Self {
         Drawing::new()
+    }
+}
+
+impl<T: IntoIterator<Item = Drawing>> BackToFront<Drawing> for T {
+    fn back_to_front(self) -> Drawing {
+        Drawing::BackToFront(self.into_iter().collect())
     }
 }
 

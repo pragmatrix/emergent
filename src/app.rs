@@ -8,9 +8,8 @@ use emergent::skia::text::SimpleText;
 use emergent::{AreaLayout, Frame};
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
-use emergent_presentation::{Area, BackToFront, Present, Presentation};
-use std::ops::Index;
+use emergent_drawing::{font, BackToFront, Drawing, DrawingTarget, Font, MeasureText};
+use emergent_presentation::{Area, Present, Presentation};
 use tears::{Cmd, Model, View};
 
 #[derive(Debug)]

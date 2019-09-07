@@ -1,6 +1,6 @@
 use emergent_drawing::{
-    Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget, MeasureText,
-    Outset, Paint, Transform, Transformed,
+    BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
+    MeasureText, Outset, Paint, Transform, Transformed,
 };
 use serde::{Deserialize, Serialize};
 
@@ -57,11 +57,7 @@ impl Transformed for Presentation {
     }
 }
 
-pub trait BackToFront {
-    fn back_to_front(self) -> Presentation;
-}
-
-impl<T: IntoIterator<Item = Presentation>> BackToFront for T {
+impl BackToFront<Presentation> for Vec<Presentation> {
     fn back_to_front(self) -> Presentation {
         Presentation::BackToFront(self.into_iter().collect())
     }

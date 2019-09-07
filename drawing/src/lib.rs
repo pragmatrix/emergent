@@ -60,6 +60,11 @@ impl Render for Drawing {
     }
 }
 
+/// A trait used for visuals that can be composed from back to front.
+pub trait BackToFront<Composed> {
+    fn back_to_front(self) -> Composed;
+}
+
 #[cfg(test)]
 mod tests {
     use crate::functions::{point, vector};
