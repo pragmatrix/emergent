@@ -446,10 +446,10 @@ fn oval_point_iterator(
 
     iter::from_fn(move || {
         let p = match index % 4 {
-            0 => point(center.x, rect.top()),
-            1 => point(rect.right(), center.y),
-            2 => point(center.x, rect.bottom()),
-            3 => point(rect.left(), center.y),
+            0 => point(center.x, rect.top),
+            1 => point(rect.right, center.y),
+            2 => point(center.x, rect.bottom),
+            3 => point(rect.left, center.y),
             _ => unreachable!(),
         };
 
@@ -464,7 +464,7 @@ fn arc_is_lone_point(oval: &Rect, start_angle: Angle, sweep_angle: Angle) -> Opt
         && (start_angle == Angle::ZERO || start_angle == Angle::FULL_CIRCLE)
     {
         // TODO: why right/centery ?
-        return Some(Point::new(oval.right(), oval.center().y));
+        return Some(Point::new(oval.right, oval.center().y));
     }
     if oval.width() == 0.0 && oval.height() == 0.0 {
         // TODO: why right / top

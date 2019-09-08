@@ -5,8 +5,14 @@
 #[macro_use]
 extern crate bitflags;
 
+mod contains;
+pub use contains::*;
+
 mod drawing;
 pub use drawing::*;
+
+mod fast_bounds;
+pub use fast_bounds::*;
 
 mod drawing_target;
 pub use drawing_target::*;
@@ -34,6 +40,7 @@ pub type scalar = f64;
 pub(crate) trait Scalar {
     const ROOT_2_OVER_2: scalar;
     fn invert(self) -> Self;
+    fn square(self) -> Self;
 }
 
 impl Scalar for scalar {
@@ -41,6 +48,13 @@ impl Scalar for scalar {
     fn invert(self) -> Self {
         1.0 / self
     }
+    fn square(self) -> Self {
+        self * self
+    }
+}
+
+pub trait Contains<Shape> {
+    fn contains(&self, what: Shape) -> bool;
 }
 
 pub trait Render {

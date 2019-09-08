@@ -10,9 +10,6 @@ pub(crate) use conic::*;
 pub(crate) mod extent;
 pub use extent::*;
 
-mod fast_bounds;
-pub use fast_bounds::*;
-
 pub mod matrix;
 pub use matrix::Matrix;
 
