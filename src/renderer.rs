@@ -387,6 +387,7 @@ impl<W: Window> RenderContext<W> {
                     "unsupported dimensions {:?}, recreating swapchain",
                     dimensions
                 );
+                // TODO: don't recurse here, use a loop.
                 return self.recreate_swapchain(frame);
             }
             Err(err) => panic!("{:?}", err),
