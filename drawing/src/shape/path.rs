@@ -309,13 +309,14 @@ impl Path {
             ArcConics::SinglePoint(point) => add_pt(self, point),
         }
 
-        return self;
+        self
     }
 
     //
     // add primitive verbs.
     //
 
+    #[allow(clippy::float_cmp)]
     pub fn conic_to(
         &mut self,
         p1: impl Into<Point>,

@@ -5,9 +5,6 @@
 #[macro_use]
 extern crate bitflags;
 
-mod contains;
-pub use contains::*;
-
 mod drawing;
 pub use drawing::*;
 

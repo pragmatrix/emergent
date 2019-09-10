@@ -1,4 +1,4 @@
-use crate::{point::point, scalar, vector::vector, Bounds, Outset, Point, Vector};
+use crate::{point::point, scalar, vector::vector, Bounds, Contains, Outset, Point, Vector};
 use serde_tuple::*;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
