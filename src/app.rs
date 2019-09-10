@@ -5,29 +5,37 @@ use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::SimpleText;
-use emergent::{AreaLayout, Frame};
+use emergent::{Frame, FrameLayout};
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, BackToFront, Drawing, DrawingTarget, Font, MeasureText};
-use emergent_presentation::{Area, Present, Presentation};
+use emergent_presentation::{Area, Gesture, Present, Presentation};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use tears::{Cmd, Model, View};
 
-#[derive(Debug)]
-pub enum Event {
-    AreaLayoutChanged(AreaLayout),
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Msg {
+    #[serde(skip)]
+    FrameLayoutChanged(FrameLayout),
+    #[serde(skip)]
     WatcherNotification(test_watcher::Notification),
     Refresh,
+    ToggleTestcase {
+        name: String,
+    },
 }
 
 pub struct App {
-    area_layout: AreaLayout,
+    area_layout: FrameLayout,
     notification_receiver: Receiver<test_watcher::Notification>,
     test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
+    collapsed_tests: HashSet<String>,
 }
 
 impl App {
-    pub fn new(area_layout: AreaLayout, req: TestRunRequest) -> (Self, Cmd<Event>) {
+    pub fn new(area_layout: FrameLayout, req: TestRunRequest) -> (Self, Cmd<Msg>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
         test_watcher::begin_watching(req, sender).unwrap();
 
@@ -36,6 +44,8 @@ impl App {
             notification_receiver: receiver.clone(),
             test_run_result: None,
             latest_test_error: None,
+            // TODO: this is part of the persistent state.
+            collapsed_tests: HashSet::new(),
         };
 
         let cmd = emergent.receive_watcher_notifications();
@@ -43,23 +53,30 @@ impl App {
     }
 }
 
-impl Model<Event> for App {
-    fn update(&mut self, event: Event) -> Cmd<Event> {
+impl Model<Msg> for App {
+    fn update(&mut self, event: Msg) -> Cmd<Msg> {
         debug!("{:?}", &event);
         match event {
-            Event::AreaLayoutChanged(area_layout) => self.area_layout = area_layout,
-            Event::WatcherNotification(wn) => {
+            Msg::FrameLayoutChanged(area_layout) => self.area_layout = area_layout,
+            Msg::WatcherNotification(wn) => {
                 self.update_watcher(wn);
                 return self.receive_watcher_notifications();
             }
-            Event::Refresh => {}
+            Msg::Refresh => {}
+            Msg::ToggleTestcase { name } => {
+                if self.collapsed_tests.contains(&name) {
+                    self.collapsed_tests.remove(&name);
+                } else {
+                    self.collapsed_tests.insert(name);
+                }
+            }
         }
         Cmd::None
     }
 }
 
 impl App {
-    fn update_watcher(&mut self, notification: test_watcher::Notification) -> Cmd<Event> {
+    fn update_watcher(&mut self, notification: test_watcher::Notification) -> Cmd<Msg> {
         match notification {
             Notification::TestRunCompleted(r) => {
                 match r {
@@ -85,9 +102,9 @@ impl App {
     }
 
     /// Returns a command that receives watcher notifications.
-    fn receive_watcher_notifications(&self) -> Cmd<Event> {
+    fn receive_watcher_notifications(&self) -> Cmd<Msg> {
         let receiver = self.notification_receiver.clone();
-        Cmd::from(move || Event::WatcherNotification(receiver.recv().unwrap()))
+        Cmd::from(move || Msg::WatcherNotification(receiver.recv().unwrap()))
     }
 }
 
@@ -110,7 +127,17 @@ impl View<Frame> for App {
                     for capture in captures.0.iter() {
                         // TODO: add a nice drawing combinator.
                         // TODO: avoid the access of 0!
-                        presentations.push(capture.present(&measure))
+                        let name = &capture.name;
+                        let tap_gesture = Gesture::tap(|_| Msg::ToggleTestcase {
+                            name: capture.name.to_string(),
+                        });
+                        let show_contents = !self.collapsed_tests.contains(name);
+
+                        presentations.push(capture.present(
+                            tap_gesture.into(),
+                            show_contents,
+                            &measure,
+                        ))
                     }
                     presentations
                 }
@@ -131,24 +158,27 @@ impl View<Frame> for App {
 }
 
 impl TestCapture {
-    fn present(&self, measure: &dyn MeasureText) -> Presentation {
-        let header = self.present_header();
+    fn present(
+        &self,
+        header_area: Area,
+        show_contents: bool,
+        measure: &dyn MeasureText,
+    ) -> Presentation {
+        let header = self.present_header(header_area);
+        if !show_contents {
+            return header;
+        }
         let output = self.draw_output().present();
-        Presentation::layout_vertically(vec![header, output], measure)
-            .back_to_front()
-            .scoped(&self.name)
+
+        Presentation::layout_vertically(vec![header, output], measure).back_to_front()
     }
 
-    pub const HEADER_AREA: Area = Area::new("header");
-
-    fn present_header(&self) -> Presentation {
-        // TODO: const fn? once_cell, the empty string is converted to a String which
-        // is not const_fn.
+    fn present_header(&self, area: Area) -> Presentation {
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
         let text = text(&self.name, header_font, None);
         drawing.draw_shape(&text.into(), paint());
-        drawing.present().in_area(Self::HEADER_AREA)
+        drawing.present().in_area(area)
     }
 
     fn draw_output(&self) -> Drawing {
