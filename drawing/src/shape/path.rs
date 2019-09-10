@@ -560,3 +560,239 @@ impl FastBounds for Path {
         Bounds::from_points(&self.points()).unwrap()
     }
 }
+
+/*
+
+pub(crate) mod tangent {
+    // Skia: 6d1c0d4196f19537cc64f74bacc7d123de3be454
+    use crate::{scalar, NearlyEqual, NearlyZero, Point, Scalar, Vector};
+    use std::mem;
+
+    pub fn cubic(pts: &[Point; 4], x: scalar, y: scalar, tangents: &mut Vec<Vector>) {
+        if !between(pts[0].y, y, pts[1].y)
+            && !between(pts[1].y, y, pts[2].y)
+            && !between(pts[2].y, y, pts[3].y)
+        {
+            return;
+        }
+        if !between(pts[0].x, x, pts[1].x)
+            && !between(pts[1].x, x, pts[2].x)
+            && !between(pts[2].x, x, pts[3].x)
+        {
+            return;
+        }
+        let mut dst: [Point; 10];
+        let n = chop_cubic_at_y_extrema(pts, &mut dst);
+        for i in 0..=n {
+            let c = &dst[i * 3];
+            let t: scalar;
+            if (!SkCubicClipper::ChopMonoAtY(c, y, &t)) {
+                continue;
+            }
+            let xt = eval_cubic_pts(c[0].x, c[1].x, c[2].x, c[3].x, t);
+            if (!scalar_nearly_equal(x, xt)) {
+                continue;
+            }
+            let tangent: Vector;
+            eval_qubic_at(c, t, None, &tangent, None);
+            tangents.push(tangent);
+        }
+    }
+
+    /** Given 4 points on a cubic bezier, chop it into 1, 2, 3 beziers such that
+        the resulting beziers are monotonic in Y. This is called by the scan
+        converter.  Depending on what is returned, dst[] is treated as follows:
+        0   dst[0..3] is the original cubic
+        1   dst[0..3] and dst[3..6] are the two new cubics
+        2   dst[0..3], dst[3..6], dst[6..9] are the three new cubics
+        If dst == null, it is ignored and only the count is returned.
+    */
+    fn chop_cubic_at_y_extrema(src: &[Point; 4], dst: &mut [Point; 10]) -> usize {
+        let mut values: [scalar; 2];
+        let roots = find_cubic_extrema(src[0].y, src[1].y, src[2].y, src[3].y, &mut values);
+
+        chop_cubic_at(src, dst, values, roots);
+        if (dst && roots > 0) {
+            // we do some cleanup to ensure our Y extrema are flat
+            flatten_double_cubic_extrema(&dst[0].y);
+            if (roots == 2) {
+                flatten_double_cubic_extrema(&dst[3].y);
+            }
+        }
+        return roots;
+    }
+
+    fn eval_cubic_at(pts: &[Point; 4], tangents: &mut Vec<Vector>) {}
+
+    /** Cubic'(t) = At^2 + Bt + C, where
+        A = 3(-a + 3(b - c) + d)
+        B = 6(a - 2b + c)
+        C = 3(b - a)
+        Solve for t, keeping only those that fit between 0 < t < 1
+    */
+    fn find_cubic_extrema(
+        a: scalar,
+        b: scalar,
+        c: scalar,
+        d: scalar,
+        values: &mut [scalar; 2],
+    ) -> usize {
+        // we divide A,B,C by 3 to simplify
+        let aa = d - a + 3.0 * (b - c);
+        let bb = 2.0 * (a - b - b + c);
+        let cc = b - a;
+
+        find_unit_quad_roots(aa, bb, cc, values)
+    }
+
+    fn find_unit_quad_roots(aa: scalar, bb: scalar, cc: scalar, roots: &mut [scalar; 2]) -> usize {
+        if aa == 0.0 {
+            return return_check_zero(valid_unit_divide(-cc, bb, &mut roots[0]));
+        }
+
+        let r = 0;
+
+        // use doubles so we don't overflow temporarily trying to compute R
+        let mut dr = bb as f64 * bb - 4.0 * aa as f64 * cc;
+        if dr < 0.0 {
+            return return_check_zero(0);
+        }
+        dr = dr.sqrt();
+        let rr = double_to_scalar(dr);
+        if !rr.is_finite() {
+            return return_check_zero(0);
+        }
+
+        let qq = if bb < 0.0 {
+            -(bb - rr) / 2.0
+        } else {
+            -(bb + rr) / 2.0
+        };
+        r += valid_unit_divide(qq, aa, &mut roots[r]);
+        r += valid_unit_divide(cc, qq, &mut roots[r]);
+        if r == 2 {
+            if roots[0] > roots[1] {
+                mem::swap(&mut roots[0], &mut roots[1]);
+            } else if roots[0] == roots[1] {
+                // nearly-equal?
+                r -= 1; // skip the double root
+            }
+        }
+        return_check_zero(r)
+    }
+
+    fn valid_unit_divide(mut numer: scalar, mut denom: scalar, ratio: &mut scalar) -> usize {
+        if numer < 0.0 {
+            numer = -numer;
+            denom = -denom;
+        }
+
+        if denom == 0.0 || numer == 0.0 || numer >= denom {
+            return 0;
+        }
+
+        let r = numer / denom;
+        if r.is_nan() {
+            return 0;
+        }
+        debug_assert!(
+            r >= 0.0 && r < SCALAR_1,
+            "numer {}, denom {}, r {}",
+            numer,
+            denom,
+            r
+        );
+        if r == 0.0 {
+            // catch underflow if numer <<<< denom
+            return 0;
+        }
+        *ratio = r;
+        1
+    }
+
+    fn return_check_zero(value: usize) -> usize {
+        value
+    }
+
+    fn chop_cubic_at(src: &[Point; 4], dst: &mut [Point; 7], t: scalar) {
+        debug_assert!(t > 0.0 && t < SCALAR_1);
+
+        // TODO: may re-add SIMD support.
+
+        let p0 = from_point(src[0]);
+        let p1 = from_point(src[1]);
+        let p2 = from_point(src[2]);
+        let p3 = from_point(src[3]);
+        let tt = Vector::new(t, t);
+
+        let ab = interp(p0, p1, tt);
+        let bc = interp(p1, p2, tt);
+        let cd = interp(p2, p3, tt);
+        let abc = interp(ab, bc, tt);
+        let bcd = interp(bc, cd, tt);
+        let abcd = interp(abc, bcd, tt);
+
+        dst[0] = to_point(p0);
+        dst[1] = to_point(ab);
+        dst[2] = to_point(abc);
+        dst[3] = to_point(abcd);
+        dst[4] = to_point(bcd);
+        dst[5] = to_point(cd);
+        dst[6] = to_point(p3);
+
+        fn from_point(p: Point) -> Vector {
+            Vector::new(p.x, p.y)
+        }
+
+        fn to_point(v: Vector) -> Point {
+            v.into()
+        }
+
+        fn interp(v0: Vector, v1: Vector, t: Vector) -> Vector {
+            v0 + (v1 - v0) * t
+        }
+    }
+
+    pub fn line(pts: &[Point; 2], x: scalar, y: scalar, tangents: &mut Vec<Vector>) {
+        let y0 = pts[0].y;
+        let y1 = pts[1].y;
+        if !between(y0, y, y1) {
+            return;
+        }
+        let x0 = pts[0].x;
+        let x1 = pts[1].x;
+        if !between(x0, x, x1) {
+            return;
+        }
+        let dx = x1 - x0;
+        let dy = y1 - y0;
+        if !scalar_nearly_equal((x - x0) * dy, dx * (y - y0)) {
+            return;
+        }
+        let v = Vector::new(dx, dy);
+        tangents.push(v);
+    }
+
+    fn between(a: scalar, b: scalar, c: scalar) -> bool {
+        debug_assert!(
+            ((a <= b && b <= c) || (a >= b && b >= c)) == ((a - b) * (c - b) <= 0.0)
+                || (scalar_nearly_zero(a) && scalar_nearly_zero(b) && scalar_nearly_zero(c))
+        );
+        (a - b) * (c - b) <= 0.0
+    }
+
+    fn scalar_nearly_zero(s: scalar) -> bool {
+        s.nearly_zero(scalar::NEARLY_ZERO)
+    }
+
+    fn scalar_nearly_equal(a: scalar, b: scalar) -> bool {
+        a.nearly_equal(&b, scalar::NEARLY_ZERO)
+    }
+
+    fn double_to_scalar(s: f64) -> scalar {
+        s
+    }
+
+    const SCALAR_1: scalar = 1.0;
+}
+*/
