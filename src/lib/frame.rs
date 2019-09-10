@@ -3,13 +3,13 @@ use emergent_presentation::Presentation;
 /// A frame is a sized and layouted drawing, ready to be drawn.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Frame {
-    pub area: AreaLayout,
+    pub area: FrameLayout,
     pub presentation: Presentation,
 }
 
 /// The area's layout a frame is drawn to.
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub struct AreaLayout {
+pub struct FrameLayout {
     pub dimensions: (u32, u32),
     pub dpi: DPI,
 }

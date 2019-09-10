@@ -73,7 +73,7 @@ fn main() {
     info!("window placement: {:?}", window_placement);
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
-    let window_size = window_surface.window().area_layout();
+    let window_size = window_surface.window().frame_layout();
     let (emergent, initial_cmd) = App::new(window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
     let mut application = Application::new(emergent, executor);
@@ -103,7 +103,7 @@ fn main() {
                 context.recreate_swapchain(frame_state)
             }
 
-            let area_layout = render_surface.window().area_layout();
+            let area_layout = render_surface.window().frame_layout();
             info!("window area layout: {:?}", area_layout);
             if frame.area == area_layout {
                 let _future = context.render(future, frame_state, drawing_backend, &frame);
@@ -130,8 +130,8 @@ fn main() {
     events_loop.run_forever(move |event| match event {
         Event::WindowEvent { event, .. } => match event {
             WindowEvent::Resized(_) => {
-                let area_layout = window_surface.window().area_layout();
-                mailbox.post(app::Event::AreaLayoutChanged(area_layout));
+                let area_layout = window_surface.window().frame_layout();
+                mailbox.post(app::Msg::FrameLayoutChanged(area_layout));
                 if window_placement.update(window_surface.window()) {
                     window_placement.store()
                 }
@@ -144,13 +144,13 @@ fn main() {
                 ControlFlow::Continue
             }
             WindowEvent::HiDpiFactorChanged(_) => {
-                let area_layout = window_surface.window().area_layout();
-                mailbox.post(app::Event::AreaLayoutChanged(area_layout));
+                let area_layout = window_surface.window().frame_layout();
+                mailbox.post(app::Msg::FrameLayoutChanged(area_layout));
                 ControlFlow::Continue
             }
             WindowEvent::Refresh => {
                 // TODO: not sure if this should go through the app.
-                mailbox.post(app::Event::Refresh);
+                mailbox.post(app::Msg::Refresh);
                 ControlFlow::Continue
             }
             WindowEvent::CloseRequested => {
