@@ -1,26 +1,9 @@
+use crate::{Gesture, Scoped};
 use emergent_drawing::{
     BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
     MeasureText, Outset, Paint, Transform, Transformed,
 };
 use serde::{Deserialize, Serialize};
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct Area(&'static str);
-
-impl Area {
-    pub const fn new(str: &'static str) -> Area {
-        Area(str)
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
-pub struct AreaRef(String);
-
-impl From<Area> for AreaRef {
-    fn from(area: Area) -> Self {
-        AreaRef(area.0.into())
-    }
-}
 
 /// A presentation is a composable hierarchy that enhances drawings with
 /// sensor areas.
@@ -30,11 +13,11 @@ pub enum Presentation {
     /// Defines a presentation scope.
     /// This qualifies all nested names with the scope's name.
     Scoped(String, Box<Presentation>),
-    /// Defines a named area around a presentation, including an Outset.
-    Area(AreaRef, Outset, Box<Presentation>),
+    /// Defines a named area around the (fast) bounds of a presentation, including an Outset.
+    Area(Area, Outset, Box<Presentation>),
     /// Defines a named area by providing a Clip at the current drawing position.
-    InlineArea(AreaRef, Clip),
-    /// A clipped presentation (TODO: is that needed, and what is clipped?)
+    InlineArea(Area, Clip),
+    /// A clipped presentation (TODO: is that needed, and what exactly is clipped?)
     Clipped(Clip, Box<Presentation>),
     /// A transformed presentation.
     Transformed(Transform, Box<Presentation>),
@@ -44,16 +27,33 @@ pub enum Presentation {
     Drawing(Drawing),
 }
 
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
+pub enum Area {
+    Gesture(Gesture),
+}
+
+impl From<Gesture> for Area {
+    fn from(gesture: Gesture) -> Self {
+        Area::Gesture(gesture)
+    }
+}
+
+impl Scoped for Presentation {
+    fn scoped(self, id: String) -> Self {
+        Self::Scoped(id, self.into())
+    }
+}
+
 impl Clipped for Presentation {
     fn clipped(self, clip: Clip) -> Self {
-        Presentation::Clipped(clip, self.into())
+        Self::Clipped(clip, self.into())
     }
 }
 
 // Required to support SimpleLayout
 impl Transformed for Presentation {
     fn transformed(self, transform: Transform) -> Self {
-        Presentation::Transformed(transform, self.into())
+        Self::Transformed(transform, self.into())
     }
 }
 
@@ -112,7 +112,7 @@ impl Present for Drawing {
 
 impl Presentation {
     pub fn new() -> Presentation {
-        Presentation::Empty
+        Self::Empty
     }
 
     pub fn in_area(self, area: Area) -> Self {
@@ -120,10 +120,10 @@ impl Presentation {
     }
 
     pub fn in_area_with_outset(self, area: Area, outset: impl Into<Outset>) -> Self {
-        Presentation::Area(area.into(), outset.into(), self.into())
+        Self::Area(area, outset.into(), self.into())
     }
 
     pub fn scoped(self, name: impl Into<String>) -> Self {
-        Presentation::Scoped(name.into(), self.into())
+        Self::Scoped(name.into(), self.into())
     }
 }
