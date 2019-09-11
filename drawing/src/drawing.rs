@@ -1,4 +1,4 @@
-use crate::{BackToFront, DrawingBounds, DrawingFastBounds, MeasureText, Point, Shape, Vector};
+use crate::{BackToFront, Shape};
 use serde::{Deserialize, Serialize};
 
 mod blend_mode;
@@ -54,23 +54,11 @@ impl Drawing {
     }
 
     /// Creates a drawing with the default paint set to `paint`.
-    pub fn with_paint(self, paint: Paint) -> Self {
+    pub fn with_paint(self, paint: impl Into<Paint>) -> Self {
+        let paint = paint.into();
         match self.default_paint() {
             Some(p) if *p == paint => self,
             _ => Drawing::WithPaint(paint, self.into()),
-        }
-    }
-
-    /// Returns the drawing transformed.
-    pub fn transformed(self, transform: Transform) -> Self {
-        use Drawing::*;
-        match self {
-            Empty => Empty,
-            Transformed(t, drawing) => match Transform::optimized(&t, &transform) {
-                Some(optimized) => Transformed(optimized, drawing),
-                None => Transformed(transform, Transformed(t, drawing).into()),
-            },
-            _ => Transformed(transform, self.into()),
         }
     }
 
@@ -91,10 +79,6 @@ impl Drawing {
         below.below(self)
     }
 
-    pub fn clipped(self, clip: Clip) -> Self {
-        Drawing::Clipped(clip, self.into())
-    }
-
     /// The default paint that is used for all drawings.
     ///
     /// Returns `None` if the drawing does not specify a default paint.
@@ -109,13 +93,38 @@ impl Drawing {
 }
 
 impl Clipped for Drawing {
-    fn clipped(self, clip: Clip) -> Self {
-        Drawing::Clipped(clip, self.into())
+    fn clipped(self, clip: impl Into<Clip>) -> Self {
+        Drawing::Clipped(clip.into(), self.into())
     }
 }
 
 impl Transformed for Drawing {
+    /// Returns the drawing transformed.
     fn transformed(self, transform: Transform) -> Self {
-        Drawing::Transformed(transform, self.into())
+        use Drawing::*;
+        match self {
+            Empty => Empty,
+            Transformed(t, drawing) => match Transform::optimized(&t, &transform) {
+                Some(optimized) => Transformed(optimized, drawing),
+                None => Transformed(transform, Transformed(t, drawing).into()),
+            },
+            _ => Transformed(transform, self.into()),
+        }
+    }
+}
+
+impl From<Shape> for Drawing {
+    fn from(shape: Shape) -> Self {
+        Drawing::Shape(shape)
+    }
+}
+
+pub trait IntoDrawing {
+    fn into_drawing(self) -> Drawing;
+}
+
+impl<T: Into<Drawing>> IntoDrawing for T {
+    fn into_drawing(self) -> Drawing {
+        self.into()
     }
 }

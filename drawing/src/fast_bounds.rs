@@ -41,8 +41,8 @@ impl DrawingBounds {
 }
 
 impl Clipped for DrawingBounds {
-    fn clipped(self, clip: Clip) -> Self {
-        let clip = clip.fast_bounds().into();
+    fn clipped(self, clip: impl Into<Clip>) -> Self {
+        let clip = clip.into().fast_bounds().into();
         Self::intersect(&clip, &self)
     }
 }

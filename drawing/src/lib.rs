@@ -27,6 +27,9 @@ pub mod simple_layout;
 mod toolbox;
 pub(crate) use toolbox::*;
 
+mod visualize;
+pub use visualize::*;
+
 //
 // Scalar type. f64.
 //
@@ -78,31 +81,28 @@ pub trait BackToFront<Composed> {
 
 #[cfg(test)]
 mod tests {
-    use crate::functions::{point, vector};
-    use crate::{line::line, paint, BlendMode, Clip, Color, Draw, Drawing, Paint, Rect, Shape};
+    use crate::functions::{line, point, rect, vector};
+    use crate::{paint, BlendMode, Clipped, Color, IntoDrawing, IntoShape, Paint};
 
     #[test]
     fn test_serialize() {
-        let shapes = Draw::Shapes(
-            vec![Shape::Line(line(point(10.0, 1.0), point(11.0, 1.0)))],
-            Paint {
+        let line = line(point(10.0, 1.0), point(11.0, 1.0))
+            .into_shape()
+            .into_drawing()
+            .with_paint(Paint {
                 style: paint::Style::Stroke,
                 color: Color::BLACK,
-                stroke_width: 1.0,
-                stroke_miter: 4.0,
-                stroke_cap: paint::StrokeCap::Butt,
-                stroke_join: paint::StrokeJoin::Miter,
+                width: 1.0,
+                miter: 4.0,
+                cap: paint::Cap::Butt,
+                join: paint::Join::Miter,
                 blend_mode: BlendMode::SourceOver,
-            },
-        );
+            });
 
-        println!("{}", serde_json::to_string(&shapes).unwrap());
+        println!("{}", serde_json::to_string(&line).unwrap());
 
-        let drawing = Draw::Clipped(
-            Clip::Rect(Rect::from((point(10.0, 1.0), vector(10.0, 1.0)))),
-            Drawing::from(vec![shapes]),
-        );
+        let clipped_drawing = line.clipped(rect(point(10.0, 1.0), vector(10.0, 1.0)));
 
-        println!("{}", serde_json::to_string(&drawing).unwrap());
+        println!("{}", serde_json::to_string(&clipped_drawing).unwrap());
     }
 }

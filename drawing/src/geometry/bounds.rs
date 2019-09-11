@@ -1,4 +1,4 @@
-use crate::{scalar, Extent, Outset, Point, Union, Vector};
+use crate::{scalar, Extent, Outset, Point, Rect, Union, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// A rectangle with a positive extent.
@@ -85,6 +85,10 @@ impl Bounds {
             Point::from((left, top)),
             Extent::from((right - left, bottom - top)),
         ))
+    }
+
+    pub fn to_rect(&self) -> Rect {
+        Rect::new(self.left_top(), self.right_bottom())
     }
 
     pub fn to_quad(&self) -> [Point; 4] {

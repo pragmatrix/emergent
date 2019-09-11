@@ -109,3 +109,13 @@ impl From<Text> for Shape {
         Shape::Text(text)
     }
 }
+
+pub trait IntoShape {
+    fn into_shape(self) -> Shape;
+}
+
+impl<T: Into<Shape>> IntoShape for T {
+    fn into_shape(self) -> Shape {
+        self.into()
+    }
+}
