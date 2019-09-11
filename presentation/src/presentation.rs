@@ -139,7 +139,7 @@ impl Render for Presentation {
     fn render(&self) {}
 }
 
-impl Presentation {
+impl Visualize for Presentation {
     fn visualize(&self, measure: &dyn MeasureText) -> Drawing {
         // TODO: const fn!
         // https://www.colorhexa.com/ccff00
