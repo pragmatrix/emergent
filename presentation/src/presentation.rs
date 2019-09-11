@@ -1,7 +1,8 @@
 use crate::{Gesture, Scoped};
 use emergent_drawing::{
-    BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
-    MeasureText, Outset, Paint, Transform, Transformed,
+    BackToFront, Clip, Clipped, Color, DrawTo, Drawing, DrawingBounds, DrawingFastBounds,
+    DrawingTarget, IntoDrawing, IntoShape, MeasureText, Outset, Paint, Render, Transform,
+    Transformed, Visualize, RGB,
 };
 use serde::{Deserialize, Serialize};
 
@@ -45,8 +46,8 @@ impl Scoped for Presentation {
 }
 
 impl Clipped for Presentation {
-    fn clipped(self, clip: Clip) -> Self {
-        Self::Clipped(clip, self.into())
+    fn clipped(self, clip: impl Into<Clip>) -> Self {
+        Self::Clipped(clip.into(), self.into())
     }
 }
 
@@ -125,5 +126,55 @@ impl Presentation {
 
     pub fn scoped(self, name: impl Into<String>) -> Self {
         Self::Scoped(name.into(), self.into())
+    }
+}
+
+impl Render for Presentation {
+    fn render(&self) {}
+}
+
+impl Presentation {
+    fn visualize(&self, measure: &dyn MeasureText) -> Drawing {
+        // TODO: const fn!
+        // https://www.colorhexa.com/ccff00
+        let area_color = 0x00ccff.rgb();
+        let clip_color = 0xffcc00.rgb();
+        match self {
+            Presentation::Empty => Drawing::Empty,
+            Presentation::Scoped(_, nested) => nested.visualize(measure),
+            Presentation::Area(_, outset, nested) => {
+                // Should we visualize the bounds as an inner rectangle here, too?
+                // Bounds + outset could be visualized like that (ascii art of upper left corner only):
+                // ____
+                // |\__
+                // | |
+
+                let nested = nested.visualize(measure);
+                let bounds = nested.fast_bounds(measure).outset(outset);
+                let bounds_drawing = bounds
+                    .visualize(measure)
+                    .with_paint(Paint::stroke(area_color));
+                [nested, bounds_drawing].to_vec().back_to_front()
+            }
+            Presentation::InlineArea(_, clip) => clip
+                .visualize(measure)
+                .with_paint(Paint::stroke(area_color)),
+            Presentation::Clipped(clip, nested) => [
+                nested.visualize(measure),
+                clip.visualize(measure)
+                    .with_paint(Paint::stroke(clip_color)),
+            ]
+            .to_vec()
+            .back_to_front(),
+            Presentation::Transformed(t, nested) => {
+                nested.visualize(measure).transformed(t.clone())
+            }
+            Presentation::BackToFront(nested) => nested
+                .iter()
+                .map(|p| p.visualize(measure))
+                .collect::<Vec<Drawing>>()
+                .back_to_front(),
+            Presentation::Drawing(drawing) => drawing.clone(),
+        }
     }
 }
