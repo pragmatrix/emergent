@@ -8,17 +8,6 @@ pub enum Clip {
     Path(Path),
 }
 
-/// Converts a clip to a Shape.
-impl From<Clip> for Shape {
-    fn from(clip: Clip) -> Self {
-        match clip {
-            Clip::Rect(rect) => Shape::Rect(rect),
-            Clip::RoundedRect(rrect) => Shape::RoundedRect(rrect),
-            Clip::Path(path) => Shape::Path(path),
-        }
-    }
-}
-
 /// This trait is implemented for types that can represent themselves in a clipped form.
 pub trait Clipped {
     fn clipped(self, clip: impl Into<Clip>) -> Self;

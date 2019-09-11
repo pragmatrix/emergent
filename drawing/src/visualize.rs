@@ -12,7 +12,12 @@ pub trait Visualize {
 
 impl Visualize for Clip {
     fn visualize(&self, _: &dyn MeasureText) -> Drawing {
-        self.clone().into_shape().into_drawing()
+        let shape = match self {
+            Clip::Rect(rect) => rect.clone().into_shape(),
+            Clip::RoundedRect(rrect) => rrect.clone().into_shape(),
+            Clip::Path(path) => path.clone().into_shape(),
+        };
+        shape.into_drawing()
     }
 }
 
