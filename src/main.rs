@@ -176,7 +176,7 @@ fn main() {
 fn shaper_perf() {
     icu::init();
 
-    let measure = skia::text::SimpleText::default();
+    let measure = skia::text::PrimitiveText::default();
 
     let font = Font::new("", font::Style::default(), font::Size::new(20.0));
     let text = functions::text("Hello World", &font, None);

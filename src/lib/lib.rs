@@ -10,8 +10,12 @@ pub use frame::*;
 
 pub mod compiler_message;
 
+pub mod libtest;
+
 mod line_breaking;
 pub use line_breaking::*;
+
+mod presentations;
 
 pub mod skia;
 mod ui;

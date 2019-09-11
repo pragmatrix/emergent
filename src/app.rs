@@ -1,15 +1,13 @@
-use crate::libtest::TestCapture;
 use crate::test_runner::{TestRunRequest, TestRunResult};
 use crate::test_watcher;
 use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
-use emergent::skia::text::SimpleText;
+use emergent::skia::text::PrimitiveText;
 use emergent::{Frame, FrameLayout};
-use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_drawing::{font, BackToFront, Drawing, DrawingTarget, Font, MeasureText};
-use emergent_presentation::{Area, Gesture, Present, Presentation};
+use emergent_drawing::{Drawing, DrawingTarget, Font, MeasureText};
+use emergent_presentation::{Gesture, Present, Presentation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tears::{Cmd, Model, View};
@@ -110,7 +108,7 @@ impl App {
 
 impl View<Frame> for App {
     fn render(&self) -> Frame {
-        let measure = SimpleText::new(self.area_layout.dpi);
+        let measure = PrimitiveText::new(self.area_layout.dpi);
         let test_run_presentations = {
             match &self.test_run_result {
                 Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => compiler_messages

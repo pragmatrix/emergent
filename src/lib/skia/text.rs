@@ -5,24 +5,24 @@ use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, Text, Union};
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
 
-// Simple measurement and text rendering.
-pub struct SimpleText {
+// Primitive text measurement and text rendering.
+pub struct PrimitiveText {
     dpi: DPI,
 }
 
-impl Default for SimpleText {
+impl Default for PrimitiveText {
     fn default() -> Self {
         Self::new(DPI::DEFAULT_SCREEN)
     }
 }
 
-impl SimpleText {
-    pub fn new(dpi: DPI) -> SimpleText {
-        SimpleText { dpi }
+impl PrimitiveText {
+    pub fn new(dpi: DPI) -> PrimitiveText {
+        PrimitiveText { dpi }
     }
 }
 
-impl drawing::MeasureText for SimpleText {
+impl drawing::MeasureText for PrimitiveText {
     fn measure_text(&self, text: &Text) -> drawing::Bounds {
         let font = &text.font;
         let typeface = Typeface::from_name(&font.name, font.style.to_skia())
@@ -40,7 +40,7 @@ impl drawing::MeasureText for SimpleText {
     }
 }
 
-impl SimpleText {
+impl PrimitiveText {
     fn measure_run(
         &self,
         run: &drawing::text::Run,
