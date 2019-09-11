@@ -1,8 +1,7 @@
 use crate::{Gesture, Scoped};
 use emergent_drawing::{
-    BackToFront, Clip, Clipped, Color, DrawTo, Drawing, DrawingBounds, DrawingFastBounds,
-    DrawingTarget, IntoDrawing, IntoShape, MeasureText, Outset, Paint, Render, Transform,
-    Transformed, Visualize, RGB,
+    BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
+    MeasureText, Outset, Paint, Render, Transform, Transformed, Visualize, RGB,
 };
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +29,14 @@ pub enum Presentation {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub enum Area {
+    Named(String),
     Gesture(Gesture),
+}
+
+impl From<String> for Area {
+    fn from(name: String) -> Self {
+        Area::Named(name)
+    }
 }
 
 impl From<Gesture> for Area {
