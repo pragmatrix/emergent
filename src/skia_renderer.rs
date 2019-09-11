@@ -1,13 +1,11 @@
 ///! Vulkan <-> Skia <-> emergent::drawing interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext, Window};
-use core::borrow::BorrowMut;
 use emergent::skia::convert::ToSkia;
 use emergent::{text_as_lines, Frame, TextOrigin, DPI};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{font, DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
-use skia_safe::utils::View3D;
 use skia_safe::{
     gpu, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Shaper, Surface, Typeface,
     Vector,
@@ -415,10 +413,10 @@ impl PaintSync {
         // TODO: we _do_ know which values have been changed, so probably we should apply only that.
         paint.set_style(dp.style.to_skia());
         paint.set_color(dp.color.to_skia());
-        paint.set_stroke_width(dp.stroke_width.to_skia());
-        paint.set_stroke_miter(dp.stroke_miter.to_skia());
-        paint.set_stroke_cap(dp.stroke_cap.to_skia());
-        paint.set_stroke_join(dp.stroke_join.to_skia());
+        paint.set_stroke_width(dp.width.to_skia());
+        paint.set_stroke_miter(dp.miter.to_skia());
+        paint.set_stroke_cap(dp.cap.to_skia());
+        paint.set_stroke_join(dp.join.to_skia());
         paint.set_blend_mode(dp.blend_mode.to_skia());
     }
 }

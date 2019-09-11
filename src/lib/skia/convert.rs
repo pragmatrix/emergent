@@ -102,27 +102,29 @@ impl ToSkia<PaintStyle> for drawing::paint::Style {
         match self {
             drawing::paint::Style::Stroke => PaintStyle::Stroke,
             drawing::paint::Style::Fill => PaintStyle::Fill,
-            drawing::paint::Style::StrokeAndFill => PaintStyle::StrokeAndFill,
+            drawing::paint::Style::FillAndStroke => PaintStyle::StrokeAndFill,
         }
     }
 }
 
-impl ToSkia<PaintCap> for drawing::paint::StrokeCap {
+impl ToSkia<PaintCap> for drawing::paint::Cap {
     fn to_skia(&self) -> PaintCap {
+        use drawing::paint::Cap::*;
         match self {
-            drawing::paint::StrokeCap::Butt => PaintCap::Butt,
-            drawing::paint::StrokeCap::Round => PaintCap::Round,
-            drawing::paint::StrokeCap::Square => PaintCap::Square,
+            Butt => PaintCap::Butt,
+            Round => PaintCap::Round,
+            Square => PaintCap::Square,
         }
     }
 }
 
-impl ToSkia<PaintJoin> for drawing::paint::StrokeJoin {
+impl ToSkia<PaintJoin> for drawing::paint::Join {
     fn to_skia(&self) -> PaintJoin {
+        use drawing::paint::Join::*;
         match self {
-            drawing::paint::StrokeJoin::Miter => PaintJoin::Miter,
-            drawing::paint::StrokeJoin::Round => PaintJoin::Round,
-            drawing::paint::StrokeJoin::Bevel => PaintJoin::Bevel,
+            Miter => PaintJoin::Miter,
+            Round => PaintJoin::Round,
+            Bevel => PaintJoin::Bevel,
         }
     }
 }
