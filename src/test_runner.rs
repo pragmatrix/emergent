@@ -1,9 +1,9 @@
 use crate::capture::Capture;
-use crate::libtest::TestCaptures;
 use cargo::core::compiler;
 use cargo::ops;
 use cargo::ops::{FilterRule, LibRule};
 use cargo_metadata::CompilerMessage;
+use emergent::libtest::TestCaptures;
 use std::env;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
@@ -144,8 +144,8 @@ impl TestRunRequest {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::libtest::{TestCapture, TestResult};
     use crate::test_runner::{TestRunRequest, TestRunResult};
+    use emergent::libtest::{TestCapture, TestResult};
     use std::env;
 
     #[test]
@@ -177,5 +177,4 @@ pub mod tests {
             assert!(false);
         }
     }
-
 }

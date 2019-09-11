@@ -19,7 +19,6 @@ extern crate log;
 
 mod app;
 mod capture;
-mod libtest;
 mod renderer;
 mod skia_renderer;
 mod test_runner;

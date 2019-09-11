@@ -154,38 +154,3 @@ impl View<Frame> for App {
         }
     }
 }
-
-impl TestCapture {
-    fn present(
-        &self,
-        header_area: Area,
-        show_contents: bool,
-        measure: &dyn MeasureText,
-    ) -> Presentation {
-        let header = self.present_header(header_area);
-        if !show_contents {
-            return header;
-        }
-        let output = self.draw_output().present();
-
-        Presentation::layout_vertically(vec![header, output], measure).back_to_front()
-    }
-
-    fn present_header(&self, area: Area) -> Presentation {
-        let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
-        let mut drawing = Drawing::new();
-        let text = text(&self.name, header_font, None);
-        drawing.draw_shape(&text.into(), paint());
-        drawing.present().in_area(area)
-    }
-
-    fn draw_output(&self) -> Drawing {
-        // TODO: render invalid output as text and mark it appropriately
-        if !self.output.starts_with("> ") {
-            return Drawing::new();
-        };
-
-        // TODO: handle parse errors:
-        serde_json::from_str(&self.output[2..]).unwrap()
-    }
-}
