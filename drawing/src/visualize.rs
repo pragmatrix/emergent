@@ -1,3 +1,4 @@
+use crate::functions::{font, text};
 use crate::{Clip, Drawing, DrawingBounds, IntoDrawing, IntoShape, MeasureText};
 
 /// A trait to produce a drawing that visualizes something.
@@ -27,5 +28,18 @@ impl Visualize for DrawingBounds {
             DrawingBounds::Empty | DrawingBounds::Unbounded => Drawing::Empty,
             DrawingBounds::Bounded(bounds) => bounds.to_rect().into_shape().into_drawing(),
         }
+    }
+}
+
+impl Visualize for str {
+    fn visualize(&self, _: &dyn MeasureText) -> Drawing {
+        let font = font("", 10.0);
+        text(self, &font, None).into_shape().into_drawing()
+    }
+}
+
+impl Visualize for String {
+    fn visualize(&self, measure: &dyn MeasureText) -> Drawing {
+        str::visualize(&self, measure)
     }
 }

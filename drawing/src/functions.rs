@@ -1,4 +1,5 @@
 pub use crate::circle::circle;
+pub use crate::font::font;
 pub use crate::geometry::bounds::bounds;
 pub use crate::line::{line, line_h, line_v};
 pub use crate::paint::paint;
