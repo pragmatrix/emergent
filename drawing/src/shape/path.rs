@@ -562,9 +562,9 @@ impl FastBounds for Path {
 }
 
 /*
-
 pub(crate) mod tangent {
     // Skia: 6d1c0d4196f19537cc64f74bacc7d123de3be454
+    use super::SCALAR_1;
     use crate::{scalar, NearlyEqual, NearlyZero, Point, Scalar, Vector};
     use std::mem;
 
@@ -584,13 +584,13 @@ pub(crate) mod tangent {
         let mut dst: [Point; 10];
         let n = chop_cubic_at_y_extrema(pts, &mut dst);
         for i in 0..=n {
-            let c = &dst[i * 3];
-            let t: scalar;
-            if (!SkCubicClipper::ChopMonoAtY(c, y, &t)) {
+            let c = &dst[i * 3..i * 3 + 4];
+            let mut t: scalar;
+            if !super::cubic_clipper::chop_mono_at_y(c, y, &mut t) {
                 continue;
             }
             let xt = eval_cubic_pts(c[0].x, c[1].x, c[2].x, c[3].x, t);
-            if (!scalar_nearly_equal(x, xt)) {
+            if !scalar_nearly_equal(x, xt) {
                 continue;
             }
             let tangent: Vector;
@@ -608,10 +608,10 @@ pub(crate) mod tangent {
         If dst == null, it is ignored and only the count is returned.
     */
     fn chop_cubic_at_y_extrema(src: &[Point; 4], dst: &mut [Point; 10]) -> usize {
-        let mut values: [scalar; 2];
+        let mut values: [scalar; 2] = Default::default();
         let roots = find_cubic_extrema(src[0].y, src[1].y, src[2].y, src[3].y, &mut values);
 
-        chop_cubic_at(src, dst, values, roots);
+        chop_cubic_at2(src, dst, values, roots);
         if (dst && roots > 0) {
             // we do some cleanup to ensure our Y extrema are flat
             flatten_double_cubic_extrema(&dst[0].y);
@@ -621,8 +621,6 @@ pub(crate) mod tangent {
         }
         return roots;
     }
-
-    fn eval_cubic_at(pts: &[Point; 4], tangents: &mut Vec<Vector>) {}
 
     /** Cubic'(t) = At^2 + Bt + C, where
         A = 3(-a + 3(b - c) + d)
@@ -714,7 +712,8 @@ pub(crate) mod tangent {
         value
     }
 
-    fn chop_cubic_at(src: &[Point; 4], dst: &mut [Point; 7], t: scalar) {
+    fn chop_cubic_at(src: &[Point], dst: &mut [Point], t: scalar) {
+        debug_assert!(src.len() == 3 && dst.len() == 7);
         debug_assert!(t > 0.0 && t < SCALAR_1);
 
         // TODO: may re-add SIMD support.
@@ -753,6 +752,54 @@ pub(crate) mod tangent {
         }
     }
 
+    pub fn chop_cubic_at2(
+        src: &[Point; 4],
+        mut dst: &mut [Point; 10],
+        values: &[scalar; 2],
+        roots: usize,
+    ) {
+        #[cfg(debug_assertions)]
+        {
+            for i in 0..roots - 1 {
+                debug_assert!(0.0 < values[i] && values[i] < 1.0);
+                debug_assert!(0.0 < values[i + 1] && values[i + 1] < 1.0);
+                debug_assert!(values[i] < values[i + 1]);
+            }
+        }
+
+        if roots == 0 {
+            // nothing to chop
+            dst[0..4].copy_from_slice(src);
+        } else {
+            let mut t = values[0];
+            let mut src = src.as_ref();
+            let mut tmp: [Point; 4];
+
+            let mut dst = dst.as_mut();
+            for i in 0..roots {
+                chop_cubic_at(src, &mut dst[0..6], t);
+                if i == roots - 1 {
+                    break;
+                }
+
+                dst = &mut dst[3..];
+                // have src point to the remaining cubic (after the chop)
+                tmp.copy_from_slice(&dst[0..4]);
+                src = &tmp;
+
+                // watch out in case the renormalized t isn't in range
+                if valid_unit_divide(values[i + 1] - values[i], SCALAR_1 - values[i], &mut t) == 0 {
+                    // if we can't, just create a degenerate cubic
+                    let src3 = src[3];
+                    dst[6] = src3;
+                    dst[5] = src3;
+                    dst[4] = src3;
+                    break;
+                }
+            }
+        }
+    }
+
     pub fn line(pts: &[Point; 2], x: scalar, y: scalar, tangents: &mut Vec<Vector>) {
         let y0 = pts[0].y;
         let y1 = pts[1].y;
@@ -781,6 +828,18 @@ pub(crate) mod tangent {
         (a - b) * (c - b) <= 0.0
     }
 
+    fn eval_cubic_pts(c0: scalar, c1: scalar, c2: scalar, c3: scalar, t: scalar) -> scalar {
+        let aa = c3 + 3.0 * (c1 - c2) - c0;
+        let bb = 3.0 * (c2 - c1 - c1 + c0);
+        let cc = 3.0 * (c1 - c0);
+        let dd = c0;
+        poly_eval(aa, bb, cc, dd, t)
+    }
+
+    fn poly_eval(a: f64, b: f64, c: f64, d: f64, t: f64) -> f64 {
+        ((a * t + b) * t + c) * t + d
+    }
+
     fn scalar_nearly_zero(s: scalar) -> bool {
         s.nearly_zero(scalar::NEARLY_ZERO)
     }
@@ -792,7 +851,109 @@ pub(crate) mod tangent {
     fn double_to_scalar(s: f64) -> scalar {
         s
     }
+}
 
-    const SCALAR_1: scalar = 1.0;
+const SCALAR_1: scalar = 1.0;
+
+mod geometry {
+    use super::SCALAR_1;
+    use crate::{scalar, Point, Vector};
+
+    pub fn eval_cubic_at_tangent(src: &[Point; 4], t: scalar, tangent: &mut Vector) {
+        debug_assert!(t >= 0.0 && t <= SCALAR_1);
+
+        // The derivative equation returns a zero tangent vector when t is 0 or 1, and the
+        // adjacent control point is equal to the end point. In this case, use the
+        // next control point or the end points to compute the tangent.
+        if ((t == 0.0 && src[0] == src[1]) || (t == 1.0 && src[2] == src[3])) {
+            if (t == 0.0) {
+                *tangent = src[2] - src[0];
+            } else {
+                *tangent = src[3] - src[1];
+            }
+            if (tangent.x == 0.0 && tangent.y == 0.0) {
+                *tangent = src[3] - src[0];
+            }
+        } else {
+            *tangent = eval_cubic_derivative(src, t);
+        }
+    }
+
+    fn eval_cubic_derivative(src: &[Point; 4], t: scalar) -> Vector {
+SkQuadCoeff coeff;
+Sk2s P0 = from_point(src[0]);
+Sk2s P1 = from_point(src[1]);
+Sk2s P2 = from_point(src[2]);
+Sk2s P3 = from_point(src[3]);
+
+coeff.fA = P3 + Sk2s(3) * (P1 - P2) - P0;
+coeff.fB = times_2(P2 - times_2(P1) + P0);
+coeff.fC = P1 - P0;
+return to_vector(coeff.eval(t));
+}
+}
+
+mod cubic_clipper {
+    use super::SCALAR_1;
+    use crate::{scalar, Point};
+
+    pub fn chop_mono_at_y(pts: &[Point], y: scalar, t: &mut scalar) -> bool {
+        debug_assert!(pts.len() == 4);
+        let mut ycrv = [pts[0].y - y, pts[1].y - y, pts[2].y - y, pts[3].y - y];
+
+        // Check that the endpoints straddle zero.
+        let t_neg: scalar; // Negative and positive function parameters.
+        let t_pos: scalar;
+        if ycrv[0] < 0.0 {
+            if ycrv[3] < 0.0 {
+                return false;
+            }
+            t_neg = 0.0;
+            t_pos = SCALAR_1;
+        } else if ycrv[0] > 0.0 {
+            if ycrv[3] > 0.0 {
+                return false;
+            }
+            t_neg = SCALAR_1;
+            t_pos = 0.0;
+        } else {
+            *t = 0.0;
+            return true;
+        }
+
+        let tol = SCALAR_1 / 65536.0; // 1 for fixed, 1e-5 for float.
+        let iters = 0;
+        loop {
+            let t_mid = (t_pos + t_neg) / 2.0;
+            let y01 = scalar_interp(ycrv[0], ycrv[1], t_mid);
+            let y12 = scalar_interp(ycrv[1], ycrv[2], t_mid);
+            let y23 = scalar_interp(ycrv[2], ycrv[3], t_mid);
+            let y012 = scalar_interp(y01, y12, t_mid);
+            let y123 = scalar_interp(y12, y23, t_mid);
+            let y0123 = scalar_interp(y012, y123, t_mid);
+            if y0123 == 0.0 {
+                *t = t_mid;
+                return true;
+            }
+            if y0123 < 0.0 {
+                t_neg = t_mid;
+            } else {
+                t_pos = t_mid;
+            }
+            iters += 1;
+            // Nan-safe
+            if (t_pos - t_neg).abs() <= tol {
+                break;
+            }
+        }
+
+        *t = (t_neg + t_pos) / 2.0;
+        return true;
+    }
+
+    fn scalar_interp(a: scalar, b: scalar, t: scalar) -> scalar {
+        debug_assert!(t >= 0.0 && t <= SCALAR_1);
+        a + (b - a) * t
+    }
 }
 */
