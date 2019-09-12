@@ -1,4 +1,4 @@
-use crate::{scalar, Contains, Extent, Point, Radius, Rect, Scalar, Vector};
+use crate::{scalar, Extent, Point, Rect, Scalar, Vector};
 use serde_tuple::*;
 
 /// A rounded rectangle.
@@ -7,15 +7,17 @@ use serde_tuple::*;
 #[derive(Clone, Serialize_tuple, Deserialize_tuple, PartialEq, Debug)]
 pub struct RoundedRect {
     rect: Rect,
+    // TODO: replace this with Radii?
     radii: [Extent; 4],
 }
 
+pub fn rounded_rect(rect: impl Into<Rect>, radii: impl Into<internal::Radii>) -> RoundedRect {
+    RoundedRect::new(rect.into(), radii.into().0)
+}
+
 impl RoundedRect {
-    pub fn new(r: &Rect, radii: &[Extent; 4]) -> Self {
-        Self {
-            rect: r.clone(),
-            radii: *radii,
-        }
+    pub fn new(rect: Rect, radii: [Extent; 4]) -> Self {
+        Self { rect, radii }
     }
 
     /// The rect.
@@ -147,45 +149,123 @@ impl RoundedRect {
     }
 }
 
-impl From<(Rect, Radius)> for RoundedRect {
-    fn from((rect, radius): (Rect, Radius)) -> Self {
-        let e = Extent::new(*radius, *radius);
-        RoundedRect::from((rect, e))
+pub mod traits {
+    use crate::{Extent, Radius, Rect, RoundedRect};
+
+    impl From<(Rect, Radius)> for RoundedRect {
+        fn from((rect, radius): (Rect, Radius)) -> Self {
+            let e = Extent::new(*radius, *radius);
+            RoundedRect::from((rect, e))
+        }
+    }
+
+    impl From<(Rect, Extent)> for RoundedRect {
+        fn from((rect, e): (Rect, Extent)) -> Self {
+            RoundedRect::new(rect, [e, e, e, e])
+        }
     }
 }
 
-impl From<(Rect, Extent)> for RoundedRect {
-    fn from((rect, e): (Rect, Extent)) -> Self {
-        RoundedRect::new(&rect, &[e, e, e, e])
+pub mod contains {
+    use crate::{Contains, Point, Rect, RoundedRect};
+
+    impl Contains<Point> for RoundedRect {
+        fn contains(&self, point: Point) -> bool {
+            self.contains(&Rect::new(point, point))
+        }
+    }
+
+    impl Contains<&Rect> for RoundedRect {
+        fn contains(&self, rect: &Rect) -> bool {
+            // Skia: 6d1c0d4196f19537cc64f74bacc7d123de3be454
+            if !self.bounds().contains(rect) {
+                // If 'rect' isn't contained by the RR's bounds then the
+                // RR definitely doesn't contain it
+                return false;
+            }
+
+            if self.is_rect() {
+                // the prior test was sufficient
+                return true;
+            }
+
+            // At self point we know all four corners of 'rect' are inside the
+            // bounds of of self RR. Check to make sure all the corners are inside
+            // all the curves
+            self.check_corner_containment(self.rect().left, self.rect().top)
+                && self.check_corner_containment(self.rect().right, self.rect().top)
+                && self.check_corner_containment(self.rect().right, self.rect().bottom)
+                && self.check_corner_containment(self.rect().left, self.rect().bottom)
+        }
     }
 }
 
-impl Contains<Point> for RoundedRect {
-    fn contains(&self, point: Point) -> bool {
-        self.contains(&Rect::new(point, point))
+pub mod internal {
+    use crate::{scalar, Extent};
+
+    #[derive(Copy, Clone, PartialEq, Debug)]
+    pub struct Radii(pub(crate) [Extent; 4]);
+
+    impl From<(i32, i32)> for Radii {
+        fn from((w, h): (i32, i32)) -> Self {
+            Radii::from((w as scalar, h as scalar))
+        }
+    }
+
+    impl From<(scalar, scalar)> for Radii {
+        fn from((w, h): (scalar, scalar)) -> Self {
+            Radii::from(Extent::new(w, h))
+        }
+    }
+
+    impl From<Extent> for Radii {
+        fn from(x: Extent) -> Self {
+            (x, x).into()
+        }
+    }
+
+    impl From<(Extent, Extent)> for Radii {
+        fn from((top, bottom): (Extent, Extent)) -> Self {
+            [top, top, bottom, bottom].into()
+        }
+    }
+
+    impl From<[Extent; 4]> for Radii {
+        fn from(x: [Extent; 4]) -> Self {
+            Radii(x)
+        }
     }
 }
 
-impl Contains<&Rect> for RoundedRect {
-    fn contains(&self, rect: &Rect) -> bool {
-        // Skia: 6d1c0d4196f19537cc64f74bacc7d123de3be454
-        if !self.bounds().contains(rect) {
-            // If 'rect' isn't contained by the RR's bounds then the
-            // RR definitely doesn't contain it
-            return false;
+#[cfg(test)]
+mod test {
+    use crate::functions::{rect, rounded_rect};
+    use crate::{Color, Contains, Drawing, DrawingTarget, Paint, Point, Render, RGB};
+    use rand::Rng;
+
+    #[test]
+    pub fn contains() {
+        let mut drawing = Drawing::new();
+
+        let rr = rounded_rect(rect((16.0, 16.0), (32, 32)), (8.0, 8.0));
+        drawing.draw(rr.clone(), Paint::stroke(Color::BLACK));
+
+        let mut rng = rand::thread_rng();
+        let hit_color = 0x00ff00.rgb();
+        let missed_color = 0xff0000.rgb();
+
+        for _ in 0..128 {
+            let x = rng.gen_range(0, 64);
+            let y = rng.gen_range(0, 64);
+            let p: Point = (x, y).into();
+            let color = if rr.contains(p) {
+                hit_color
+            } else {
+                missed_color
+            };
+            drawing.draw(rect(p, (2, 2)), color)
         }
 
-        if self.is_rect() {
-            // the prior test was sufficient
-            return true;
-        }
-
-        // At self point we know all four corners of 'rect' are inside the
-        // bounds of of self RR. Check to make sure all the corners are inside
-        // all the curves
-        self.check_corner_containment(self.rect().left, self.rect().top)
-            && self.check_corner_containment(self.rect().right, self.rect().top)
-            && self.check_corner_containment(self.rect().right, self.rect().bottom)
-            && self.check_corner_containment(self.rect().left, self.rect().bottom)
+        drawing.render()
     }
 }
