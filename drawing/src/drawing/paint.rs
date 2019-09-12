@@ -71,12 +71,6 @@ pub enum Join {
     Bevel,
 }
 
-impl Default for Paint {
-    fn default() -> Self {
-        Paint::new()
-    }
-}
-
 impl Paint {
     pub(crate) const DEFAULT: Paint = Paint::new();
 
@@ -172,64 +166,81 @@ impl Paint {
     }
 }
 
-//
-// Serialization Helper
-//
+pub mod traits {
+    use crate::{Color, Paint};
 
-impl Paint {
-    pub(crate) fn is_style_default(style: &Style) -> bool {
-        *style == Self::DEFAULT.style
+    impl Default for Paint {
+        fn default() -> Self {
+            Paint::new()
+        }
     }
 
-    pub(crate) fn is_color_default(color: &Color) -> bool {
-        *color == Self::DEFAULT.color
+    impl From<Color> for Paint {
+        fn from(color: Color) -> Self {
+            Paint::fill(color)
+        }
     }
+}
 
-    pub(crate) fn is_stroke_width_default(width: &scalar) -> bool {
-        *width == Self::DEFAULT.width
-    }
+pub mod serialization_helper {
+    use crate::paint::{Cap, Join, Style};
+    use crate::{scalar, BlendMode, Color, Paint};
 
-    pub(crate) fn is_stroke_miter_default(miter: &scalar) -> bool {
-        *miter == Self::DEFAULT.miter
-    }
+    impl Paint {
+        pub(crate) fn is_style_default(style: &Style) -> bool {
+            *style == Self::DEFAULT.style
+        }
 
-    pub(crate) fn is_stroke_cap_default(cap: &Cap) -> bool {
-        *cap == Self::DEFAULT.cap
-    }
+        pub(crate) fn is_color_default(color: &Color) -> bool {
+            *color == Self::DEFAULT.color
+        }
 
-    pub(crate) fn is_stroke_join_default(join: &Join) -> bool {
-        *join == Self::DEFAULT.join
-    }
+        pub(crate) fn is_stroke_width_default(width: &scalar) -> bool {
+            *width == Self::DEFAULT.width
+        }
 
-    pub(crate) fn is_blend_mode_default(mode: &BlendMode) -> bool {
-        *mode == Self::DEFAULT.blend_mode
-    }
+        pub(crate) fn is_stroke_miter_default(miter: &scalar) -> bool {
+            *miter == Self::DEFAULT.miter
+        }
 
-    pub(crate) fn default_style() -> Style {
-        Self::DEFAULT.style
-    }
+        pub(crate) fn is_stroke_cap_default(cap: &Cap) -> bool {
+            *cap == Self::DEFAULT.cap
+        }
 
-    pub(crate) fn default_color() -> Color {
-        Self::DEFAULT.color
-    }
+        pub(crate) fn is_stroke_join_default(join: &Join) -> bool {
+            *join == Self::DEFAULT.join
+        }
 
-    pub(crate) fn default_stroke_width() -> scalar {
-        Self::DEFAULT.width
-    }
+        pub(crate) fn is_blend_mode_default(mode: &BlendMode) -> bool {
+            *mode == Self::DEFAULT.blend_mode
+        }
 
-    pub(crate) fn default_stroke_miter() -> scalar {
-        Self::DEFAULT.miter
-    }
+        pub(crate) fn default_style() -> Style {
+            Self::DEFAULT.style
+        }
 
-    pub(crate) fn default_stroke_cap() -> Cap {
-        Self::DEFAULT.cap
-    }
+        pub(crate) fn default_color() -> Color {
+            Self::DEFAULT.color
+        }
 
-    pub(crate) fn default_stroke_join() -> Join {
-        Self::DEFAULT.join
-    }
+        pub(crate) fn default_stroke_width() -> scalar {
+            Self::DEFAULT.width
+        }
 
-    pub(crate) fn default_blend_mode() -> BlendMode {
-        Self::DEFAULT.blend_mode
+        pub(crate) fn default_stroke_miter() -> scalar {
+            Self::DEFAULT.miter
+        }
+
+        pub(crate) fn default_stroke_cap() -> Cap {
+            Self::DEFAULT.cap
+        }
+
+        pub(crate) fn default_stroke_join() -> Join {
+            Self::DEFAULT.join
+        }
+
+        pub(crate) fn default_blend_mode() -> BlendMode {
+            Self::DEFAULT.blend_mode
+        }
     }
 }

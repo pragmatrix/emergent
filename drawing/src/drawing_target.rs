@@ -18,8 +18,8 @@ pub trait DrawingTarget {
     fn transform(&mut self, transformation: &Transform, f: impl FnOnce(&mut Self));
 
     /// Draw something that can be converted into a shape.
-    fn draw(&mut self, shape: impl Into<Shape>, paint: Paint) {
-        self.draw_shape(&shape.into(), paint)
+    fn draw(&mut self, shape: impl Into<Shape>, paint: impl Into<Paint>) {
+        self.draw_shape(&shape.into(), paint.into())
     }
 }
 
