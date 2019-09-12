@@ -16,4 +16,5 @@ half = { version = "1.3.0", features = ["serialize"] }
 serde_tuple = { path = "../serde_tuple" }
 
 [dev-dependencies]
+# for Contains testing
 rand = "0.7.0"

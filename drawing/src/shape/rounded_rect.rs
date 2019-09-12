@@ -192,10 +192,10 @@ pub mod contains {
             // At self point we know all four corners of 'rect' are inside the
             // bounds of of self RR. Check to make sure all the corners are inside
             // all the curves
-            self.check_corner_containment(self.rect().left, self.rect().top)
-                && self.check_corner_containment(self.rect().right, self.rect().top)
-                && self.check_corner_containment(self.rect().right, self.rect().bottom)
-                && self.check_corner_containment(self.rect().left, self.rect().bottom)
+            self.check_corner_containment(rect.left, rect.top)
+                && self.check_corner_containment(rect.right, rect.top)
+                && self.check_corner_containment(rect.right, rect.bottom)
+                && self.check_corner_containment(rect.left, rect.bottom)
         }
     }
 }
@@ -248,7 +248,8 @@ mod test {
     pub fn contains() {
         let mut drawing = Drawing::new();
 
-        let rr = rounded_rect(rect((16.0, 16.0), (32, 32)), (8.0, 8.0));
+        let rr = rounded_rect(rect((16.0, 16.0), (64, 64)), (16.0, 16.0));
+        drawing.draw(rr.bounds().clone(), Paint::stroke(0xc0c0c0.rgb()));
         drawing.draw(rr.clone(), Paint::stroke(Color::BLACK));
 
         let mut rng: StdRng = SeedableRng::seed_from_u64(0);
@@ -256,8 +257,8 @@ mod test {
         let missed_color = 0xff0000.rgb();
 
         for _ in 0..128 {
-            let x = rng.gen_range(0, 64);
-            let y = rng.gen_range(0, 64);
+            let x = rng.gen_range(0, 96);
+            let y = rng.gen_range(0, 96);
             let p: Point = (x, y).into();
             let color = if rr.contains(p) {
                 hit_color
