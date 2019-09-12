@@ -241,7 +241,8 @@ pub mod internal {
 mod test {
     use crate::functions::{rect, rounded_rect};
     use crate::{Color, Contains, Drawing, DrawingTarget, Paint, Point, Render, RGB};
-    use rand::Rng;
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
 
     #[test]
     pub fn contains() {
@@ -250,7 +251,7 @@ mod test {
         let rr = rounded_rect(rect((16.0, 16.0), (32, 32)), (8.0, 8.0));
         drawing.draw(rr.clone(), Paint::stroke(Color::BLACK));
 
-        let mut rng = rand::thread_rng();
+        let mut rng: StdRng = SeedableRng::seed_from_u64(0);
         let hit_color = 0x00ff00.rgb();
         let missed_color = 0xff0000.rgb();
 
