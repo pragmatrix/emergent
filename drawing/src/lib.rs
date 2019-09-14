@@ -24,6 +24,8 @@ pub use shape::*;
 
 pub mod simple_layout;
 
+pub(crate) mod skia_core;
+
 mod toolbox;
 pub(crate) use toolbox::*;
 
