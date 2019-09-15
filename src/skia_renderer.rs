@@ -176,7 +176,7 @@ impl DrawingBackend for Backend {
         // canvas.scale((2.0, 2.0));
 
         let drawing_target =
-            &mut CanvasDrawingTarget::from_canvas(canvas, frame.area.dpi, &self.shaper);
+            &mut CanvasDrawingTarget::from_canvas(canvas, frame.layout.dpi, &self.shaper);
         frame
             .presentation
             .draw_to(drawing::Paint::default(), drawing_target);

@@ -3,7 +3,7 @@ use emergent_presentation::Presentation;
 /// A frame is a sized and layouted drawing, ready to be drawn.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Frame {
-    pub area: FrameLayout,
+    pub layout: FrameLayout,
     pub presentation: Presentation,
 }
 

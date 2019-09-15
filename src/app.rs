@@ -149,7 +149,7 @@ impl View<Frame> for App {
         ));
 
         Frame {
-            area: self.area_layout,
+            layout: self.area_layout,
             presentation,
         }
     }

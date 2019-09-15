@@ -2,8 +2,8 @@ use crate::app::App;
 use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
+use emergent::skia;
 use emergent::skia::convert::ToSkia;
-use emergent::{skia, DPI};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
@@ -102,14 +102,14 @@ fn main() {
                 context.recreate_swapchain(frame_state)
             }
 
-            let area_layout = render_surface.window().frame_layout();
-            info!("window area layout: {:?}", area_layout);
-            if frame.area == area_layout {
+            let frame_layout = render_surface.window().frame_layout();
+            info!("window frame layout: {:?}", frame_layout);
+            if frame.layout == frame_layout {
                 let _future = context.render(future, frame_state, drawing_backend, &frame);
             } else {
                 warn!(
                     "skipping frame, wrong layout, expected {:?}, window: {:?}",
-                    frame.area, area_layout
+                    frame.layout, frame_layout
                 );
             }
 
