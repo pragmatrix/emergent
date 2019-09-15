@@ -1,4 +1,5 @@
 use emergent_presentation::Presentation;
+use serde::{Deserialize, Serialize};
 
 /// A frame is a sized and layouted drawing, ready to be drawn.
 #[derive(Clone, PartialEq, Debug)]
@@ -7,14 +8,15 @@ pub struct Frame {
     pub presentation: Presentation,
 }
 
-/// The area's layout a frame is drawn to.
-#[derive(Copy, Clone, PartialEq, Debug)]
+/// The frame's expected layout expressed in physical pixel dimensions and
+/// dots per inch.
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct FrameLayout {
     pub dimensions: (u32, u32),
     pub dpi: DPI,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct DPI(pub f64);
 
 impl DPI {

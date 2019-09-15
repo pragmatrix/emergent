@@ -23,6 +23,18 @@ mod presentations;
 pub mod skia;
 mod ui;
 
+mod window;
+pub use window::*;
+
+mod window_application;
+pub use window_application::*;
+
+mod window_msg;
+pub use window_msg::*;
+
+mod winit_window;
+pub use winit_window::*;
+
 #[test]
 fn test_output_capture() {
     println!("CAPTURE_ME");

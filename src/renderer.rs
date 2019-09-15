@@ -1,4 +1,4 @@
-use emergent::{Frame, FrameLayout};
+use emergent::{Frame, FrameLayout, Window};
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::DynamicState;
@@ -49,10 +49,6 @@ pub trait DrawingBackend {
 
     /// Draws a frame on the Surface.
     fn draw(&self, frame: &Frame, surface: &mut Self::Surface);
-}
-
-pub trait Window: Send + Sync + 'static {
-    fn frame_layout(&self) -> FrameLayout;
 }
 
 pub fn new_instance() -> Arc<Instance> {

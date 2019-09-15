@@ -1,7 +1,6 @@
-use crate::renderer;
-use emergent::{FrameLayout, DPI};
+use crate::{FrameLayout, Window, DPI};
 
-impl renderer::Window for winit::Window {
+impl Window for winit::Window {
     fn frame_layout(&self) -> FrameLayout {
         let dimensions = self
             .get_inner_size()

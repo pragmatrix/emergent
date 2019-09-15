@@ -4,13 +4,13 @@ use crate::test_watcher::Notification;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::PrimitiveText;
-use emergent::{Frame, FrameLayout};
+use emergent::{Frame, FrameLayout, WindowApplicationMsg, WindowModel, WindowMsg};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_drawing::{Drawing, DrawingTarget, Font, MeasureText};
+use emergent_drawing::{Font, MeasureText};
 use emergent_presentation::{Gesture, Present, Presentation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tears::{Cmd, Model, View};
+use tears::{Cmd, View};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Msg {
@@ -18,14 +18,13 @@ pub enum Msg {
     FrameLayoutChanged(FrameLayout),
     #[serde(skip)]
     WatcherNotification(test_watcher::Notification),
-    Refresh,
     ToggleTestcase {
         name: String,
     },
 }
 
 pub struct App {
-    area_layout: FrameLayout,
+    frame_layout: FrameLayout,
     notification_receiver: Receiver<test_watcher::Notification>,
     test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
@@ -33,12 +32,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(area_layout: FrameLayout, req: TestRunRequest) -> (Self, Cmd<Msg>) {
+    pub fn new(frame_layout: FrameLayout, req: TestRunRequest) -> (Self, Cmd<Msg>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
         test_watcher::begin_watching(req, sender).unwrap();
 
         let emergent = Self {
-            area_layout,
+            frame_layout,
             notification_receiver: receiver.clone(),
             test_run_result: None,
             latest_test_error: None,
@@ -51,16 +50,15 @@ impl App {
     }
 }
 
-impl Model<Msg> for App {
+impl WindowModel<Msg> for App {
     fn update(&mut self, event: Msg) -> Cmd<Msg> {
         debug!("{:?}", &event);
         match event {
-            Msg::FrameLayoutChanged(area_layout) => self.area_layout = area_layout,
+            Msg::FrameLayoutChanged(frame_layout) => self.frame_layout = frame_layout,
             Msg::WatcherNotification(wn) => {
                 self.update_watcher(wn);
                 return self.receive_watcher_notifications();
             }
-            Msg::Refresh => {}
             Msg::ToggleTestcase { name } => {
                 if self.collapsed_tests.contains(&name) {
                     self.collapsed_tests.remove(&name);
@@ -70,6 +68,18 @@ impl Model<Msg> for App {
             }
         }
         Cmd::None
+    }
+
+    fn filter_window_msg(&self, msg: WindowMsg) -> Option<WindowApplicationMsg<Msg>> {
+        match msg {
+            WindowMsg::Resized(frame_layout) => Some(WindowApplicationMsg::Application(
+                Msg::FrameLayoutChanged(frame_layout),
+            )),
+            WindowMsg::HiDPIFactorChanged(frame_layout) => Some(WindowApplicationMsg::Application(
+                Msg::FrameLayoutChanged(frame_layout),
+            )),
+            msg => Some(WindowApplicationMsg::Window(msg)),
+        }
     }
 }
 
@@ -108,7 +118,7 @@ impl App {
 
 impl View<Frame> for App {
     fn render(&self) -> Frame {
-        let measure = PrimitiveText::new(self.area_layout.dpi);
+        let measure = PrimitiveText::new(self.frame_layout.dpi);
         let test_run_presentations = {
             match &self.test_run_result {
                 Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => compiler_messages
@@ -149,7 +159,7 @@ impl View<Frame> for App {
         ));
 
         Frame {
-            layout: self.area_layout,
+            layout: self.frame_layout,
             presentation,
         }
     }

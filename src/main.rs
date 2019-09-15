@@ -1,9 +1,8 @@
 use crate::app::App;
-use crate::renderer::Window;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
-use emergent::skia;
 use emergent::skia::convert::ToSkia;
+use emergent::{skia, Window, WindowApplication, WindowApplicationMsg, WindowMsg};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
@@ -23,7 +22,6 @@ mod renderer;
 mod skia_renderer;
 mod test_runner;
 mod test_watcher;
-mod winit_window;
 
 fn main() {
     // TODO: push logs internally as soon the window is open?
@@ -75,8 +73,8 @@ fn main() {
     let window_size = window_surface.window().frame_layout();
     let (emergent, initial_cmd) = App::new(window_size, test_run_request);
     let executor = ThreadSpawnExecutor::default();
-    let mut application = Application::new(emergent, executor);
-    application.schedule(initial_cmd);
+    let mut application = Application::new(WindowApplication::new(emergent), executor);
+    application.schedule(initial_cmd.map(WindowApplicationMsg::Application));
 
     info!("spawning application & renderer loop");
 
@@ -129,36 +127,34 @@ fn main() {
     events_loop.run_forever(move |event| match event {
         Event::WindowEvent { event, .. } => match event {
             WindowEvent::Resized(_) => {
-                let area_layout = window_surface.window().frame_layout();
-                mailbox.post(app::Msg::FrameLayoutChanged(area_layout));
+                let msg = WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
+                mailbox.post(WindowApplicationMsg::Window(msg));
+                // TODO: handle window placement changes in a unified way
+                // (isn't this the application's job?)
                 if window_placement.update(window_surface.window()) {
                     window_placement.store()
                 }
                 ControlFlow::Continue
             }
             WindowEvent::Moved(_) => {
+                let msg = WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
+                mailbox.post(WindowApplicationMsg::Window(msg));
                 if window_placement.update(window_surface.window()) {
                     window_placement.store()
                 }
                 ControlFlow::Continue
             }
-            WindowEvent::HiDpiFactorChanged(_) => {
-                let area_layout = window_surface.window().frame_layout();
-                mailbox.post(app::Msg::FrameLayoutChanged(area_layout));
-                ControlFlow::Continue
-            }
-            WindowEvent::Refresh => {
-                // TODO: not sure if this should go through the app.
-                mailbox.post(app::Msg::Refresh);
-                ControlFlow::Continue
-            }
             WindowEvent::CloseRequested => {
+                // TODO: forward to the application and provide the application with
+                // an option to end itself.
                 info!("close requested");
                 ControlFlow::Break
             }
-            WindowEvent::CursorMoved { .. } => winit::ControlFlow::Continue,
             event => {
-                debug!("unhandled window event: {:?}", event);
+                if let Some(msg) = WindowMsg::from_window_and_event(window_surface.window(), event)
+                {
+                    mailbox.post(WindowApplicationMsg::Window(msg));
+                }
                 ControlFlow::Continue
             }
         },
