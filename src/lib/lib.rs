@@ -8,6 +8,9 @@ use std::thread::JoinHandle;
 mod frame;
 pub use frame::*;
 
+mod hit_test;
+pub use hit_test::*;
+
 pub mod compiler_message;
 
 pub mod libtest;
