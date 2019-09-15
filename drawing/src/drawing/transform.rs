@@ -42,4 +42,29 @@ impl Transform {
             Transform::Matrix(m) => m.clone(),
         }
     }
+
+    pub fn map_point(&self, p: Point) -> Point {
+        match self {
+            Transform::Identity => p,
+            Transform::Translate(d) => p + *d,
+            // TODO: optimize Scale & Rotate
+            _ => self.to_matrix().map_point(p),
+        }
+    }
+
+    pub fn map_point_inverse(&self, p: Point) -> Point {
+        self.invert().unwrap().map_point(p)
+    }
+
+    pub fn invert(&self) -> Option<Self> {
+        use Transform::*;
+        match self {
+            Identity => Identity,
+            Translate(d) => Translate(-*d),
+            Scale(v, p) => Scale(Vector::new(1.0 / v.x, 1.0 / v.y), *p),
+            Rotate(a, p) => Rotate(-*a, *p),
+            Matrix(m) => Matrix(m.invert()?),
+        }
+        .into()
+    }
 }

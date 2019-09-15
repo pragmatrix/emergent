@@ -1,5 +1,7 @@
 use crate::functions::{point, vector};
-use crate::{scalar, Bounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Vector};
+use crate::{
+    scalar, Bounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Scalar, Vector,
+};
 use serde::{Deserialize, Serialize};
 use std::{mem, slice};
 
@@ -344,6 +346,212 @@ impl Matrix {
             1.0,
         ])
     }
+
+    pub fn invert(&self) -> Option<Matrix> {
+        if self.is_identity() {
+            Some(Matrix::new_identity())
+        } else {
+            self.invert_non_identity()
+        }
+    }
+
+    fn invert_non_identity(&self) -> Option<Matrix> {
+        // Skia: 6d1c0d41
+        let mut inv: Matrix;
+
+        let mask = self.type_mask();
+        if (mask & !(TypeMask::SCALE | TypeMask::TRANSLATE)).is_empty() {
+            let mut invertible = true;
+            if mask.contains(TypeMask::SCALE) {
+                let mut inv_x = self.0[SCALE_X];
+                let mut inv_y = self.0[SCALE_Y];
+                if 0.0 == inv_x || 0.0 == inv_y {
+                    return None;
+                }
+                inv_x = inv_x.invert();
+                inv_y = inv_y.invert();
+
+                // Must be careful when writing to inv, since it may be the
+                // same memory as this.
+
+                // TODO: directly set up the matrix and don't go over identity.
+                inv = Matrix::new_identity();
+                inv.0[SKEW_X] = 0.0;
+                inv.0[SKEW_Y] = 0.0;
+                inv.0[PERSP_0] = 0.0;
+                inv.0[PERSP_1] = 0.0;
+
+                inv.0[SCALE_X] = inv_x;
+                inv.0[SCALE_Y] = inv_y;
+                inv.0[PERSP_2] = 1.0;
+                inv.0[TRANS_X] = -self.0[TRANS_X] * inv_x;
+                inv.0[TRANS_Y] = -self.0[TRANS_Y] * inv_y;
+
+                // TODO: support that:
+                // inv->setTypeMask(mask | kRectStaysRect_Mask);
+                return Some(inv);
+            } else {
+                // translate only
+                return Some(Matrix::new_translate((-self.0[TRANS_X], -self.0[TRANS_Y])));
+            }
+        }
+
+        let is_persp = mask.contains(TypeMask::PERSPECTIVE);
+        let inv_det = sk_inv_determinant(&self.0, is_persp);
+
+        if inv_det == 0.0 {
+            // underflow
+            return None;
+        }
+
+        let inv = compute_inv(&self.0, inv_det, is_persp);
+        if !inv.iter().all(|s| s.is_finite()) {
+            return None;
+        }
+
+        // tmp->setTypeMask(fTypeMask);
+
+        return Some(Matrix(inv));
+    }
+}
+
+fn sk_inv_determinant(mat: &[scalar; 9], is_perspective: bool) -> f64 {
+    // Skia: 6d1c0d41
+    let det = if is_perspective {
+        mat[SCALE_X] * dcross(mat[SCALE_Y], mat[PERSP_2], mat[TRANS_Y], mat[PERSP_1])
+            + mat[SKEW_X] * dcross(mat[TRANS_Y], mat[PERSP_0], mat[SKEW_Y], mat[PERSP_2])
+            + mat[TRANS_X] * dcross(mat[SKEW_Y], mat[PERSP_1], mat[SCALE_Y], mat[PERSP_0])
+    } else {
+        dcross(mat[SCALE_X], mat[SCALE_Y], mat[SKEW_X], mat[SKEW_Y])
+    };
+
+    // Since the determinant is on the order of the cube of the matrix members,
+    // compare to the cube of the default nearly-zero constant (although an
+    // estimate of the condition number would be better if it wasn't so expensive).
+    if det.nearly_zero(scalar::NEARLY_ZERO * scalar::NEARLY_ZERO * scalar::NEARLY_ZERO) {
+        0.0
+    } else {
+        1.0 / det
+    }
+}
+
+fn compute_inv(src: &[scalar; 9], inv_det: f64, is_persp: bool) -> [scalar; 9] {
+    // Skia: 6d1c0d41
+    let mut dst: [scalar; 9] = Default::default();
+
+    if is_persp {
+        dst[SCALE_X] = scross_dscale(
+            src[SCALE_Y],
+            src[PERSP_2],
+            src[TRANS_Y],
+            src[PERSP_1],
+            inv_det,
+        );
+        dst[SKEW_X] = scross_dscale(
+            src[TRANS_X],
+            src[PERSP_1],
+            src[SKEW_X],
+            src[PERSP_2],
+            inv_det,
+        );
+        dst[TRANS_X] = scross_dscale(
+            src[SKEW_X],
+            src[TRANS_Y],
+            src[TRANS_X],
+            src[SCALE_Y],
+            inv_det,
+        );
+
+        dst[SKEW_Y] = scross_dscale(
+            src[TRANS_Y],
+            src[PERSP_0],
+            src[SKEW_Y],
+            src[PERSP_2],
+            inv_det,
+        );
+        dst[SCALE_Y] = scross_dscale(
+            src[SCALE_X],
+            src[PERSP_2],
+            src[TRANS_X],
+            src[PERSP_0],
+            inv_det,
+        );
+        dst[TRANS_Y] = scross_dscale(
+            src[TRANS_X],
+            src[SKEW_Y],
+            src[SCALE_X],
+            src[TRANS_Y],
+            inv_det,
+        );
+
+        dst[PERSP_0] = scross_dscale(
+            src[SKEW_Y],
+            src[PERSP_1],
+            src[SCALE_Y],
+            src[PERSP_0],
+            inv_det,
+        );
+        dst[PERSP_1] = scross_dscale(
+            src[SKEW_X],
+            src[PERSP_0],
+            src[SCALE_X],
+            src[PERSP_1],
+            inv_det,
+        );
+        dst[PERSP_2] = scross_dscale(
+            src[SCALE_X],
+            src[SCALE_Y],
+            src[SKEW_X],
+            src[SKEW_Y],
+            inv_det,
+        );
+    } else {
+        // not perspective
+        dst[SCALE_X] = src[SCALE_Y] * inv_det;
+        dst[SKEW_X] = -src[SKEW_X] * inv_det;
+        dst[TRANS_X] = dcross_dscale(
+            src[SKEW_X],
+            src[TRANS_Y],
+            src[SCALE_Y],
+            src[TRANS_X],
+            inv_det,
+        );
+
+        dst[SKEW_Y] = -src[SKEW_Y] * inv_det;
+        dst[SCALE_Y] = src[SCALE_X] * inv_det;
+        dst[TRANS_Y] = dcross_dscale(
+            src[SKEW_Y],
+            src[TRANS_X],
+            src[SCALE_X],
+            src[TRANS_Y],
+            inv_det,
+        );
+
+        dst[PERSP_0] = 0.0;
+        dst[PERSP_1] = 0.0;
+        dst[PERSP_2] = 1.0;
+    };
+    dst
+}
+
+fn scross_dscale(a: scalar, b: scalar, c: scalar, d: scalar, scale: f64) -> scalar {
+    // Skia: 6d1c0d41
+    return scross(a, b, c, d) * scale;
+}
+
+fn dcross_dscale(a: f64, b: f64, c: f64, d: f64, scale: f64) -> scalar {
+    // Skia: 6d1c0d41
+    return dcross(a, b, c, d) * scale;
+}
+
+fn scross(a: scalar, b: scalar, c: scalar, d: scalar) -> scalar {
+    // Skia: 6d1c0d41
+    a * b - c * d
+}
+
+fn dcross(a: f64, b: f64, c: f64, d: f64) -> f64 {
+    // Skia: 6d1c0d41
+    a * b - c * d
 }
 
 bitflags! {

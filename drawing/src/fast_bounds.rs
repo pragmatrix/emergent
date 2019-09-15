@@ -1,6 +1,6 @@
 use crate::{
-    Arc, Bounds, Circle, Clip, Clipped, Drawing, Extent, Line, Outset, Oval, Point, Polygon, Rect,
-    RoundedRect, Shape, Text, Transform, Transformed, Union,
+    Arc, Bounds, Circle, Clip, Clipped, Contains, Drawing, Extent, Line, Outset, Oval, Point,
+    Polygon, Rect, RoundedRect, Shape, Text, Transform, Transformed, Union,
 };
 
 pub trait MeasureText {
@@ -50,6 +50,16 @@ impl Clipped for DrawingBounds {
 impl Transformed for DrawingBounds {
     fn transformed(self, transform: Transform) -> Self {
         self.map_bounded(|b| transform.to_matrix().map_bounds(*b))
+    }
+}
+
+impl Contains<Point> for DrawingBounds {
+    fn contains(&self, point: Point) -> bool {
+        match self {
+            DrawingBounds::Empty => false,
+            DrawingBounds::Unbounded => true,
+            DrawingBounds::Bounded(bounds) => bounds.contains(point),
+        }
     }
 }
 

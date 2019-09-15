@@ -1,4 +1,4 @@
-use crate::{scalar, Extent, Outset, Point, Rect, Union, Vector};
+use crate::{scalar, Contains, Extent, Outset, Point, Rect, Union, Vector};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// A rectangle with a positive extent.
@@ -183,5 +183,11 @@ impl Sub<Vector> for Bounds {
     fn sub(mut self, rhs: Vector) -> Self::Output {
         self -= rhs;
         self
+    }
+}
+
+impl Contains<Point> for Bounds {
+    fn contains(&self, point: Point) -> bool {
+        self.to_rect().contains(point)
     }
 }
