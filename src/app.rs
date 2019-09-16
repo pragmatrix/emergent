@@ -6,7 +6,6 @@ use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::PrimitiveText;
 use emergent::{Frame, FrameLayout, WindowApplicationMsg, WindowModel, WindowMsg};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_drawing::{Font, MeasureText};
 use emergent_presentation::{Gesture, Present, Presentation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -116,8 +115,8 @@ impl App {
     }
 }
 
-impl View<Frame> for App {
-    fn render(&self) -> Frame {
+impl View<Frame<Msg>> for App {
+    fn render(&self) -> Frame<Msg> {
         let measure = PrimitiveText::new(self.frame_layout.dpi);
         let test_run_presentations = {
             match &self.test_run_result {
@@ -136,9 +135,10 @@ impl View<Frame> for App {
                         // TODO: add a nice drawing combinator.
                         // TODO: avoid the access of 0!
                         let name = &capture.name;
-                        let tap_gesture = Gesture::tap(|_| Msg::ToggleTestcase {
-                            name: capture.name.to_string(),
-                        });
+                        let tap_gesture = {
+                            let name = name.clone();
+                            Gesture::tap(|_| Msg::ToggleTestcase { name })
+                        };
                         let show_contents = !self.collapsed_tests.contains(name);
 
                         presentations.push(capture.present(

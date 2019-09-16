@@ -72,19 +72,20 @@ fn main() {
     let test_run_request = TestRunRequest::new_lib(&project_path);
     let window_size = window_surface.window().frame_layout();
     let (emergent, initial_cmd) = App::new(window_size, test_run_request);
-    let executor = ThreadSpawnExecutor::default();
-    let mut application = Application::new(WindowApplication::new(emergent), executor);
-    application.schedule(initial_cmd.map(WindowApplicationMsg::Application));
 
     info!("spawning application & renderer loop");
 
-    // events loop does not implement Send, so we keep it in the main thread, but
-    // instead push the renderer loop out.
-
     let render_surface = window_surface.clone();
-    let mailbox = application.mailbox();
+    let mailbox = tears::Mailbox::new();
+    let app_mailbox = mailbox.clone();
 
     thread::spawn(move || {
+        let executor = ThreadSpawnExecutor::default();
+        let mut application =
+            Application::new(app_mailbox, WindowApplication::new(emergent), executor);
+        application.schedule(initial_cmd.map(WindowApplicationMsg::Application));
+        application.update();
+
         let (context, mut frame_state) =
             renderer::create_context_and_frame_state(instance, render_surface.clone());
         let frame_state = &mut frame_state;

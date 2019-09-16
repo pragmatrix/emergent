@@ -7,22 +7,25 @@ use emergent_drawing::{font, BackToFront, Drawing, DrawingTarget, Font, MeasureT
 use emergent_presentation::{Area, Present, Presentation};
 
 impl TestCapture {
-    pub fn present(
+    pub fn present<Msg>(
         &self,
-        header_area: Area,
+        header_area: Area<Msg>,
         show_contents: bool,
         measure: &dyn MeasureText,
-    ) -> Presentation {
+    ) -> Presentation<Msg> {
         let header = self.present_header(header_area);
         if !show_contents {
             return header;
         }
         let output = self.draw_output().present();
 
-        Presentation::layout_vertically(vec![header, output], measure).back_to_front()
+        Presentation::BackToFront(Presentation::layout_vertically(
+            vec![header, output],
+            measure,
+        ))
     }
 
-    fn present_header(&self, area: Area) -> Presentation {
+    fn present_header<Msg>(&self, area: Area<Msg>) -> Presentation<Msg> {
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
         let text = text(&self.name, header_font, None);
@@ -66,7 +69,7 @@ mod tests {
         };
 
         capture
-            .present(Area::Named("header".into()), true, &measure)
+            .present(Area::<()>::Named("header".into()), true, &measure)
             .visualize(&measure)
             .render();
     }

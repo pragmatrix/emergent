@@ -1,21 +1,21 @@
 //! Gesture handler specification, Event generation, and serialization.
 use emergent_drawing::Point;
-use once_cell::sync::OnceCell;
-use serde::{Deserialize, Serialize};
+// use once_cell::sync::OnceCell;
+// use serde::{Deserialize, Serialize};
 
 /// A gesture.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
-pub enum Gesture {
+pub enum Gesture<Msg> {
     /// A single tap, either a touch or a mouse button click.
-    Tap(PointEvent),
+    Tap(Box<dyn FnOnce(Point) -> Msg>),
 }
 
-impl Gesture {
-    pub fn tap<Msg: Serialize>(f: impl FnOnce(Point) -> Msg) -> Self {
-        Gesture::Tap(PointEvent::from_fn(f))
+impl<Msg> Gesture<Msg> {
+    pub fn tap(f: impl FnOnce(Point) -> Msg + 'static) -> Self {
+        Gesture::Tap(Box::new(f))
     }
 }
 
+/*
 /// A serialized event with placeholders for Point x / y coordinates.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub struct PointEvent(String);
@@ -81,3 +81,5 @@ mod tests {
         );
     }
 }
+
+*/

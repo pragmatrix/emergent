@@ -1,11 +1,25 @@
-use emergent_presentation::Presentation;
+use emergent_presentation::{DrawingPresentation, Presentation};
 use serde::{Deserialize, Serialize};
 
 /// A frame is a sized and layouted drawing, ready to be drawn.
-#[derive(Clone, PartialEq, Debug)]
-pub struct Frame {
+pub struct Frame<Msg> {
     pub layout: FrameLayout,
-    pub presentation: Presentation,
+    pub presentation: Presentation<Msg>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct DrawingFrame {
+    pub layout: FrameLayout,
+    pub presentation: DrawingPresentation,
+}
+
+impl DrawingFrame {
+    pub fn new<Msg>(frame: &Frame<Msg>) -> DrawingFrame {
+        DrawingFrame {
+            layout: frame.layout,
+            presentation: DrawingPresentation::new(&frame.presentation),
+        }
+    }
 }
 
 /// The frame's expected layout expressed in physical pixel dimensions and

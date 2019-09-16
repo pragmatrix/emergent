@@ -24,7 +24,7 @@
 //!
 //! where messages are sent from top to down, and frames / fender commands from bottom to up.
 
-use crate::{Frame, WindowMsg};
+use crate::{DrawingFrame, Frame, WindowMsg};
 use std::cell::RefCell;
 use tears::{Cmd, Model, View};
 
@@ -35,13 +35,13 @@ pub enum WindowApplicationMsg<Msg> {
     Application(Msg),
 }
 
-pub struct WindowApplication<M> {
+pub struct WindowApplication<Model, Msg> {
     /// A copy of the most recent frame, if available.
-    recent_frame: RefCell<Option<Frame>>,
-    model: M,
+    recent_frame: RefCell<Option<Frame<Msg>>>,
+    model: Model,
 }
 
-impl<M, Msg: Send + 'static> Model<WindowApplicationMsg<Msg>> for WindowApplication<M>
+impl<M, Msg: Send + 'static> Model<WindowApplicationMsg<Msg>> for WindowApplication<M, Msg>
 where
     M: WindowModel<Msg>,
 {
@@ -58,24 +58,24 @@ where
     }
 }
 
-impl<M: View<Frame>> View<Frame> for WindowApplication<M> {
-    fn render(&self) -> Frame {
-        let frame: Frame = self.model.render();
-        // TODO: this is horrible, here the full frame is being cloned.
+impl<M: View<Frame<Msg>>, Msg: Send> View<DrawingFrame> for WindowApplication<M, Msg>
+where
+    M: WindowModel<Msg>,
+{
+    fn render(&self) -> DrawingFrame {
+        let frame: Frame<Msg> = self.model.render();
+        // TODO: this is horrible, here the full frame is being cloned into the drawing frame.
         // Ideas:
-        // - pass the frame back in the WindowMessage that needs it for hit testing.
-        // - Use Rc<Frame>, i.e. make it somehow immutable and sharable.
-        // - Return only a reference to the internal cache pushing the decision for cloning
-        //   to the client but also making the render function implementation dependent, because
-        //   it must store the Frame somewhere to return a reference.
         // - Wait until we support incremental presentation
         //   updates and see what other ideas come up.
-        self.recent_frame.replace(Some(frame.clone()));
-        frame
+        // - Don't clone nested drawings (use Rc?)
+        let drawing_frame = DrawingFrame::new(&frame);
+        self.recent_frame.replace(Some(frame));
+        drawing_frame
     }
 }
 
-impl<M> WindowApplication<M> {
+impl<M, Msg> WindowApplication<M, Msg> {
     pub fn new(model: M) -> Self {
         WindowApplication {
             model,
@@ -108,8 +108,9 @@ impl<M> WindowApplication<M> {
         Cmd::None
     }
 
-    fn update_application<Msg: Send>(&mut self, msg: Msg) -> Cmd<Msg>
+    fn update_application(&mut self, msg: Msg) -> Cmd<Msg>
     where
+        Msg: Send,
         M: WindowModel<Msg>,
     {
         self.model.update(msg)

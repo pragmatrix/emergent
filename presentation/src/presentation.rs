@@ -1,76 +1,84 @@
 use crate::{Gesture, Scoped};
 use emergent_drawing::{
     BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
-    MeasureText, Outset, Paint, Render, Transform, Transformed, Visualize, RGB,
+    MeasureText, Outset, Paint, Transform, Transformed, Visualize, RGB,
 };
-use serde::{Deserialize, Serialize};
 
 /// A presentation is a composable hierarchy that enhances drawings with
 /// sensor areas.
-#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub enum Presentation {
+pub enum Presentation<Msg> {
     Empty,
     /// Defines a presentation scope.
     /// This qualifies all nested names with the scope's name.
-    Scoped(String, Box<Presentation>),
+    Scoped(String, Box<Presentation<Msg>>),
     /// Defines a named area around the (fast) bounds of a presentation, including an Outset.
-    Area(Area, Outset, Box<Presentation>),
+    Area(Area<Msg>, Outset, Box<Presentation<Msg>>),
     /// Defines a named area by providing a Clip at the current drawing position.
-    InlineArea(Area, Clip),
+    InlineArea(Area<Msg>, Clip),
     /// A clipped presentation (TODO: is that needed, and what exactly is clipped?)
-    Clipped(Clip, Box<Presentation>),
+    Clipped(Clip, Box<Presentation<Msg>>),
     /// A transformed presentation.
-    Transformed(Transform, Box<Presentation>),
+    Transformed(Transform, Box<Presentation<Msg>>),
     /// Multiple presentations, from back to front.
-    BackToFront(Vec<Presentation>),
+    BackToFront(Vec<Presentation<Msg>>),
     /// A simple drawing that acts as a presentation.
     Drawing(Drawing),
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
-pub enum Area {
+pub enum Area<Msg> {
     Named(String),
-    Gesture(Gesture),
+    Gesture(Gesture<Msg>),
 }
 
-impl From<String> for Area {
+impl<Msg> From<String> for Area<Msg> {
     fn from(name: String) -> Self {
         Area::Named(name)
     }
 }
 
-impl From<Gesture> for Area {
-    fn from(gesture: Gesture) -> Self {
+impl<Msg> From<Gesture<Msg>> for Area<Msg> {
+    fn from(gesture: Gesture<Msg>) -> Self {
         Area::Gesture(gesture)
     }
 }
 
-impl Scoped for Presentation {
+impl<Msg> Area<Msg> {
+    pub fn name(&self) -> Option<&String> {
+        match self {
+            Area::Named(name) => Some(&name),
+            Area::Gesture(_) => None,
+        }
+    }
+}
+
+impl<Msg> Scoped for Presentation<Msg> {
     fn scoped(self, id: String) -> Self {
         Self::Scoped(id, self.into())
     }
 }
 
-impl Clipped for Presentation {
+impl<Msg> Clipped for Presentation<Msg> {
     fn clipped(self, clip: impl Into<Clip>) -> Self {
         Self::Clipped(clip.into(), self.into())
     }
 }
 
 // Required to support SimpleLayout
-impl Transformed for Presentation {
+impl<Msg> Transformed for Presentation<Msg> {
     fn transformed(self, transform: Transform) -> Self {
         Self::Transformed(transform, self.into())
     }
 }
 
-impl BackToFront<Presentation> for Vec<Presentation> {
-    fn back_to_front(self) -> Presentation {
+/*
+impl<Msg> BackToFront<Presentation<Msg>> for Vec<Presentation<Msg>> {
+    fn back_to_front(self) -> Presentation<Msg> {
         Presentation::BackToFront(self.into_iter().collect())
     }
 }
+*/
 
-impl DrawingFastBounds for Presentation {
+impl<Msg> DrawingFastBounds for Presentation<Msg> {
     fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds {
         use Presentation::*;
         match self {
@@ -90,7 +98,7 @@ impl DrawingFastBounds for Presentation {
     }
 }
 
-impl DrawTo for Presentation {
+impl<Msg> DrawTo for Presentation<Msg> {
     fn draw_to(&self, current_paint: Paint, target: &mut impl DrawingTarget) {
         use Presentation::*;
         match self {
@@ -107,26 +115,26 @@ impl DrawTo for Presentation {
     }
 }
 
-pub trait Present {
-    fn present(self) -> Presentation;
+pub trait Present<Msg> {
+    fn present(self) -> Presentation<Msg>;
 }
 
-impl Present for Drawing {
-    fn present(self) -> Presentation {
+impl<Msg> Present<Msg> for Drawing {
+    fn present(self) -> Presentation<Msg> {
         Presentation::Drawing(self)
     }
 }
 
-impl Presentation {
-    pub fn new() -> Presentation {
+impl<Msg> Presentation<Msg> {
+    pub fn new() -> Presentation<Msg> {
         Self::Empty
     }
 
-    pub fn in_area(self, area: Area) -> Self {
+    pub fn in_area(self, area: Area<Msg>) -> Self {
         self.in_area_with_outset(area, Outset::default())
     }
 
-    pub fn in_area_with_outset(self, area: Area, outset: impl Into<Outset>) -> Self {
+    pub fn in_area_with_outset(self, area: Area<Msg>, outset: impl Into<Outset>) -> Self {
         Self::Area(area, outset.into(), self.into())
     }
 
@@ -135,11 +143,7 @@ impl Presentation {
     }
 }
 
-impl Render for Presentation {
-    fn render(&self) {}
-}
-
-impl Visualize for Presentation {
+impl<Msg> Visualize for Presentation<Msg> {
     fn visualize(&self, measure: &dyn MeasureText) -> Drawing {
         // TODO: const fn!
         // https://www.colorhexa.com/ccff00

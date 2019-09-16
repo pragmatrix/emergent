@@ -3,6 +3,9 @@
 //! A package that specifies area markers and event handlers for the
 //! Emergent User Interface library.
 
+mod drawing_presentation;
+pub use drawing_presentation::*;
+
 mod events;
 pub use events::*;
 

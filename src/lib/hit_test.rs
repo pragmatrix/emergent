@@ -11,7 +11,7 @@ pub trait HitTest {
     fn hit_test(&self, p: Point, path_tester: &dyn PathContainsPoint) -> bool;
 }
 
-pub trait AreaHitTest {
+pub trait AreaHitTest<Msg> {
     /// Hit tests at the given point and returns a vector of areas from back to front being the
     /// last record to describe the frontmost positive test.
     /// Returns a tuple Area & Point, where Point describes the hit point relative to the
@@ -22,15 +22,15 @@ pub trait AreaHitTest {
         &self,
         p: Point,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&Area, Point)>;
+    ) -> Vec<(&Area<Msg>, Point)>;
 }
 
-impl AreaHitTest for Presentation {
+impl<Msg> AreaHitTest<Msg> for Presentation<Msg> {
     fn area_hit_test(
         &self,
         p: Point,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&Area, Point)> {
+    ) -> Vec<(&Area<Msg>, Point)> {
         match self {
             Presentation::Empty => Vec::new(),
             Presentation::Scoped(_, nested) => nested.area_hit_test(p, support),
