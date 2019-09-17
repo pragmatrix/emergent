@@ -2,12 +2,12 @@ use crate::app::App;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
 use emergent::skia::convert::ToSkia;
-use emergent::{skia, Window, WindowApplication, WindowApplicationMsg, WindowMsg};
+use emergent::{skia, Window, WindowApplication, WindowApplicationMsg, WindowMsg, DPI};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
 use std::{env, path, thread};
-use tears::{Application, ThreadSpawnExecutor, View};
+use tears::{Application, ThreadSpawnExecutor};
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
@@ -81,8 +81,13 @@ fn main() {
 
     thread::spawn(move || {
         let executor = ThreadSpawnExecutor::default();
-        let mut application =
-            Application::new(app_mailbox, WindowApplication::new(emergent), executor);
+        // TODO: adjust DPI
+        let skia_support = skia::Support::new(DPI::new(96.0));
+        let mut application = Application::new(
+            app_mailbox,
+            WindowApplication::new(emergent, skia_support.application()),
+            executor,
+        );
         application.schedule(initial_cmd.map(WindowApplicationMsg::Application));
         application.update();
 

@@ -137,7 +137,7 @@ impl View<Frame<Msg>> for App {
                         let name = &capture.name;
                         let tap_gesture = {
                             let name = name.clone();
-                            Gesture::tap(|_| Msg::ToggleTestcase { name })
+                            Gesture::tap(move |_| Msg::ToggleTestcase { name: name.clone() })
                         };
                         let show_contents = !self.collapsed_tests.contains(name);
 

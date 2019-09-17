@@ -1,7 +1,7 @@
 use emergent_drawing as drawing;
 use skia_safe::{
-    font_style, scalar, BlendMode, Color, FontStyle, PaintCap, PaintJoin, PaintStyle, Point, RRect,
-    Rect, Size, Vector,
+    font_style, scalar, BlendMode, Color, FontStyle, PaintCap, PaintJoin, PaintStyle, Path, Point,
+    RRect, Rect, Size, Vector,
 };
 
 pub trait ToSkia<ST> {
@@ -63,6 +63,24 @@ impl ToSkia<RRect> for drawing::RoundedRect {
     }
 }
 
+impl ToSkia<Path> for drawing::Path {
+    fn to_skia(&self) -> Path {
+        let mut path = Path::new();
+        for verb in self.verbs() {
+            use drawing::path::Verb::*;
+            match verb {
+                MoveTo(p) => path.move_to(p.to_skia()),
+                LineTo(p2) => path.line_to(p2.to_skia()),
+                QuadTo(p2, p3) => path.quad_to(p2.to_skia(), p3.to_skia()),
+                ConicTo(p2, p3, w) => path.conic_to(p2.to_skia(), p3.to_skia(), *w as scalar),
+                CubicTo(p2, p3, p4) => path.cubic_to(p2.to_skia(), p3.to_skia(), p4.to_skia()),
+                Close => path.close(),
+            };
+        }
+        path
+    }
+}
+
 impl ToSkia<f32> for drawing::Radius {
     fn to_skia(&self) -> scalar {
         (**self).to_skia()
@@ -75,7 +93,6 @@ impl ToSkia<BlendMode> for drawing::BlendMode {
     }
 }
 
-// TODO: can we statically verfiy the of this table?
 const BLEND_MODE_TABLE: [BlendMode; 18] = [
     BlendMode::Src,
     BlendMode::SrcOver,

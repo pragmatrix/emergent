@@ -1,6 +1,6 @@
 use crate::{
-    point::point, scalar, Arc, Bounds, Circle, FastBounds, Matrix, Oval, Point, Radians, Rect,
-    RoundedRect, Scalar, Vector,
+    point::point, scalar, Arc, Bounds, Circle, FastBounds, Oval, Point, Radians, Rect, RoundedRect,
+    Scalar, Vector,
 };
 use serde::{Deserialize, Serialize};
 use std::iter;
@@ -12,9 +12,6 @@ use std::iter;
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Path {
     fill_type: FillType,
-    // TODO: do we need a matrix here, isn't that redundant given that we
-    //       can transform the Path in the context where it is used.
-    matrix: Matrix,
     pub(crate) verbs: Vec<Verb>,
 }
 
@@ -342,6 +339,12 @@ impl Path {
         Bounds::from_points(&self.points())
     }
 
+    /// Returns an iterator that iterates over all verbs in this path.
+    pub fn verbs(&self) -> impl Iterator<Item = &Verb> {
+        self.verbs.iter()
+    }
+
+    /// Returns an iterator that iterates through the segments of this path.
     pub fn iter<'a>(&'a self, force_close: bool) -> impl Iterator<Item = PathVerb> + 'a {
         PathIterator::new(self, force_close)
     }
@@ -374,6 +377,9 @@ impl PathIterator<'_> {
     }
 }
 
+// TODO: I think it would be better to use an iterator that iterates over Path contours containing
+// segments.
+#[derive(Clone, PartialEq, Debug)]
 pub enum PathVerb {
     MoveTo(Point),
     Line(Point, Point),

@@ -1,14 +1,13 @@
 ///! Vulkan <-> Skia <-> emergent::drawing interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext};
 use emergent::skia::convert::ToSkia;
-use emergent::{text_as_lines, DrawingFrame, Frame, TextOrigin, Window, DPI};
+use emergent::{text_as_lines, DrawingFrame, TextOrigin, Window, DPI};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{font, DrawTo, Shape, Transform};
 use skia_safe::gpu::vk;
 use skia_safe::{
-    gpu, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Point, Shaper, Surface, Typeface,
-    Vector,
+    gpu, Canvas, CanvasPointMode, Color, ColorType, Font, Paint, Shaper, Surface, Typeface, Vector,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
@@ -240,7 +239,10 @@ impl<'a> drawing::DrawingTarget for CanvasDrawingTarget<'a> {
                 );
             }
             Shape::Arc(_) => unimplemented!("arc"),
-            Shape::Path(_) => unimplemented!("path"),
+            Shape::Path(path) => {
+                self.canvas
+                    .draw_path(&path.to_skia(), self.paint.resolve(paint));
+            }
             Shape::Image(_, _, _) => unimplemented!("image"),
             Shape::Text(drawing::Text { font, origin, runs }) => {
                 let origin = TextOrigin::new(*origin);

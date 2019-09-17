@@ -64,6 +64,7 @@ pub enum WindowMsg {
     },
     HiDPIFactorChanged(FrameLayout),
 }
+
 impl WindowMsg {
     /// To create a WindowMsg, we also need some information that can be retrieved from the
     /// Window only.
@@ -137,6 +138,18 @@ impl WindowMsg {
                 finger_id: id,
             }),
             HiDpiFactorChanged(_) => Some(WindowMsg::HiDPIFactorChanged(window.frame_layout())),
+        }
+    }
+
+    /// Returns the keyboard modifiers if specified in the Msg, None if not.
+    pub fn modifiers(&self) -> Option<ModifiersState> {
+        use WindowMsg::*;
+        match self {
+            KeyboardInput(winit::KeyboardInput { modifiers, .. })
+            | CursorMoved { modifiers, .. }
+            | MouseWheel { modifiers, .. }
+            | MouseInput { modifiers, .. } => Some(*modifiers),
+            _ => None,
         }
     }
 }
