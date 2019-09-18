@@ -89,23 +89,26 @@ impl WindowMsg {
             HoveredFileCancelled => Some(WindowMsg::HoveredFileCancelled),
             ReceivedCharacter(c) => Some(WindowMsg::ReceivedCharacter(c)),
             Focused(focused) => Some(WindowMsg::Focused(focused)),
-            KeyboardInput { input, .. } => Some(WindowMsg::KeyboardInput(input)),
+            KeyboardInput {
+                device_id: _,
+                input,
+            } => Some(WindowMsg::KeyboardInput(input)),
             CursorMoved {
+                device_id: _,
                 position,
                 modifiers,
-                ..
             } => WindowMsg::CursorMoved {
                 position: to_point(position),
                 modifiers,
             }
             .into(),
-            CursorEntered { .. } => WindowMsg::CursorEntered.into(),
-            CursorLeft { .. } => WindowMsg::CursorLeft.into(),
+            CursorEntered { device_id: _ } => WindowMsg::CursorEntered.into(),
+            CursorLeft { device_id: _ } => WindowMsg::CursorLeft.into(),
             MouseWheel {
+                device_id: _,
                 delta,
                 phase,
                 modifiers,
-                ..
             } => WindowMsg::MouseWheel {
                 delta,
                 phase,
@@ -113,25 +116,31 @@ impl WindowMsg {
             }
             .into(),
             MouseInput {
+                device_id: _,
                 state,
                 button,
                 modifiers,
-                ..
             } => Some(WindowMsg::MouseInput {
                 state,
                 button,
                 modifiers,
             }),
             TouchpadPressure {
-                pressure, stage, ..
+                device_id: _,
+                pressure,
+                stage,
             } => Some(WindowMsg::TouchpadPressure { pressure, stage }),
-            AxisMotion { axis, value, .. } => Some(WindowMsg::AxisMotion { axis, value }),
+            AxisMotion {
+                device_id: _,
+                axis,
+                value,
+            } => Some(WindowMsg::AxisMotion { axis, value }),
             Refresh => Some(WindowMsg::Refresh),
             Touch(winit::Touch {
+                device_id: _,
                 phase,
                 location,
                 id,
-                ..
             }) => Some(WindowMsg::Touch {
                 phase,
                 location: to_point(location),
