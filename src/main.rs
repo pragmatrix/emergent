@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::test_runner::TestRunRequest;
+use crate::test_runner::{TestEnvironment, TestRunRequest};
 use clap::Arg;
 use emergent::skia::convert::ToSkia;
 use emergent::skia::path_support::PathSupport;
@@ -73,8 +73,9 @@ fn main() {
         .expect("Failed to resolve initial window placement.");
     info!("window placement: {:?}", window_placement);
 
-    let test_run_request = TestRunRequest::new_lib(&project_path);
     let frame_layout = window_surface.window().frame_layout();
+    let test_run_request =
+        TestRunRequest::new_lib(&project_path, TestEnvironment::new(frame_layout.dpi));
     let (emergent, initial_cmd) = App::new(test_run_request);
 
     info!("spawning application & renderer loop");

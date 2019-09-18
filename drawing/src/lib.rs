@@ -108,3 +108,9 @@ mod tests {
         println!("{}", serde_json::to_string(&clipped_drawing).unwrap());
     }
 }
+
+/// A trait for support to pull configuration data from the test environment.
+/// TODO: hide behind cfg(test) but consider IDE support.
+pub trait FromTestEnvironment {
+    fn from_test_environment() -> Self;
+}

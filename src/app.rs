@@ -1,10 +1,12 @@
-use crate::test_runner::{TestRunRequest, TestRunResult};
+use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use crate::test_watcher;
-use crate::test_watcher::Notification;
+use crate::test_watcher::{Notification, TestWatcher};
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::PrimitiveText;
-use emergent::{FrameLayout, RenderPresentation, WindowModel};
+use emergent::{
+    FrameLayout, RenderPresentation, WindowApplicationMsg, WindowModel, WindowMsg, DPI,
+};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_presentation::{Gesture, Present, Presentation};
 use serde::{Deserialize, Serialize};
@@ -18,10 +20,14 @@ pub enum Msg {
     ToggleTestcase {
         name: String,
     },
+    #[serde(skip)]
+    RerunTestcases(TestEnvironment),
 }
 
 pub struct App {
+    watcher: TestWatcher,
     notification_receiver: Receiver<test_watcher::Notification>,
+    test_environment: TestEnvironment,
     test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
     collapsed_tests: HashSet<String>,
@@ -30,10 +36,12 @@ pub struct App {
 impl App {
     pub fn new(req: TestRunRequest) -> (Self, Cmd<Msg>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
-        test_watcher::begin_watching(req, sender).unwrap();
+        let watcher = test_watcher::begin_watching(req.clone(), sender).unwrap();
 
-        let emergent = Self {
+        let emergent = App {
+            watcher,
             notification_receiver: receiver.clone(),
+            test_environment: req.environment,
             test_run_result: None,
             latest_test_error: None,
             // TODO: this is part of the persistent state.
@@ -51,7 +59,6 @@ impl WindowModel<Msg> for App {
         match event {
             Msg::WatcherNotification(wn) => {
                 self.update_watcher(wn);
-                return self.receive_watcher_notifications();
             }
             Msg::ToggleTestcase { name } => {
                 if self.collapsed_tests.contains(&name) {
@@ -60,8 +67,20 @@ impl WindowModel<Msg> for App {
                     self.collapsed_tests.insert(name);
                 }
             }
+            Msg::RerunTestcases(environment) => {
+                self.test_environment = environment;
+            }
         }
-        Cmd::None
+        self.receive_watcher_notifications()
+    }
+
+    fn filter_window_msg(&self, msg: WindowMsg) -> Option<WindowApplicationMsg<Msg>> {
+        match msg {
+            WindowMsg::HiDPIFactorChanged(layout) => Some(WindowApplicationMsg::Application(
+                Msg::RerunTestcases(TestEnvironment::new(layout.dpi)),
+            )),
+            msg => Some(WindowApplicationMsg::Window(msg)),
+        }
     }
 }
 
@@ -81,12 +100,11 @@ impl App {
                 self.receive_watcher_notifications()
             }
 
-            Notification::WatcherStopped(r) => {
-                match r {
-                    Ok(()) => panic!("watcher stopped"),
-                    Err(e) => self.latest_test_error = Some(e.to_string()),
-                }
-                Cmd::None
+            Notification::WatcherStopped(e) => {
+                // TODO: restart it here?
+                panic!("watcher stopped: {}", e.to_string());
+                // self.latest_test_error = Some(e.to_string());
+                // Cmd::None
             }
         }
     }

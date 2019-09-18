@@ -1,5 +1,7 @@
+use emergent_drawing::FromTestEnvironment;
 use emergent_presentation::{DrawingPresentation, Presentation};
 use serde::{Deserialize, Serialize};
+use std::env;
 
 /// A frame is a sized and layouted drawing, ready to be drawn.
 pub struct Frame<Msg> {
@@ -51,5 +53,15 @@ impl DPI {
 
     pub fn map(&self, f: impl FnOnce(f64) -> f64) -> DPI {
         DPI(f(self.0))
+    }
+}
+
+impl FromTestEnvironment for DPI {
+    fn from_test_environment() -> Self {
+        env::var("EMERGENT_TEST_DPI")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .map(DPI::new)
+            .unwrap_or(DPI::DEFAULT_SCREEN)
     }
 }

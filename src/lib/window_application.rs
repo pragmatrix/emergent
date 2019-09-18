@@ -191,7 +191,7 @@ where
 pub trait WindowModel<Msg: Send> {
     fn update(&mut self, msg: Msg) -> Cmd<Msg>;
 
-    /// Map a `ApplicationWindowMsg` before it is being processed.
+    /// Filter / map a `ApplicationWindowMsg` before it is being processed.
     ///
     /// This can be used to hijack the window input processing logic of the `WindowApplication`.
     ///

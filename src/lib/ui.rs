@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests {
     use crate::skia;
+    use crate::skia::text::PrimitiveText;
     use emergent_drawing::functions::*;
     use emergent_drawing::{
         font, paint, simple_layout, text, Color, Drawing, DrawingFastBounds, DrawingTarget, Font,
-        Point, Rect, Render, Vector, RGB,
+        FromTestEnvironment, Point, Rect, Render, Vector, RGB,
     };
 
     #[test]
@@ -41,7 +42,7 @@ mod tests {
 
     #[test]
     fn text_run_bounds() {
-        let measure = skia::text::PrimitiveText::from_test_environment();
+        let measure = PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text::block(&font, None)

@@ -4,13 +4,29 @@ use cargo::ops;
 use cargo::ops::{FilterRule, LibRule};
 use cargo_metadata::CompilerMessage;
 use emergent::libtest::TestCaptures;
+use emergent::DPI;
+use emergent_drawing::FromTestEnvironment;
 use std::env;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TestRunRequest {
     pub project_directory: PathBuf,
+    pub environment: TestEnvironment,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct TestEnvironment {
+    pub dpi: DPI,
+}
+
+impl FromTestEnvironment for TestEnvironment {
+    fn from_test_environment() -> Self {
+        Self {
+            dpi: DPI::from_test_environment(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -22,9 +38,10 @@ pub enum TestRunResult {
 impl TestRunRequest {
     /// Creates a new TestRunRequest for the library
     /// in the given cargo project directory.
-    pub fn new_lib(project_directory: &Path) -> TestRunRequest {
+    pub fn new_lib(project_directory: &Path, environment: TestEnvironment) -> TestRunRequest {
         TestRunRequest {
             project_directory: project_directory.to_owned(),
+            environment,
         }
     }
 
@@ -50,8 +67,8 @@ impl TestRunRequest {
             // also capture test output.
 
             let shell = cargo::core::Shell::new();
-            let config = cargo::Config::new(shell, current_dir, home_dir);
-
+            let mut config = cargo::Config::new(shell, current_dir, home_dir);
+            env::set_var("EMERGENT_TEST_DPI", "20.0");
             let normalized_path = cargo::util::paths::normalize_path(&manifest_path);
             dbg!(&normalized_path);
             let workspace = &cargo::core::Workspace::new(&normalized_path, &config)?;
@@ -144,13 +161,17 @@ impl TestRunRequest {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::test_runner::{TestRunRequest, TestRunResult};
+    use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
     use emergent::libtest::{TestCapture, TestResult};
+    use emergent::DPI;
     use std::env;
 
     #[test]
     fn run_tests_self() {
-        let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+        let request = TestRunRequest::new_lib(
+            &env::current_dir().unwrap(),
+            TestEnvironment::from_test_environment(),
+        );
         if let TestRunResult::TestsCaptured(_, captures) = request.capture_tests().unwrap() {
             println!("captures:\n{:?}", captures);
 
@@ -176,5 +197,11 @@ pub mod tests {
         } else {
             assert!(false);
         }
+    }
+}
+
+impl TestEnvironment {
+    pub fn new(dpi: DPI) -> Self {
+        TestEnvironment { dpi }
     }
 }

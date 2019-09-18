@@ -2,7 +2,7 @@ use super::convert::ToSkia;
 use crate::{text_as_lines, TextOrigin, DPI};
 use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
-use emergent_drawing::{Bounds, FastBounds, Text, Union};
+use emergent_drawing::{Bounds, FastBounds, FromTestEnvironment, Text, Union};
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
 use std::env;
 
@@ -15,15 +15,13 @@ impl PrimitiveText {
     pub fn new(dpi: DPI) -> PrimitiveText {
         PrimitiveText { dpi }
     }
+}
 
-    pub fn from_test_environment() -> PrimitiveText {
-        Self::new(
-            env::var("EMERGENT_TEST_DPI")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .map(DPI::new)
-                .unwrap_or(DPI::DEFAULT_SCREEN),
-        )
+impl FromTestEnvironment for PrimitiveText {
+    fn from_test_environment() -> PrimitiveText {
+        PrimitiveText {
+            dpi: DPI::from_test_environment(),
+        }
     }
 }
 

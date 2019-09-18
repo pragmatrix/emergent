@@ -49,7 +49,9 @@ mod tests {
     use crate::libtest::{TestCapture, TestResult};
     use crate::skia::text::PrimitiveText;
     use emergent_drawing::functions::rect;
-    use emergent_drawing::{Drawing, DrawingTarget, Paint, Render, Visualize, RGB};
+    use emergent_drawing::{
+        Drawing, DrawingTarget, FromTestEnvironment, Paint, Render, Visualize, RGB,
+    };
     use emergent_presentation::Area;
 
     #[test]
