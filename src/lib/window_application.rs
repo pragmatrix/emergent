@@ -1,16 +1,16 @@
-//! A Window Application is an application that implements handlers for a a standardized
-//! set of messages and implements a number of additional methods to simplify the implementation of
-//! applications that expect input from a window and render output, these are:
+//! A `WindowApplication` is an application that implements handlers and methods for a standardized
+//! set of input messages to simplify applications that expect input from a window and render output,
+//! Reponsibilities are:
 //!
 //! - Hit testing & gesture handling.
 //! - Forwarding of messages the application is interested in.
 //!
-//! A `WindowApplication` is meant to wrap a specific application model implements the `View<Frame>`
+//! A `WindowApplication` is meant to wrap a specific application model implements the `View<Frame<Msg>>`
 //! trait.
 //!
 //! This can be seen as an intermediate layer that translates messages in and frames out from the
 //! core application. If there is a serialization barrier in the application's architecture, it must
-//! be between the window application and the renderer.
+//! be between the renderer and the window application.
 //!
 //! The intended application architecture looks like this:
 //!
@@ -22,7 +22,7 @@
 //!     |   | `Application<Msg>`
 //!     |   |   `Model<Msg>`
 //!
-//! where messages are sent from top to down, and frames / fender commands from bottom to up.
+//! where messages are sent from top to down, and frames / render commands from bottom to up.
 
 use crate::{
     AreaHitTest, DrawingFrame, ElementState, Frame, ModifiersState, MouseButton, PathContainsPoint,
