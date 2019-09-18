@@ -24,7 +24,7 @@ impl Drop for TestWatcher {
     fn drop(&mut self) {
         debug!("shutting down the test watcher...");
         mem::replace(&mut self.shutdown, Box::new(|| ()))();
-        debug!("text watcher down");
+        debug!("test watcher down");
     }
 }
 

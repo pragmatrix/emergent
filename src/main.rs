@@ -84,7 +84,7 @@ fn main() {
     let mailbox = tears::Mailbox::new();
     let app_mailbox = mailbox.clone();
 
-    thread::spawn(move || {
+    let application_thread = thread::spawn(move || {
         let executor = ThreadSpawnExecutor::default();
         let support_builder =
             |dpi: DPI| Support::new(PrimitiveText::new(dpi), PathSupport::default());
@@ -102,7 +102,7 @@ fn main() {
         let drawing_backend = &mut context.new_skia_backend().unwrap();
         let mut future: Box<dyn GpuFuture> = Box::new(sync::now(context.device.clone()));
 
-        loop {
+        while !application.model().close_requested() {
             let frame_layout = render_surface.window().frame_layout();
             let presentation = application.model().render_presentation(&frame_layout);
             let frame = DrawingFrame::new(frame_layout, presentation);
@@ -158,8 +158,10 @@ fn main() {
                 ControlFlow::Continue
             }
             WindowEvent::CloseRequested => {
-                // TODO: forward to the application and provide the application with
-                // an option to end itself.
+                // also forward this to the application, which is expected to shut down in response.
+                let msg = WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
+                mailbox.post(WindowApplicationMsg::Window(msg));
+
                 info!("close requested");
                 ControlFlow::Break
             }
@@ -177,7 +179,8 @@ fn main() {
         }
     });
 
-    info!("events loop out");
+    info!("events loop out, waiting for application to terminate...");
+    application_thread.join().unwrap();
 }
 
 // TODO: add a bench for this!

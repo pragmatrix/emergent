@@ -25,7 +25,7 @@
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
 use crate::{
-    AreaHitTest, ElementState, Frame, FrameLayout, ModifiersState, MouseButton, PathContainsPoint,
+    AreaHitTest, ElementState, FrameLayout, ModifiersState, MouseButton, PathContainsPoint,
     RenderPresentation, WindowMsg, DPI,
 };
 use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
@@ -49,6 +49,9 @@ where
 
     /// System support.
     support: Box<dyn Fn(DPI) -> Support>,
+
+    // TODO: do we need a veto-system? Yes, probably, optionally saving state?
+    close_requested: bool,
 }
 
 /// A message sent to the window application can be either a `WindowMsg` or
@@ -87,14 +90,19 @@ where
             model,
             input: Default::default(),
             support: Box::new(support_builder),
+            close_requested: false,
         }
+    }
+
+    pub fn close_requested(&self) -> bool {
+        self.close_requested
     }
 
     fn update_window(&mut self, msg: WindowMsg) -> Cmd<WindowApplicationMsg<Msg>> {
         match msg {
             WindowMsg::Resized(_) => {}
             WindowMsg::Moved(_) => {}
-            WindowMsg::CloseRequested => {}
+            WindowMsg::CloseRequested => self.close_requested = true,
             WindowMsg::DroppedFile(_) => {}
             WindowMsg::HoveredFile(_) => {}
             WindowMsg::HoveredFileCancelled => {}

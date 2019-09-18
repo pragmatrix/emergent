@@ -16,7 +16,7 @@ use tears::Cmd;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Msg {
     #[serde(skip)]
-    WatcherNotification(test_watcher::Notification),
+    WatcherNotification(Result<test_watcher::Notification, failure::Error>),
     ToggleTestcase {
         name: String,
     },
@@ -57,9 +57,12 @@ impl WindowModel<Msg> for App {
     fn update(&mut self, event: Msg) -> Cmd<Msg> {
         debug!("{:?}", &event);
         match event {
-            Msg::WatcherNotification(wn) => {
-                self.update_watcher(wn);
-            }
+            Msg::WatcherNotification(wn) => match wn {
+                Ok(notification) => return self.update_watcher(notification),
+                Err(e) => {
+                    panic!("watcher notification error: {}", e.to_string());
+                }
+            },
             Msg::ToggleTestcase { name } => {
                 if self.collapsed_tests.contains(&name) {
                     self.collapsed_tests.remove(&name);
@@ -112,7 +115,7 @@ impl App {
     /// Returns a command that receives watcher notifications.
     fn receive_watcher_notifications(&self) -> Cmd<Msg> {
         let receiver = self.notification_receiver.clone();
-        Cmd::from(move || Msg::WatcherNotification(receiver.recv().unwrap()))
+        Cmd::from(move || Msg::WatcherNotification(receiver.recv().map_err(|e| e.into())))
     }
 }
 
