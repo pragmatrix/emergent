@@ -13,7 +13,6 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, PartialEq, Debug)]
 pub struct TestRunRequest {
     pub project_directory: PathBuf,
-    pub environment: TestEnvironment,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -38,14 +37,16 @@ pub enum TestRunResult {
 impl TestRunRequest {
     /// Creates a new TestRunRequest for the library
     /// in the given cargo project directory.
-    pub fn new_lib(project_directory: &Path, environment: TestEnvironment) -> TestRunRequest {
+    pub fn new_lib(project_directory: &Path) -> TestRunRequest {
         TestRunRequest {
             project_directory: project_directory.to_owned(),
-            environment,
         }
     }
 
-    pub fn capture_tests(&self) -> Result<TestRunResult, failure::Error> {
+    pub fn capture_tests(
+        &self,
+        environment: TestEnvironment,
+    ) -> Result<TestRunResult, failure::Error> {
         let manifest_path = self.project_directory.join("Cargo.toml");
 
         // TODO: verify if this is correct (taken from cargo::Config::new()).
@@ -68,7 +69,7 @@ impl TestRunRequest {
 
             let shell = cargo::core::Shell::new();
             let mut config = cargo::Config::new(shell, current_dir, home_dir);
-            env::set_var("EMERGENT_TEST_DPI", "20.0");
+            env::set_var("EMERGENT_TEST_DPI", environment.dpi.0.to_string());
             let normalized_path = cargo::util::paths::normalize_path(&manifest_path);
             dbg!(&normalized_path);
             let workspace = &cargo::core::Workspace::new(&normalized_path, &config)?;
@@ -163,7 +164,7 @@ impl TestRunRequest {
 pub mod tests {
     use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
     use emergent::libtest::{TestCapture, TestResult};
-    use emergent::DPI;
+    use emergent_drawing::FromTestEnvironment;
     use std::env;
 
     #[test]

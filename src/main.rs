@@ -74,9 +74,9 @@ fn main() {
     info!("window placement: {:?}", window_placement);
 
     let frame_layout = window_surface.window().frame_layout();
-    let test_run_request =
-        TestRunRequest::new_lib(&project_path, TestEnvironment::new(frame_layout.dpi));
-    let (emergent, initial_cmd) = App::new(test_run_request);
+    let test_environment = TestEnvironment::new(frame_layout.dpi);
+    let test_run_request = TestRunRequest::new_lib(&project_path);
+    let (emergent, initial_cmd) = App::new(test_run_request, test_environment);
 
     info!("spawning application & renderer loop");
 

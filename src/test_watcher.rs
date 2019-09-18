@@ -1,8 +1,9 @@
-use crate::test_runner::{TestRunRequest, TestRunResult};
+use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use clap::ArgMatches;
 use crossbeam_channel;
 use crossbeam_channel::Sender;
-use std::sync::{atomic, mpsc, Arc};
+use std::path::PathBuf;
+use std::sync::{atomic, mpsc, Arc, Mutex};
 use std::{fs, mem, thread};
 use watchexec::cli::Args;
 use watchexec::pathop;
@@ -17,6 +18,9 @@ pub enum Notification {
 }
 
 pub struct TestWatcher {
+    full_path: PathBuf,
+    environment: Arc<Mutex<TestEnvironment>>,
+    notify: mpsc::Sender<notify::RawEvent>,
     shutdown: Box<dyn FnOnce() + Send>,
 }
 
@@ -27,70 +31,92 @@ impl Drop for TestWatcher {
         debug!("test watcher down");
     }
 }
+impl TestWatcher {
+    /// Begin watching and running tests and send out test captures to the channel given.
+    /// Returns a Sender to re-trigger the testcase.
+    pub fn begin_watching(
+        req: TestRunRequest,
+        environment: TestEnvironment,
+        notifier: Sender<Notification>,
+    ) -> Result<TestWatcher, failure::Error> {
+        // parse arguments:
+        let mut args = cargo_watch::get_options(false, &ArgMatches::default());
+        args.paths.push(req.project_directory.clone());
 
-/// Begin watching and running tests and send out test captures to the channel given.
-/// Returns a Sender to re-trigger the testcase.
-pub fn begin_watching(
-    req: TestRunRequest,
-    notifier: Sender<Notification>,
-) -> Result<TestWatcher, failure::Error> {
-    // parse arguments:
-    let mut args = cargo_watch::get_options(false, &ArgMatches::default());
-    args.paths.push(req.project_directory.clone());
+        let full_path = fs::canonicalize(req.project_directory.clone()).unwrap();
 
-    let full_path = fs::canonicalize(req.project_directory.clone()).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let notify = tx.clone();
+        let shutdown_bool = Arc::new(atomic::AtomicBool::new(false));
+        let environment = Arc::new(Mutex::new(environment));
 
-    let (tx, rx) = mpsc::channel();
-    let tx_shutdown = tx.clone();
-    let shutdown_bool = Arc::new(atomic::AtomicBool::new(false));
-    let shutdown_bool2 = shutdown_bool.clone();
-
-    let thread = thread::spawn(move || {
         let watcher = TestWatcherHandler {
-            _args: args.clone(),
-            request: req.clone(),
-            shutdown: shutdown_bool,
+            request: req,
+            shutdown: shutdown_bool.clone(),
             notifier: notifier.clone(),
+            environment: environment.clone(),
         };
 
-        if let Err(e) = run::watch_with_handler(args, (tx, rx), watcher) {
-            notifier
-                .send(Notification::WatcherStopped(e.into()))
-                // if sending did not work, noone knows that the watcher ended, so panic.
-                .unwrap();
-        }
-    });
+        let thread = thread::spawn(move || {
+            if let Err(e) = run::watch_with_handler(args, (tx, rx), watcher) {
+                notifier
+                    .send(Notification::WatcherStopped(e.into()))
+                    // if sending did not work, noone knows that the watcher ended, so panic.
+                    .unwrap();
+            }
+        });
 
-    let shutdown = move || {
-        // indicate shutdown.
-        shutdown_bool2.store(true, atomic::Ordering::SeqCst);
-        // force an update.
-        tx_shutdown
+        let shutdown = {
+            let full_path = full_path.clone();
+            let notify = notify.clone();
+            move || {
+                // indicate shutdown.
+                shutdown_bool.store(true, atomic::Ordering::SeqCst);
+                // force an update.
+                notify
+                    .send(notify::RawEvent {
+                        path: Some(full_path),
+                        op: Ok(notify::Op::CHMOD),
+                        cookie: None,
+                    })
+                    .expect("failed to shutdown test watcher");
+                // join the thread.
+                thread.join().unwrap()
+            }
+        };
+
+        Ok(TestWatcher {
+            full_path,
+            notify,
+            environment,
+            shutdown: Box::new(shutdown),
+        })
+    }
+
+    pub fn update_environment(&mut self, environment: TestEnvironment) {
+        *self.environment.lock().unwrap() = environment;
+        self.notify
             .send(notify::RawEvent {
-                path: Some(full_path),
+                path: Some(self.full_path.clone()),
                 op: Ok(notify::Op::CHMOD),
                 cookie: None,
             })
-            .expect("failed to shutdown test watcher");
-        // join the thread.
-        thread.join().unwrap()
-    };
-
-    Ok(TestWatcher {
-        shutdown: Box::new(shutdown),
-    })
+            .expect("failed to notify the test watcher");
+    }
 }
 
+#[derive(Clone, Debug)]
 struct TestWatcherHandler {
-    _args: Args,
     request: TestRunRequest,
     shutdown: Arc<atomic::AtomicBool>,
     notifier: Sender<Notification>,
+    environment: Arc<Mutex<TestEnvironment>>,
 }
 
 impl TestWatcherHandler {
     fn capture_tests(&self) {
-        let result = self.request.capture_tests();
+        let environment = self.environment.lock().unwrap().clone();
+        let result = self.request.capture_tests(environment);
         self.notifier
             .send(Notification::TestRunCompleted(result))
             .unwrap();

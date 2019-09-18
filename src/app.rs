@@ -4,9 +4,7 @@ use crate::test_watcher::{Notification, TestWatcher};
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::PrimitiveText;
-use emergent::{
-    FrameLayout, RenderPresentation, WindowApplicationMsg, WindowModel, WindowMsg, DPI,
-};
+use emergent::{FrameLayout, RenderPresentation, WindowApplicationMsg, WindowModel, WindowMsg};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_presentation::{Gesture, Present, Presentation};
 use serde::{Deserialize, Serialize};
@@ -27,21 +25,20 @@ pub enum Msg {
 pub struct App {
     watcher: TestWatcher,
     notification_receiver: Receiver<test_watcher::Notification>,
-    test_environment: TestEnvironment,
     test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
     collapsed_tests: HashSet<String>,
 }
 
 impl App {
-    pub fn new(req: TestRunRequest) -> (Self, Cmd<Msg>) {
+    pub fn new(req: TestRunRequest, test_environment: TestEnvironment) -> (Self, Cmd<Msg>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
-        let watcher = test_watcher::begin_watching(req.clone(), sender).unwrap();
+        let watcher =
+            TestWatcher::begin_watching(req.clone(), test_environment.clone(), sender).unwrap();
 
         let emergent = App {
             watcher,
             notification_receiver: receiver.clone(),
-            test_environment: req.environment,
             test_run_result: None,
             latest_test_error: None,
             // TODO: this is part of the persistent state.
@@ -71,7 +68,7 @@ impl WindowModel<Msg> for App {
                 }
             }
             Msg::RerunTestcases(environment) => {
-                self.test_environment = environment;
+                self.watcher.update_environment(environment);
             }
         }
         self.receive_watcher_notifications()
