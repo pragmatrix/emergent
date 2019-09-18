@@ -32,7 +32,7 @@ impl Path {
             return self;
         }
 
-        let force_move_to = force_move_to || self.verbs.is_empty();
+        let force_move_to = force_move_to || self.is_empty();
 
         if let Some(lone_pt) = arc_is_lone_point(oval, start_angle, sweep_angle) {
             return if force_move_to {

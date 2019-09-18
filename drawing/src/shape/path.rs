@@ -12,7 +12,7 @@ use std::iter;
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Path {
     fill_type: FillType,
-    pub(crate) verbs: Vec<Verb>,
+    verbs: Vec<Verb>,
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
