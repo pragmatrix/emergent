@@ -1,6 +1,6 @@
 //! A `WindowApplication` is an application that implements handlers and methods for a standardized
 //! set of input messages to simplify applications that expect input from a window and render output,
-//! Reponsibilities are:
+//! Responsibilities are:
 //!
 //! - Hit testing & gesture handling.
 //! - Forwarding of messages the application is interested in.
@@ -25,29 +25,30 @@
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
 use crate::{
-    AreaHitTest, DrawingFrame, ElementState, Frame, ModifiersState, MouseButton, PathContainsPoint,
-    WindowMsg,
+    AreaHitTest, ElementState, Frame, FrameLayout, ModifiersState, MouseButton, PathContainsPoint,
+    RenderPresentation, WindowMsg, DPI,
 };
 use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
-use emergent_presentation::{Area, Gesture};
+use emergent_presentation::{Area, DrawingPresentation, Gesture, Presentation};
 use std::cell::RefCell;
 use tears::{Cmd, Model, View};
 
 /// The generic Window Application Model.
-pub struct WindowApplication<'a, Model, Msg>
+pub struct WindowApplication<Model, Msg>
 where
     Model: WindowModel<Msg>,
     Msg: Send + 'static,
 {
     /// The actual model of the application.
     model: Model,
-    /// A copy of the most recent frame, if available.
-    recent_frame: RefCell<Option<Frame<Msg>>>,
+    /// A copy of the most recent presentation, if available.
+    recent_presentation: RefCell<Option<(DPI, Presentation<Msg>)>>,
 
     /// State related to input.
     input: InputState,
+
     /// System support.
-    support: Support<'a>,
+    support: Box<dyn Fn(DPI) -> Support>,
 }
 
 /// A message sent to the window application can be either a `WindowMsg` or
@@ -57,7 +58,7 @@ pub enum WindowApplicationMsg<Msg> {
     Application(Msg),
 }
 
-impl<M, Msg> Model<WindowApplicationMsg<Msg>> for WindowApplication<'_, M, Msg>
+impl<M, Msg> Model<WindowApplicationMsg<Msg>> for WindowApplication<M, Msg>
 where
     M: WindowModel<Msg>,
     Msg: Send + 'static,
@@ -75,17 +76,17 @@ where
     }
 }
 
-impl<'support, M, Msg> WindowApplication<'support, M, Msg>
+impl<M, Msg> WindowApplication<M, Msg>
 where
     M: WindowModel<Msg>,
     Msg: Send + 'static,
 {
-    pub fn new(model: M, support: Support<'support>) -> Self {
+    pub fn new(model: M, support_builder: impl Fn(DPI) -> Support + 'static) -> Self {
         WindowApplication {
-            recent_frame: RefCell::new(None),
+            recent_presentation: Default::default(),
             model,
             input: Default::default(),
-            support,
+            support: Box::new(support_builder),
         }
     }
 
@@ -116,11 +117,14 @@ where
                 modifiers,
             } => {
                 if let Some(msg) = {
-                    let frame = &*self.recent_frame.borrow();
-                    if let (Some(frame), Some(position)) = (frame, self.input.cursor) {
-                        frame
-                            .presentation
-                            .area_hit_test(position, &self.support)
+                    let presentation = &*self.recent_presentation.borrow();
+                    if let (Some((dpi, presentation)), Some(position)) =
+                        (presentation, self.input.cursor)
+                    {
+                        // TODO: cache support records.
+                        let support = (self.support)(*dpi);
+                        presentation
+                            .area_hit_test(position, &support)
                             .first()
                             .and_then(|hit| Self::area_mouse_input(*hit, state, button, modifiers))
                     } else {
@@ -165,19 +169,20 @@ where
             .map(WindowApplicationMsg::Application)
     }
 
-    pub fn render(&self) -> DrawingFrame
+    pub fn render_presentation(&self, frame_layout: &FrameLayout) -> DrawingPresentation
     where
-        M: View<Frame<Msg>>,
+        M: RenderPresentation<Msg>,
     {
-        let frame: Frame<Msg> = self.model.render();
+        let presentation: Presentation<Msg> = self.model.render_presentation(frame_layout);
         // TODO: this is horrible, here the full frame is being cloned into the drawing frame.
         // Ideas:
         // - Wait until we support incremental presentation
         //   updates and see what other ideas come up.
         // - Don't clone nested drawings (use Rc?)
-        let drawing_frame = DrawingFrame::new(&frame);
-        self.recent_frame.replace(Some(frame));
-        drawing_frame
+        let drawing_presentation = DrawingPresentation::new(&presentation);
+        self.recent_presentation
+            .replace(Some((frame_layout.dpi, presentation)));
+        drawing_presentation
     }
 }
 
@@ -218,30 +223,30 @@ struct InputState {
     modifiers: ModifiersState,
 }
 
-pub struct Support<'a> {
-    measure: &'a dyn MeasureText,
-    path_contains_point: &'a dyn PathContainsPoint,
+pub struct Support {
+    measure: Box<dyn MeasureText>,
+    path_contains_point: Box<dyn PathContainsPoint>,
 }
 
-impl<'a> Support<'a> {
+impl Support {
     pub fn new(
-        measure: &'a dyn MeasureText,
-        path_contains_point: &'a dyn PathContainsPoint,
+        measure: impl MeasureText + 'static,
+        path_contains_point: impl PathContainsPoint + 'static,
     ) -> Self {
         Self {
-            measure,
-            path_contains_point,
+            measure: Box::new(measure),
+            path_contains_point: Box::new(path_contains_point),
         }
     }
 }
 
-impl MeasureText for Support<'_> {
+impl MeasureText for Support {
     fn measure_text(&self, text: &Text) -> Bounds {
         self.measure.measure_text(text)
     }
 }
 
-impl PathContainsPoint for Support<'_> {
+impl PathContainsPoint for Support {
     fn path_contains_point(&self, path: &Path, p: Point) -> bool {
         self.path_contains_point.path_contains_point(path, p)
     }

@@ -2,7 +2,11 @@ use crate::app::App;
 use crate::test_runner::TestRunRequest;
 use clap::Arg;
 use emergent::skia::convert::ToSkia;
-use emergent::{skia, Window, WindowApplication, WindowApplicationMsg, WindowMsg, DPI};
+use emergent::skia::path_support::PathSupport;
+use emergent::skia::text::PrimitiveText;
+use emergent::{
+    skia, DrawingFrame, Support, Window, WindowApplication, WindowApplicationMsg, WindowMsg, DPI,
+};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use skia_safe::{icu, Typeface};
@@ -70,8 +74,8 @@ fn main() {
     info!("window placement: {:?}", window_placement);
 
     let test_run_request = TestRunRequest::new_lib(&project_path);
-    let window_size = window_surface.window().frame_layout();
-    let (emergent, initial_cmd) = App::new(window_size, test_run_request);
+    let frame_layout = window_surface.window().frame_layout();
+    let (emergent, initial_cmd) = App::new(test_run_request);
 
     info!("spawning application & renderer loop");
 
@@ -81,11 +85,11 @@ fn main() {
 
     thread::spawn(move || {
         let executor = ThreadSpawnExecutor::default();
-        // TODO: adjust DPI
-        let skia_support = skia::Support::new(DPI::new(96.0));
+        let support_builder =
+            |dpi: DPI| Support::new(PrimitiveText::new(dpi), PathSupport::default());
         let mut application = Application::new(
             app_mailbox,
-            WindowApplication::new(emergent, skia_support.application()),
+            WindowApplication::new(emergent, support_builder),
             executor,
         );
         application.schedule(initial_cmd.map(WindowApplicationMsg::Application));
@@ -98,7 +102,9 @@ fn main() {
         let mut future: Box<dyn GpuFuture> = Box::new(sync::now(context.device.clone()));
 
         loop {
-            let frame = application.model().render();
+            let frame_layout = render_surface.window().frame_layout();
+            let presentation = application.model().render_presentation(&frame_layout);
+            let frame = DrawingFrame::new(frame_layout, presentation);
 
             // even if we drop the frame, we want to recreate the swapchain so that we are
             // prepared for the next (or don't we?).

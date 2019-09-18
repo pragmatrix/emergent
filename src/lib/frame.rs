@@ -14,10 +14,10 @@ pub struct DrawingFrame {
 }
 
 impl DrawingFrame {
-    pub fn new<Msg>(frame: &Frame<Msg>) -> DrawingFrame {
+    pub fn new(layout: FrameLayout, presentation: DrawingPresentation) -> DrawingFrame {
         DrawingFrame {
-            layout: frame.layout,
-            presentation: DrawingPresentation::new(&frame.presentation),
+            layout,
+            presentation,
         }
     }
 }

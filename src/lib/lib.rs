@@ -33,6 +33,7 @@ mod window_msg;
 pub use window_msg::*;
 
 mod winit_window;
+use emergent_presentation::Presentation;
 pub use winit_window::*;
 
 #[test]
@@ -82,4 +83,9 @@ impl ThreadJoiner {
     pub fn from_join_handle(handle: JoinHandle<()>) -> Self {
         ThreadJoiner(Some(handle))
     }
+}
+
+/// A trait for supporting a render function that renders a presentation with the given layout.
+pub trait RenderPresentation<Msg> {
+    fn render_presentation(&self, layout: &FrameLayout) -> Presentation<Msg>;
 }
