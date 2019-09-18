@@ -4,21 +4,26 @@ use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, Text, Union};
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
+use std::env;
 
 // Primitive text measurement and text rendering.
 pub struct PrimitiveText {
     dpi: DPI,
 }
 
-impl Default for PrimitiveText {
-    fn default() -> Self {
-        Self::new(DPI::DEFAULT_SCREEN)
-    }
-}
-
 impl PrimitiveText {
     pub fn new(dpi: DPI) -> PrimitiveText {
         PrimitiveText { dpi }
+    }
+
+    pub fn from_test_environment() -> PrimitiveText {
+        Self::new(
+            env::var("EMERGENT_TEST_DPI")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .map(DPI::new)
+                .unwrap_or(DPI::DEFAULT_SCREEN),
+        )
     }
 }
 

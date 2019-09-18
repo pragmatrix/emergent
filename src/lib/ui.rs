@@ -21,7 +21,7 @@ mod tests {
 
     #[test]
     fn text_multiline_block_bounds() {
-        let measure = skia::text::PrimitiveText::default();
+        let measure = skia::text::PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text::block(&font, None)
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn text_run_bounds() {
-        let measure = skia::text::PrimitiveText::default();
+        let measure = skia::text::PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text::block(&font, None)
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn text_bounds_positioned() {
-        let measure = skia::text::PrimitiveText::default();
+        let measure = skia::text::PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text(
@@ -86,7 +86,7 @@ mod tests {
     }
 
     fn stack_vec(v: Vector) {
-        let measure = skia::text::PrimitiveText::default();
+        let measure = skia::text::PrimitiveText::from_test_environment();
         let stroke_paint_green = paint().style(paint::Style::Stroke).color(0xff00ff00);
 
         let d1 = bounds_around_text("Bounds around Text");
@@ -100,7 +100,7 @@ mod tests {
     }
 
     fn bounds_around_text(txt: &str) -> Drawing {
-        let measure = skia::text::PrimitiveText::default();
+        let measure = skia::text::PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text(txt, &font, None);

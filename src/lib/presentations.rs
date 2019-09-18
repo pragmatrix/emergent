@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn capture_presentations() {
-        let measure = PrimitiveText::default();
+        let measure = PrimitiveText::from_test_environment();
 
         let output = {
             let mut drawing = Drawing::new();
