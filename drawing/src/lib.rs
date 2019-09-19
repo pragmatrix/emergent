@@ -109,7 +109,7 @@ mod tests {
     }
 }
 
-/// A trait for support to pull configuration data from the test environment.
+/// A trait that pulls configuration data from the test environment.
 /// TODO: hide behind cfg(test) but consider IDE support.
 pub trait FromTestEnvironment {
     fn from_test_environment() -> Self;

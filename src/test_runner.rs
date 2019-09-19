@@ -10,7 +10,7 @@ use std::env;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRunRequest {
     pub project_directory: PathBuf,
 }
@@ -169,11 +169,11 @@ pub mod tests {
 
     #[test]
     fn run_tests_self() {
-        let request = TestRunRequest::new_lib(
-            &env::current_dir().unwrap(),
-            TestEnvironment::from_test_environment(),
-        );
-        if let TestRunResult::TestsCaptured(_, captures) = request.capture_tests().unwrap() {
+        let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
+        if let TestRunResult::TestsCaptured(_, captures) = request
+            .capture_tests(TestEnvironment::from_test_environment())
+            .unwrap()
+        {
             println!("captures:\n{:?}", captures);
 
             let captures = captures.0;

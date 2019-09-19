@@ -22,7 +22,7 @@ mod tests {
 
     #[test]
     fn text_multiline_block_bounds() {
-        let measure = skia::text::PrimitiveText::from_test_environment();
+        let measure = PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text::block(&font, None)
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn text_bounds_positioned() {
-        let measure = skia::text::PrimitiveText::from_test_environment();
+        let measure = PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text(
@@ -101,7 +101,7 @@ mod tests {
     }
 
     fn bounds_around_text(txt: &str) -> Drawing {
-        let measure = skia::text::PrimitiveText::from_test_environment();
+        let measure = PrimitiveText::from_test_environment();
         let mut drawing = Drawing::new();
         let font = Font::new("", font::Style::default(), font::Size::new(14.0));
         let text = text(txt, &font, None);

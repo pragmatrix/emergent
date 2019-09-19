@@ -32,8 +32,7 @@ impl Drop for TestWatcher {
     }
 }
 impl TestWatcher {
-    /// Begin watching and running tests and send out test captures to the channel given.
-    /// Returns a Sender to re-trigger the testcase.
+    /// Begin watching and running tests and send out test captures to the `notifier`.
     pub fn begin_watching(
         req: TestRunRequest,
         environment: TestEnvironment,
@@ -105,7 +104,6 @@ impl TestWatcher {
     }
 }
 
-#[derive(Clone, Debug)]
 struct TestWatcherHandler {
     request: TestRunRequest,
     shutdown: Arc<atomic::AtomicBool>,
