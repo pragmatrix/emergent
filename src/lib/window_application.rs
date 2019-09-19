@@ -31,7 +31,8 @@ use crate::{
 use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
 use emergent_presentation::{Area, DrawingPresentation, Gesture, Presentation};
 use std::cell::RefCell;
-use tears::{Cmd, Model, View};
+use std::mem;
+use tears::{Cmd, Model};
 
 /// The generic Window Application Model.
 pub struct WindowApplication<Model, Msg>
@@ -125,16 +126,19 @@ where
                 modifiers,
             } => {
                 if let Some(msg) = {
-                    let presentation = &*self.recent_presentation.borrow();
+                    let presentation = &mut *self.recent_presentation.borrow_mut();
                     if let (Some((dpi, presentation)), Some(position)) =
                         (presentation, self.input.cursor)
                     {
                         // TODO: cache support records.
                         let support = (self.support)(*dpi);
-                        presentation
-                            .area_hit_test(position, &support)
-                            .first()
-                            .and_then(|hit| Self::area_mouse_input(*hit, state, button, modifiers))
+                        let mut hits = presentation.area_hit_test(position, &support);
+                        if !hits.is_empty() {
+                            let hit = hits.swap_remove(0);
+                            Self::area_mouse_input(hit, state, button, modifiers)
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
@@ -152,7 +156,7 @@ where
     }
 
     fn area_mouse_input(
-        (area, point): (&Area<Msg>, Point),
+        (area, point): (&mut Area<Msg>, Point),
         state: ElementState,
         button: MouseButton,
         _modifiers: ModifiersState,
@@ -165,7 +169,8 @@ where
             Area::Gesture(Gesture::Tap(f))
                 if state == ElementState::Pressed && button == MouseButton::Left =>
             {
-                Some((*f)(point))
+                let f = mem::replace(f, Box::new(|_| panic!("event handler already invoked")));
+                Some(f(point))
             }
             _ => None,
         }

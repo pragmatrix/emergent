@@ -6,11 +6,11 @@ use emergent_drawing::Point;
 /// A gesture.
 pub enum Gesture<Msg> {
     /// A single tap, either a touch or a mouse button click.
-    Tap(Box<dyn Fn(Point) -> Msg>),
+    Tap(Box<dyn FnOnce(Point) -> Msg>),
 }
 
 impl<Msg> Gesture<Msg> {
-    pub fn tap(f: impl Fn(Point) -> Msg + 'static) -> Self {
+    pub fn tap(f: impl FnOnce(Point) -> Msg + 'static) -> Self {
         Gesture::Tap(Box::new(f))
     }
 }

@@ -12,31 +12,32 @@ pub trait HitTest {
 }
 
 pub trait AreaHitTest<Msg> {
-    /// Hit tests at the given point and returns a vector of areas from back to front being the
+    /// Hit tests at `p` and returns a vector of mutable areas from back to front being the
     /// last record to describe the frontmost positive test.
+    ///
     /// Returns a tuple Area & Point, where Point describes the hit point relative to the
     /// coordinate system the area was placed.
-    // TODO: don't require Path hit testing to be injected.
-    // TODO: return named scopes?
+    ///
+    /// The area is returned mutable, so that FnOnce functions can be called.
     fn area_hit_test(
-        &self,
+        &mut self,
         p: Point,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&Area<Msg>, Point)>;
+    ) -> Vec<(&mut Area<Msg>, Point)>;
 }
 
 impl<Msg> AreaHitTest<Msg> for Presentation<Msg> {
     fn area_hit_test(
-        &self,
+        &mut self,
         p: Point,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&Area<Msg>, Point)> {
+    ) -> Vec<(&mut Area<Msg>, Point)> {
         match self {
             Presentation::Empty => Vec::new(),
             Presentation::Scoped(_, nested) => nested.area_hit_test(p, support),
             Presentation::Area(area, outset, presentation) => {
-                let mut nested = presentation.area_hit_test(p, support);
                 let nested_bounds_plus_outset = presentation.fast_bounds(support).outset(outset);
+                let mut nested = presentation.area_hit_test(p, support);
                 if nested_bounds_plus_outset.contains(p) {
                     nested.push((area, p))
                 }
@@ -62,10 +63,8 @@ impl<Msg> AreaHitTest<Msg> for Presentation<Msg> {
                 presentation.area_hit_test(p, support)
             }
             Presentation::BackToFront(presentations) => {
-                // this is particularly inefficient generating these vectors in the first place.
-                // probably we need to pass some array nested hit tests can add to.
                 presentations
-                    .iter()
+                    .iter_mut()
                     .fold(Vec::new(), |mut c, presentation| {
                         c.extend(presentation.area_hit_test(p, support));
                         c
