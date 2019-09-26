@@ -1,4 +1,5 @@
-use emergent::{DrawingFrame, Window};
+use emergent::DrawingFrame;
+use emergent_ui::Window;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::DynamicState;

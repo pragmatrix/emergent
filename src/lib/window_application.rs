@@ -24,12 +24,10 @@
 //!
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
-use crate::{
-    AreaHitTest, ElementState, FrameLayout, ModifiersState, MouseButton, PathContainsPoint,
-    RenderPresentation, WindowMsg, DPI,
-};
+use crate::{AreaHitTest, PathContainsPoint, RenderPresentation};
 use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
 use emergent_presentation::{Area, DrawingPresentation, Gesture, Presentation};
+use emergent_ui::{ElementState, FrameLayout, ModifiersState, MouseButton, WindowMsg, DPI};
 use std::cell::RefCell;
 use std::mem;
 use tears::{Cmd, Model};

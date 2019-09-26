@@ -4,11 +4,10 @@ use clap::Arg;
 use emergent::skia::convert::ToSkia;
 use emergent::skia::path_support::PathSupport;
 use emergent::skia::text::PrimitiveText;
-use emergent::{
-    skia, DrawingFrame, Support, Window, WindowApplication, WindowApplicationMsg, WindowMsg, DPI,
-};
+use emergent::{skia, DrawingFrame, Support, WindowApplication, WindowApplicationMsg};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
+use emergent_ui::{Window, WindowMsg, DPI};
 use skia_safe::{icu, Typeface};
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor};

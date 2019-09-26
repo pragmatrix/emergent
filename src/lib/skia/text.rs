@@ -1,10 +1,10 @@
 use super::convert::ToSkia;
-use crate::{text_as_lines, TextOrigin, DPI};
+use crate::{text_as_lines, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, FromTestEnvironment, Text, Union};
+use emergent_ui::DPI;
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
-use std::env;
 
 // Primitive text measurement and text rendering.
 pub struct PrimitiveText {
