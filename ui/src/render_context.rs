@@ -10,7 +10,8 @@ pub struct RenderContext<Msg>
 where
     Msg: 'static,
 {
-    nested: HashMap<ScopeFragment, Node<Msg>>,
+    previous: HashMap<ScopeFragment, Node<Msg>>,
+    current: HashMap<ScopeFragment, Node<Msg>>,
     current_index: usize,
 }
 
@@ -20,26 +21,27 @@ impl<Msg> RenderContext<Msg> {
     where
         C: ViewComponent<Msg>,
     {
-        let node = self.reconcile_nested(self.current_index.into(), component);
+        let scope: ScopeFragment = self.current_index.into();
+        self.current_index += 1;
+        let node = self.reconcile_nested(scope, component);
         ComponentContext::new(node)
     }
 
-    /// Reconciles a nested component with the given scope and returns its node.
+    /// Reconciles a nested component with the given scope and returns a reference to the updated node.
     fn reconcile_nested<C>(&mut self, scope: ScopeFragment, new: C) -> &mut Node<Msg>
     where
         C: ViewComponent<Msg>,
     {
-        match self.nested.entry(scope) {
-            Entry::Occupied(mut e) => {
-                match e.get_mut().component.as_any_mut().downcast_mut::<C>() {
+        let node = match self.previous.remove(&scope) {
+            Some(mut node) => {
+                match node.component.as_any_mut().downcast_mut::<C>() {
                     Some(existing) => {
-                        // same type, reconcile.
+                        // same type, reconcile
                         existing.reconcile(new);
-                        e.into_mut()
+                        node
                     }
                     None => {
                         // type is different, overwrite the component and clear the nested ones.
-                        let node = e.into_mut();
                         node.component = Box::new(new);
                         node.nested.clear();
                         // TODO: can we avoid that additional downcast, after all we had
@@ -48,33 +50,42 @@ impl<Msg> RenderContext<Msg> {
                     }
                 }
             }
-            Entry::Vacant(e) => e.insert(Node::new(new)),
+            None => Node::new(new),
+        };
+
+        // assuming that this is more performant than to insert and look up the entry again.
+        if let Entry::Vacant(e) = self.current.entry(scope) {
+            e.insert(node)
+        } else {
+            panic!("internal error")
         }
     }
 
-    pub fn resolve<C>(&mut self, f: impl FnOnce() -> C) -> &mut Node<Msg>
-    where
-        C: ViewComponent<Msg>,
-    {
-        match self.nested.entry(self.current_index.into()) {
-            Entry::Occupied(mut e) => {
-                match e.get_mut().component.as_any_mut().downcast_mut::<C>() {
-                    Some(r) => e.into_mut(),
-                    None => {
-                        // type is different, overwrite the component and clear the nested ones.
-                        let node = e.into_mut();
-                        node.component = Box::new(f());
-                        node.nested.clear();
-                        // TODO: can we avoid that additional downcast, after all we had
-                        //       the concrete type before boxing.
-                        node
+    /*
+        pub fn resolve<C>(&mut self, f: impl FnOnce() -> C) -> &mut Node<Msg>
+        where
+            C: ViewComponent<Msg>,
+        {
+            match self.nested.entry(self.current_index.into()) {
+                Entry::Occupied(mut e) => {
+                    match e.get_mut().component.as_any_mut().downcast_mut::<C>() {
+                        Some(r) => e.into_mut(),
+                        None => {
+                            // type is different, overwrite the component and clear the nested ones.
+                            let node = e.into_mut();
+                            node.component = Box::new(f());
+                            node.nested.clear();
+                            // TODO: can we avoid that additional downcast, after all we had
+                            //       the concrete type before boxing.
+                            node
+                        }
                     }
                 }
+                Entry::Vacant(e) => e.insert(Node::new(f())),
             }
-            Entry::Vacant(e) => e.insert(Node::new(f())),
         }
-    }
 
+    */
     /*
     pub fn try_resolve<C>(&mut self) -> Option<&mut C>
     where
@@ -113,12 +124,13 @@ impl<'a, Msg> ComponentContext<'a, Msg> {
         // swap out the map and create a new RenderContext.
         let map = mem::replace(&mut self.node.nested, HashMap::new());
         let mut nested_rc = RenderContext {
-            nested: map,
+            previous: map,
+            current: HashMap::new(),
             current_index: 0,
         };
         f(&mut nested_rc);
         // and swap it back in
-        mem::swap(&mut self.node.nested, &mut nested_rc.nested);
+        mem::swap(&mut self.node.nested, &mut nested_rc.current);
     }
 }
 
