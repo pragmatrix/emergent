@@ -1,0 +1,11 @@
+[package]
+name = "emergent-ui"
+version = "0.1.0"
+authors = ["Armin Sander <armin@replicator.org>"]
+edition = "2018"
+
+[dependencies]
+emergent-drawing = { path = "../drawing" }
+emergent-presentation = { path = "../presentation" }
+serde = { version = "1.0.100", features = ["derive"] }
+winit = { version = "0.19.2", features = ["serde"] }
