@@ -55,7 +55,7 @@ impl TestRunRequest {
 
         let (test_result, captured) = {
             /*
-            this code may be used to capture / supporess the error output (for example Fresh lines)
+            this code may be used to capture / suppress the error output (for example Fresh lines)
 
             let mut output = Vec::new();
             let mut output_cursor = Cursor::new(output);
