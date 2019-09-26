@@ -1,5 +1,5 @@
-use crate::{AsAny, ScopeFragment, ViewComponent, WindowMsg};
-use emergent_presentation::Presentation;
+use crate::{AsAny, ViewComponent};
+use emergent_presentation::Scope;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::mem;
@@ -10,8 +10,8 @@ pub struct RenderContext<Msg>
 where
     Msg: 'static,
 {
-    previous: HashMap<ScopeFragment, Node<Msg>>,
-    current: HashMap<ScopeFragment, Node<Msg>>,
+    previous: HashMap<Scope, Node<Msg>>,
+    current: HashMap<Scope, Node<Msg>>,
     current_index: usize,
 }
 
@@ -21,14 +21,14 @@ impl<Msg> RenderContext<Msg> {
     where
         C: ViewComponent<Msg>,
     {
-        let scope: ScopeFragment = self.current_index.into();
+        let scope: Scope = self.current_index.into();
         self.current_index += 1;
         let node = self.reconcile_nested(scope, component);
         ComponentContext::new(node)
     }
 
     /// Reconciles a nested component with the given scope and returns a reference to the updated node.
-    fn reconcile_nested<C>(&mut self, scope: ScopeFragment, new: C) -> &mut Node<Msg>
+    fn reconcile_nested<C>(&mut self, scope: Scope, new: C) -> &mut Node<Msg>
     where
         C: ViewComponent<Msg>,
     {
@@ -139,7 +139,7 @@ where
     Msg: 'static,
 {
     pub component: Box<dyn ViewComponent<Msg>>,
-    pub nested: HashMap<ScopeFragment, Node<Msg>>,
+    pub nested: HashMap<Scope, Node<Msg>>,
 }
 
 impl<Msg> Node<Msg> {

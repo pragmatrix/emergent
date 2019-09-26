@@ -24,12 +24,12 @@
 //!
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
-use crate::{AreaHitTest, PathContainsPoint, RenderPresentation};
+use crate::{PathContainsPoint, RenderPresentation};
 use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
-use emergent_presentation::{Area, DrawingPresentation, Gesture, Presentation};
-use emergent_ui::{ElementState, FrameLayout, ModifiersState, MouseButton, WindowMsg, DPI};
+use emergent_presentation::Presentation;
+use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
 use std::cell::RefCell;
-use std::mem;
+use std::marker::PhantomData;
 use tears::{Cmd, Model};
 
 /// The generic Window Application Model.
@@ -41,7 +41,7 @@ where
     /// The actual model of the application.
     model: Model,
     /// A copy of the most recent presentation, if available.
-    recent_presentation: RefCell<Option<(DPI, Presentation<Msg>)>>,
+    recent_presentation: RefCell<Option<(DPI, Presentation)>>,
 
     /// State related to input.
     input: InputState,
@@ -51,6 +51,8 @@ where
 
     // TODO: do we need a veto-system? Yes, probably, optionally saving state?
     close_requested: bool,
+
+    msg: PhantomData<Msg>,
 }
 
 /// A message sent to the window application can be either a `WindowMsg` or
@@ -90,6 +92,7 @@ where
             input: Default::default(),
             support: Box::new(support_builder),
             close_requested: false,
+            msg: PhantomData,
         }
     }
 
@@ -130,6 +133,7 @@ where
                     {
                         // TODO: cache support records.
                         let support = (self.support)(*dpi);
+                        /*
                         let mut hits = presentation.area_hit_test(position, &support);
                         if !hits.is_empty() {
                             let hit = hits.swap_remove(0);
@@ -137,6 +141,8 @@ where
                         } else {
                             None
                         }
+                        */
+                        None
                     } else {
                         None
                     }
@@ -153,6 +159,7 @@ where
         Cmd::None
     }
 
+    /*
     fn area_mouse_input(
         (area, point): (&mut Area<Msg>, Point),
         state: ElementState,
@@ -173,6 +180,7 @@ where
             _ => None,
         }
     }
+    */
 
     fn update_application(&mut self, msg: Msg) -> Cmd<WindowApplicationMsg<Msg>> {
         self.model
@@ -180,20 +188,19 @@ where
             .map(WindowApplicationMsg::Application)
     }
 
-    pub fn render_presentation(&self, frame_layout: &FrameLayout) -> DrawingPresentation
+    pub fn render_presentation(&self, frame_layout: &FrameLayout) -> Presentation
     where
         M: RenderPresentation<Msg>,
     {
-        let presentation: Presentation<Msg> = self.model.render_presentation(frame_layout);
-        // TODO: this is horrible, here the full frame is being cloned into the drawing frame.
+        let presentation: Presentation = self.model.render_presentation(frame_layout);
+        // TODO: this is horrible, here the full presentation is being cloned.
         // Ideas:
         // - Wait until we support incremental presentation
         //   updates and see what other ideas come up.
         // - Don't clone nested drawings (use Rc?)
-        let drawing_presentation = DrawingPresentation::new(&presentation);
         self.recent_presentation
-            .replace(Some((frame_layout.dpi, presentation)));
-        drawing_presentation
+            .replace(Some((frame_layout.dpi, presentation.clone())));
+        presentation
     }
 }
 

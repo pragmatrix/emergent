@@ -1,4 +1,4 @@
-use crate::{Gesture, Scoped};
+use crate::{Scope, Scoped};
 use emergent_drawing::{
     BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
     MeasureText, Outset, Paint, Transform, Transformed, Visualize, RGB,
@@ -6,65 +6,40 @@ use emergent_drawing::{
 
 /// A presentation is a composable hierarchy that enhances drawings with
 /// sensor areas.
-pub enum Presentation<Msg> {
+#[derive(Clone, Debug)]
+pub enum Presentation {
     Empty,
     /// Defines a presentation scope.
     /// This qualifies all nested names with the scope's name.
-    Scoped(String, Box<Presentation<Msg>>),
+    Scoped(Scope, Box<Presentation>),
     /// Defines a named area around the (fast) bounds of a presentation, including an Outset.
-    Area(Area<Msg>, Outset, Box<Presentation<Msg>>),
+    Area(Outset, Box<Presentation>),
     /// Defines a named area by providing a Clip at the current drawing position.
-    InlineArea(Area<Msg>, Clip),
+    InlineArea(Clip),
     /// A clipped presentation (TODO: is that needed, and what exactly is clipped?)
-    Clipped(Clip, Box<Presentation<Msg>>),
+    Clipped(Clip, Box<Presentation>),
     /// A transformed presentation.
-    Transformed(Transform, Box<Presentation<Msg>>),
+    Transformed(Transform, Box<Presentation>),
     /// Multiple presentations, from back to front.
-    BackToFront(Vec<Presentation<Msg>>),
+    BackToFront(Vec<Presentation>),
     /// A simple drawing that acts as a presentation.
     Drawing(Drawing),
 }
 
-pub enum Area<Msg> {
-    Named(String),
-    Gesture(Gesture<Msg>),
-}
-
-impl<Msg> From<String> for Area<Msg> {
-    fn from(name: String) -> Self {
-        Area::Named(name)
+impl Scoped for Presentation {
+    fn scoped(self, scope: Scope) -> Self {
+        Self::Scoped(scope, self.into())
     }
 }
 
-impl<Msg> From<Gesture<Msg>> for Area<Msg> {
-    fn from(gesture: Gesture<Msg>) -> Self {
-        Area::Gesture(gesture)
-    }
-}
-
-impl<Msg> Area<Msg> {
-    pub fn name(&self) -> Option<&String> {
-        match self {
-            Area::Named(name) => Some(&name),
-            Area::Gesture(_) => None,
-        }
-    }
-}
-
-impl<Msg> Scoped for Presentation<Msg> {
-    fn scoped(self, id: String) -> Self {
-        Self::Scoped(id, self.into())
-    }
-}
-
-impl<Msg> Clipped for Presentation<Msg> {
+impl Clipped for Presentation {
     fn clipped(self, clip: impl Into<Clip>) -> Self {
         Self::Clipped(clip.into(), self.into())
     }
 }
 
 // Required to support SimpleLayout
-impl<Msg> Transformed for Presentation<Msg> {
+impl Transformed for Presentation {
     fn transformed(self, transform: Transform) -> Self {
         Self::Transformed(transform, self.into())
     }
@@ -78,14 +53,14 @@ impl<Msg> BackToFront<Presentation<Msg>> for Vec<Presentation<Msg>> {
 }
 */
 
-impl<Msg> DrawingFastBounds for Presentation<Msg> {
+impl DrawingFastBounds for Presentation {
     fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds {
         use Presentation::*;
         match self {
             Empty => DrawingBounds::Empty,
             // note: outset of area is not part of the drawing bounds.
-            Scoped(_, nested) | Area(_, _, nested) => nested.fast_bounds(measure),
-            InlineArea(_, _) => DrawingBounds::Empty,
+            Scoped(_, nested) | Area(_, nested) => nested.fast_bounds(measure),
+            InlineArea(_) => DrawingBounds::Empty,
             Clipped(clip, nested) => nested.fast_bounds(measure).clipped(clip.clone()),
             Transformed(transform, nested) => {
                 nested.fast_bounds(measure).transformed(transform.clone())
@@ -98,13 +73,13 @@ impl<Msg> DrawingFastBounds for Presentation<Msg> {
     }
 }
 
-impl<Msg> DrawTo for Presentation<Msg> {
+impl DrawTo for Presentation {
     fn draw_to(&self, current_paint: Paint, target: &mut impl DrawingTarget) {
         use Presentation::*;
         match self {
             Empty => {}
-            Scoped(_, nested) | Area(_, _, nested) => nested.draw_to(current_paint, target),
-            InlineArea(_, _) => {}
+            Scoped(_, nested) | Area(_, nested) => nested.draw_to(current_paint, target),
+            InlineArea(_) => {}
             Clipped(clip, nested) => target.clip(clip, |dt| nested.draw_to(current_paint, dt)),
             Transformed(transformed, nested) => {
                 target.transform(transformed, |dt| nested.draw_to(current_paint, dt))
@@ -115,35 +90,35 @@ impl<Msg> DrawTo for Presentation<Msg> {
     }
 }
 
-pub trait Present<Msg> {
-    fn present(self) -> Presentation<Msg>;
+pub trait Present {
+    fn present(self) -> Presentation;
 }
 
-impl<Msg> Present<Msg> for Drawing {
-    fn present(self) -> Presentation<Msg> {
+impl Present for Drawing {
+    fn present(self) -> Presentation {
         Presentation::Drawing(self)
     }
 }
 
-impl<Msg> Presentation<Msg> {
-    pub fn new() -> Presentation<Msg> {
+impl Presentation {
+    pub fn new() -> Presentation {
         Self::Empty
     }
 
-    pub fn in_area(self, area: Area<Msg>) -> Self {
-        self.in_area_with_outset(area, Outset::default())
+    pub fn in_area(self, scope: impl Into<Scope>) -> Self {
+        self.in_area_with_outset(scope, Outset::default())
     }
 
-    pub fn in_area_with_outset(self, area: Area<Msg>, outset: impl Into<Outset>) -> Self {
-        Self::Area(area, outset.into(), self.into())
+    pub fn in_area_with_outset(self, scope: impl Into<Scope>, outset: impl Into<Outset>) -> Self {
+        Self::Scoped(scope.into(), Self::Area(outset.into(), self.into()).into())
     }
 
-    pub fn scoped(self, name: impl Into<String>) -> Self {
-        Self::Scoped(name.into(), self.into())
+    pub fn scoped(self, scope: impl Into<Scope>) -> Self {
+        Self::Scoped(scope.into(), self.into())
     }
 }
 
-impl<Msg> Visualize for Presentation<Msg> {
+impl Visualize for Presentation {
     fn visualize(&self, measure: &dyn MeasureText) -> Drawing {
         // TODO: const fn!
         // https://www.colorhexa.com/ccff00
@@ -152,7 +127,7 @@ impl<Msg> Visualize for Presentation<Msg> {
         match self {
             Presentation::Empty => Drawing::Empty,
             Presentation::Scoped(_, nested) => nested.visualize(measure),
-            Presentation::Area(_, outset, nested) => {
+            Presentation::Area(outset, nested) => {
                 // Should we visualize the bounds as an inner rectangle here, too?
                 // Bounds + outset could be visualized like that (ascii art of upper left corner only):
                 // ____
@@ -166,7 +141,7 @@ impl<Msg> Visualize for Presentation<Msg> {
                     .with_paint(Paint::stroke(area_color));
                 [nested, bounds_drawing].to_vec().back_to_front()
             }
-            Presentation::InlineArea(_, clip) => clip
+            Presentation::InlineArea(clip) => clip
                 .visualize(measure)
                 .with_paint(Paint::stroke(area_color)),
             Presentation::Clipped(clip, nested) => [

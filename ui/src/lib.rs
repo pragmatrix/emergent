@@ -1,9 +1,6 @@
 mod frame_layout;
 pub use frame_layout::*;
 
-mod scope;
-pub use scope::*;
-
 mod render_context;
 pub use render_context::*;
 

@@ -80,5 +80,5 @@ impl ThreadJoiner {
 
 /// A function to produce a presentation with the given layout.
 pub trait RenderPresentation<Msg> {
-    fn render_presentation(&self, layout: &FrameLayout) -> Presentation<Msg>;
+    fn render_presentation(&self, layout: &FrameLayout) -> Presentation;
 }

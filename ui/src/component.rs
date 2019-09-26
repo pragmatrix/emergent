@@ -23,7 +23,7 @@ where
     }
 
     /// Render a presentation.
-    fn render(&self) -> Presentation<Msg>;
+    fn render(&self) -> Presentation;
 }
 
 pub trait AsAny {

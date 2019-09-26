@@ -1,7 +1,7 @@
 //! Single point presentation hit testing.
 
-use emergent_drawing::{Clip, Contains, DrawingFastBounds, MeasureText, Path, Point};
-use emergent_presentation::{Area, Presentation};
+use emergent_drawing::{Clip, Contains, MeasureText, Path, Point};
+use emergent_presentation::Scope;
 
 pub trait PathContainsPoint {
     fn path_contains_point(&self, path: &Path, p: Point) -> bool;
@@ -11,6 +11,7 @@ pub trait HitTest {
     fn hit_test(&self, p: Point, path_tester: &dyn PathContainsPoint) -> bool;
 }
 
+/*
 pub trait AreaHitTest<Msg> {
     /// Hit tests at `p` and returns a vector of mutable areas from back to front being the
     /// last record to describe the frontmost positive test.
@@ -25,13 +26,15 @@ pub trait AreaHitTest<Msg> {
         support: &(impl PathContainsPoint + MeasureText),
     ) -> Vec<(&mut Area<Msg>, Point)>;
 }
+*/
 
-impl<Msg> AreaHitTest<Msg> for Presentation<Msg> {
+/*
+impl AreaHitTest for Presentation {
     fn area_hit_test(
         &mut self,
         p: Point,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&mut Area<Msg>, Point)> {
+    ) -> Vec<(&mut Scope, Point)> {
         match self {
             Presentation::Empty => Vec::new(),
             Presentation::Scoped(_, nested) => nested.area_hit_test(p, support),
@@ -74,6 +77,8 @@ impl<Msg> AreaHitTest<Msg> for Presentation<Msg> {
         }
     }
 }
+
+*/
 
 impl HitTest for Clip {
     fn hit_test(&self, p: Point, support: &dyn PathContainsPoint) -> bool {
