@@ -150,15 +150,3 @@ impl<Msg> Node<Msg> {
         }
     }
 }
-
-struct EmptyComp;
-
-impl<Msg: 'static> ViewComponent<Msg> for EmptyComp {
-    fn update(&mut self, msg: WindowMsg) {
-        unimplemented!()
-    }
-
-    fn render(&self) -> Presentation<Msg> {
-        unimplemented!()
-    }
-}
