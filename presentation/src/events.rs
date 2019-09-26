@@ -3,18 +3,6 @@ use emergent_drawing::Point;
 // use once_cell::sync::OnceCell;
 // use serde::{Deserialize, Serialize};
 
-/// A gesture.
-pub enum Gesture<Msg> {
-    /// A single tap, either a touch or a mouse button click.
-    Tap(Box<dyn FnOnce(Point) -> Msg>),
-}
-
-impl<Msg> Gesture<Msg> {
-    pub fn tap(f: impl FnOnce(Point) -> Msg + 'static) -> Self {
-        Gesture::Tap(Box::new(f))
-    }
-}
-
 /*
 /// A serialized event with placeholders for Point x / y coordinates.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]

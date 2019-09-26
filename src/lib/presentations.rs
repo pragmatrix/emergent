@@ -3,17 +3,17 @@
 use crate::libtest::TestCapture;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_drawing::{font, BackToFront, Drawing, DrawingTarget, Font, MeasureText};
-use emergent_presentation::{Area, Present, Presentation};
+use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
+use emergent_presentation::{Present, Presentation, Scope};
 
 impl TestCapture {
-    pub fn present<Msg>(
+    pub fn present(
         &self,
-        header_area: Area<Msg>,
+        scope: Scope,
         show_contents: bool,
         measure: &dyn MeasureText,
-    ) -> Presentation<Msg> {
-        let header = self.present_header(header_area);
+    ) -> Presentation {
+        let header = self.present_header(scope);
         if !show_contents {
             return header;
         }
@@ -25,12 +25,12 @@ impl TestCapture {
         ))
     }
 
-    fn present_header<Msg>(&self, area: Area<Msg>) -> Presentation<Msg> {
+    fn present_header(&self, scope: Scope) -> Presentation {
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
         let text = text(&self.name, header_font, None);
         drawing.draw_shape(&text.into(), paint());
-        drawing.present().in_area(area)
+        drawing.present().in_area(scope)
     }
 
     fn draw_output(&self) -> Drawing {
@@ -52,7 +52,6 @@ mod tests {
     use emergent_drawing::{
         Drawing, DrawingTarget, FromTestEnvironment, Paint, Render, Visualize, RGB,
     };
-    use emergent_presentation::Area;
 
     #[test]
     fn capture_presentations() {
@@ -71,7 +70,7 @@ mod tests {
         };
 
         capture
-            .present(Area::<()>::Named("header".into()), true, &measure)
+            .present(0.into(), true, &measure)
             .visualize(&measure)
             .render();
     }

@@ -1,7 +1,7 @@
 ///! Vulkan <-> Skia <-> emergent::drawing interop.
 use crate::renderer::{DrawingBackend, DrawingSurface, RenderContext};
 use emergent::skia::convert::ToSkia;
-use emergent::{text_as_lines, DrawingFrame, TextOrigin};
+use emergent::{text_as_lines, Frame, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::text::With;
 use emergent_drawing::{font, DrawTo, Shape, Transform};
@@ -158,7 +158,7 @@ impl DrawingBackend for Backend {
         .unwrap()
     }
 
-    fn draw(&self, frame: &DrawingFrame, surface: &mut Surface) {
+    fn draw(&self, frame: &Frame, surface: &mut Surface) {
         let canvas = surface.canvas();
         canvas.clear(Color::WHITE);
 

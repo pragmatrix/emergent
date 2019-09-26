@@ -1,4 +1,4 @@
-use emergent::DrawingFrame;
+use emergent::Frame;
 use emergent_ui::Window;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
@@ -49,7 +49,7 @@ pub trait DrawingBackend {
     ) -> Self::Surface;
 
     /// Draws a frame on the Surface.
-    fn draw(&self, frame: &DrawingFrame, surface: &mut Self::Surface);
+    fn draw(&self, frame: &Frame, surface: &mut Self::Surface);
 }
 
 pub fn new_instance() -> Arc<Instance> {
@@ -288,7 +288,7 @@ impl<W: Window> RenderContext<W> {
         mut previous_render: Box<dyn GpuFuture>,
         frame_state: &mut FrameState<W>,
         drawing_backend: &mut impl DrawingBackend,
-        frame: &DrawingFrame,
+        frame: &Frame,
     ) -> Box<dyn GpuFuture> {
         previous_render.cleanup_finished();
 
@@ -314,7 +314,7 @@ impl<W: Window> RenderContext<W> {
         previous: Box<dyn GpuFuture>,
         frame_state: &mut FrameState<W>,
         drawing_backend: &mut impl DrawingBackend,
-        frame: &DrawingFrame,
+        frame: &Frame,
     ) -> Result<Box<dyn GpuFuture>, FlushError> {
         // for some reason we can't join this with acquire_future and drop it afterwards.
         drop(previous);

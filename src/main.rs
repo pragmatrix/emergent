@@ -4,7 +4,7 @@ use clap::Arg;
 use emergent::skia::convert::ToSkia;
 use emergent::skia::path_support::PathSupport;
 use emergent::skia::text::PrimitiveText;
-use emergent::{skia, DrawingFrame, Support, WindowApplication, WindowApplicationMsg};
+use emergent::{skia, Frame, Support, WindowApplication, WindowApplicationMsg};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use emergent_ui::{Window, WindowMsg, DPI};
@@ -104,7 +104,7 @@ fn main() {
         while !application.model().close_requested() {
             let frame_layout = render_surface.window().frame_layout();
             let presentation = application.model().render_presentation(&frame_layout);
-            let frame = DrawingFrame::new(frame_layout, presentation);
+            let frame = Frame::new(frame_layout, presentation);
 
             // even if we drop the frame, we want to recreate the swapchain so that we are
             // prepared for the next (or don't we?).
