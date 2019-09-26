@@ -1,6 +1,5 @@
 use crate::WindowMsg;
 use emergent_presentation::Presentation;
-use serde::Serialize;
 use std::any::Any;
 use std::mem;
 
