@@ -44,8 +44,6 @@ impl<Msg> RenderContext<Msg> {
                         // type is different, overwrite the component and clear the nested ones.
                         node.component = Box::new(new);
                         node.nested.clear();
-                        // TODO: can we avoid that additional downcast, after all we had
-                        //       the concrete type before boxing.
                         node
                     }
                 }
@@ -53,7 +51,8 @@ impl<Msg> RenderContext<Msg> {
             None => Node::new(new),
         };
 
-        // assuming that this is more performant than to insert and look up the entry again.
+        // assuming that pulling the entry is more performant than to insert and look up the entry
+        // again.
         if let Entry::Vacant(e) = self.current.entry(scope) {
             e.insert(node)
         } else {

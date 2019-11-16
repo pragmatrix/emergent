@@ -11,7 +11,7 @@ where
     /// Process the window message.
     fn update(&mut self, msg: WindowMsg);
 
-    /// Try to take over the properties of the other component.
+    /// Try to reconcile a new parameterization for that component.
     ///
     /// The default implementation overwrites the component with the newer one.
     /// Implement `reconcile` when it's necessary to preserve state over time.
