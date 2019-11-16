@@ -102,7 +102,7 @@ impl MeasureWithShaper {
     pub fn new(dpi: DPI) -> MeasureWithShaper {
         MeasureWithShaper {
             dpi,
-            shaper: Shaper::new(),
+            shaper: Shaper::new(None),
         }
     }
 

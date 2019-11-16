@@ -93,7 +93,7 @@ pub struct Backend {
 
 impl Backend {
     pub fn from_context(context: gpu::Context) -> Self {
-        let shaper = Shaper::new();
+        let shaper = Shaper::new(None);
         Backend { context, shaper }
     }
 }
