@@ -1,8 +1,0 @@
-[package]
-name = "emergent-concept"
-version = "0.1.0"
-authors = ["Armin Sander <armin@replicator.org>"]
-edition = "2018"
-
-[dependencies]
-emergent-drawing = { path = "../drawing" }

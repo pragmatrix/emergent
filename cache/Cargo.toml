@@ -1,7 +1,0 @@
-[package]
-name = "emergent-cache"
-version = "0.1.0"
-authors = ["Armin Sander <armin@replicator.org>"]
-edition = "2018"
-
-[dependencies]

@@ -11,8 +11,6 @@ path = "src/lib/lib.rs"
 [workspace]
 exclude = ["rust-skia", "vulkano"]
 members = [
-  "cache",
-  "concept",
   "config",
   "drawing",
   "layout",
