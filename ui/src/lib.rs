@@ -1,12 +1,6 @@
 mod frame_layout;
 pub use frame_layout::*;
 
-mod render_context;
-pub use render_context::*;
-
-mod component;
-pub use component::*;
-
 mod window;
 pub use window::*;
 
