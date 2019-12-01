@@ -24,9 +24,10 @@
 //!
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
-use crate::{PathContainsPoint, RenderPresentation};
-use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
+use crate::RenderPresentation;
+use emergent_drawing::{MeasureText, Path, Point, Text};
 use emergent_presentation::Presentation;
+use emergent_presenter::Support;
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -194,9 +195,6 @@ where
     {
         let presentation: Presentation = self.model.render_presentation(frame_layout);
         // TODO: this is horrible, here the full presentation is being cloned.
-        // Ideas:
-        // - Wait until we support incremental presentation
-        //   updates and see what other ideas come up.
         // - Don't clone nested drawings (use Rc?)
         self.recent_presentation
             .replace(Some((frame_layout.dpi, presentation.clone())));
@@ -239,33 +237,4 @@ struct InputState {
     cursor_entered: bool,
     /// The keyboard modifiers (shift, alt, etc.).
     modifiers: ModifiersState,
-}
-
-pub struct Support {
-    measure: Box<dyn MeasureText>,
-    path_contains_point: Box<dyn PathContainsPoint>,
-}
-
-impl Support {
-    pub fn new(
-        measure: impl MeasureText + 'static,
-        path_contains_point: impl PathContainsPoint + 'static,
-    ) -> Self {
-        Self {
-            measure: Box::new(measure),
-            path_contains_point: Box::new(path_contains_point),
-        }
-    }
-}
-
-impl MeasureText for Support {
-    fn measure_text(&self, text: &Text) -> Bounds {
-        self.measure.measure_text(text)
-    }
-}
-
-impl PathContainsPoint for Support {
-    fn path_contains_point(&self, path: &Path, p: Point) -> bool {
-        self.path_contains_point.path_contains_point(path, p)
-    }
 }

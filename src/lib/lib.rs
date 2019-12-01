@@ -8,9 +8,6 @@ use std::thread::JoinHandle;
 mod frame;
 pub use frame::*;
 
-mod hit_test;
-pub use hit_test::*;
-
 pub mod compiler_message;
 
 pub mod libtest;
@@ -21,7 +18,7 @@ pub use line_breaking::*;
 mod presentations;
 
 pub mod skia;
-mod ui;
+mod ui_tests;
 
 mod window_application;
 pub use window_application::*;

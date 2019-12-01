@@ -1,11 +1,12 @@
 use crate::{Scope, Scoped};
 use emergent_drawing::{
     BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
-    MeasureText, Outset, Paint, Transform, Transformed, Visualize, RGB,
+    MeasureText, Outset, Paint, ReplaceWith, Transform, Transformed, Visualize, RGB,
 };
 
-/// A presentation is a composable hierarchy that enhances drawings with
-/// sensor areas.
+/// A presentation is a composable hierarchy of drawing commands and scoped areas.
+///
+/// Scoped areas are used for hit testing and the association of events.
 #[derive(Clone, Debug)]
 pub enum Presentation {
     Empty,
@@ -14,7 +15,7 @@ pub enum Presentation {
     Scoped(Scope, Box<Presentation>),
     /// Defines a named area around the (fast) bounds of a presentation, including an Outset.
     Area(Outset, Box<Presentation>),
-    /// Defines a named area by providing a Clip at the current drawing position.
+    /// Defines an area by providing a Clip at the current drawing position and scope.
     InlineArea(Clip),
     /// A clipped presentation (TODO: is that needed, and what exactly is clipped?)
     Clipped(Clip, Box<Presentation>),
@@ -24,6 +25,12 @@ pub enum Presentation {
     BackToFront(Vec<Presentation>),
     /// A simple drawing that acts as a presentation.
     Drawing(Drawing),
+}
+
+impl Default for Presentation {
+    fn default() -> Self {
+        Presentation::Empty
+    }
 }
 
 impl Scoped for Presentation {
@@ -115,6 +122,31 @@ impl Presentation {
 
     pub fn scoped(self, scope: impl Into<Scope>) -> Self {
         Self::Scoped(scope.into(), self.into())
+    }
+
+    /// Change the presentation so that it provides an open drawing that, when drawn to,
+    /// draws above the presentation.
+    ///
+    /// The opened drawing may not be empty.
+    pub fn open_drawing(&mut self) -> &mut Drawing {
+        match self {
+            Presentation::Empty => {
+                self.replace_with(|_| Presentation::Drawing(Drawing::Empty));
+                self.open_drawing()
+            }
+            Presentation::Scoped(_, _)
+            | Presentation::Area(_, _)
+            | Presentation::InlineArea(_)
+            | Presentation::Clipped(_, _)
+            | Presentation::Transformed(_, _) => {
+                self.replace_with(|p| Presentation::BackToFront(vec![p, Presentation::Empty]));
+                self.open_drawing()
+            }
+            Presentation::BackToFront(presentations) => {
+                presentations.last_mut().unwrap().open_drawing()
+            }
+            Presentation::Drawing(ref mut drawing) => drawing,
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::skia::convert::ToSkia;
-use crate::PathContainsPoint;
 use emergent_drawing::Point;
+use emergent_presenter::PathContainsPoint;
 
 #[derive(Default)]
 pub struct PathSupport {}

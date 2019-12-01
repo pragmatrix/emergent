@@ -27,7 +27,7 @@ pub mod simple_layout;
 pub(crate) mod skia_core;
 
 mod toolbox;
-pub(crate) use toolbox::*;
+pub use toolbox::*;
 
 mod visualize;
 pub use visualize::*;

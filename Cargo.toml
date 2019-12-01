@@ -15,6 +15,7 @@ members = [
   "drawing",
   "layout",
   "presentation",
+  "presenter",
   "terminal",
   "ui"
 ]
@@ -27,6 +28,7 @@ emergent-drawing = { path = "drawing" }
 emergent-terminal = { path = "terminal" }
 emergent-config = { path = "config" }
 emergent-presentation = { path = "presentation" }
+emergent-presenter = { path = "presenter" }
 emergent-ui = { path = "ui" }
 
 # channels

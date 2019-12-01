@@ -549,6 +549,7 @@ dependencies = [
  "emergent-config 0.1.0",
  "emergent-drawing 0.1.0",
  "emergent-presentation 0.1.0",
+ "emergent-presenter 0.1.0",
  "emergent-terminal 0.1.0",
  "emergent-ui 0.1.0",
  "env_logger 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -606,6 +607,15 @@ dependencies = [
  "once_cell 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "emergent-presenter"
+version = "0.1.0"
+dependencies = [
+ "emergent-drawing 0.1.0",
+ "emergent-presentation 0.1.0",
+ "emergent-ui 0.1.0",
 ]
 
 [[package]]
