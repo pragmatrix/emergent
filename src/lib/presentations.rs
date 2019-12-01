@@ -4,7 +4,7 @@ use crate::libtest::TestCapture;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
-use emergent_presentation::{Present, Presentation, Scope};
+use emergent_presentation::{IntoPresentation, Presentation, Scope};
 
 impl TestCapture {
     pub fn present(
@@ -17,10 +17,10 @@ impl TestCapture {
         if !show_contents {
             return header;
         }
-        let output = self.draw_output().present();
+        let output = self.draw_output();
 
         Presentation::BackToFront(Presentation::layout_vertically(
-            vec![header, output],
+            vec![header, output.into()],
             measure,
         ))
     }
@@ -30,7 +30,7 @@ impl TestCapture {
         let mut drawing = Drawing::new();
         let text = text(&self.name, header_font, None);
         drawing.draw_shape(&text.into(), paint());
-        drawing.present().in_area(scope)
+        drawing.into_presentation().in_area(scope)
     }
 
     fn draw_output(&self) -> Drawing {

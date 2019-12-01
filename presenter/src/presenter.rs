@@ -16,8 +16,11 @@ use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
 
 /// The presenter is an ephemeral instance that is used to present one single frame.
-pub struct Presenter<'a> {
-    pub host: &'a mut Host,
+///
+/// Implementation note: For simplicity of all the function signatures the clients will use,
+/// I've decided to move Host inside the Presenter temporarily as long the frame is being built.
+pub struct Presenter {
+    host: Host,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The current scope.
@@ -26,8 +29,8 @@ pub struct Presenter<'a> {
     presentation: Presentation,
 }
 
-impl Presenter<'_> {
-    pub fn new(host: &mut Host, boundary: FrameLayout) -> Presenter {
+impl Presenter {
+    pub fn new(host: Host, boundary: FrameLayout) -> Presenter {
         Presenter {
             host,
             boundary,
@@ -47,12 +50,13 @@ impl Presenter<'_> {
         self.presentation.open_drawing()
     }
 
-    pub fn into_presentation(self) -> Presentation {
-        self.presentation
+    /// Converts the Presenter back into the host and the resulting presentation.
+    pub fn into_presentation(self) -> (Host, Presentation) {
+        (self.host, self.presentation)
     }
 }
 
-impl DrawingTarget for Presenter<'_> {
+impl DrawingTarget for Presenter {
     fn fill(&mut self, paint: Paint, blend_mode: BlendMode) {
         self.open_drawing().fill(paint, blend_mode)
     }

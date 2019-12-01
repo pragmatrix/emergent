@@ -97,16 +97,6 @@ impl DrawTo for Presentation {
     }
 }
 
-pub trait Present {
-    fn present(self) -> Presentation;
-}
-
-impl Present for Drawing {
-    fn present(self) -> Presentation {
-        Presentation::Drawing(self)
-    }
-}
-
 impl Presentation {
     pub fn new() -> Presentation {
         Self::Empty
@@ -193,5 +183,21 @@ impl Visualize for Presentation {
                 .back_to_front(),
             Presentation::Drawing(drawing) => drawing.clone(),
         }
+    }
+}
+
+pub trait IntoPresentation {
+    fn into_presentation(self) -> Presentation;
+}
+
+impl IntoPresentation for Drawing {
+    fn into_presentation(self) -> Presentation {
+        Presentation::Drawing(self)
+    }
+}
+
+impl From<Drawing> for Presentation {
+    fn from(drawing: Drawing) -> Self {
+        drawing.into_presentation()
     }
 }

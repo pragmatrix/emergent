@@ -6,7 +6,7 @@ use emergent::compiler_message::ToDrawing;
 use emergent::skia::text::PrimitiveText;
 use emergent::{RenderPresentation, WindowApplicationMsg, WindowModel};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_presentation::{Present, Presentation};
+use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMsg};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -124,12 +124,12 @@ impl RenderPresentation<Msg> for App {
             match &self.test_run_result {
                 Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => compiler_messages
                     .iter()
-                    .map(|cm| cm.to_drawing().present())
+                    .map(|cm| cm.to_drawing().into())
                     .collect(),
                 Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
                     let mut presentations = Vec::new();
                     for cm in compiler_messages {
-                        presentations.push(cm.to_drawing().present());
+                        presentations.push(cm.to_drawing().into());
                     }
 
                     // TODO: implement Iter in TestCaptures
