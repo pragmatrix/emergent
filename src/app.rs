@@ -7,6 +7,7 @@ use emergent::skia::text::PrimitiveText;
 use emergent::{RenderPresentation, WindowApplicationMsg, WindowModel};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_presentation::Presentation;
+use emergent_presenter::Presenter;
 use emergent_ui::{FrameLayout, WindowMsg};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -118,8 +119,7 @@ impl App {
 }
 
 impl RenderPresentation<Msg> for App {
-    fn render_presentation(&self, layout: &FrameLayout) -> Presentation {
-        let measure = PrimitiveText::new(layout.dpi);
+    fn render_presentation(&self, presenter: &mut Presenter) {
         let test_run_presentations = {
             match &self.test_run_result {
                 Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => compiler_messages
@@ -148,7 +148,7 @@ impl RenderPresentation<Msg> for App {
                             // tap_gesture.into(),
                             name.clone().into(),
                             show_contents,
-                            &measure,
+                            presenter,
                         ))
                     }
                     presentations
@@ -157,9 +157,9 @@ impl RenderPresentation<Msg> for App {
             }
         };
 
-        Presentation::BackToFront(Presentation::layout_vertically(
+        presenter.present(Presentation::BackToFront(Presentation::layout_vertically(
             test_run_presentations,
-            &measure,
-        ))
+            presenter,
+        )));
     }
 }

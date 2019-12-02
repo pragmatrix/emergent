@@ -8,9 +8,10 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::Host;
+use crate::{Host, Support};
 use emergent_drawing::{
-    BlendMode, Clip, Drawing, DrawingTarget, MeasureText, Paint, ReplaceWith, Shape, Transform,
+    BlendMode, Bounds, Clip, Drawing, DrawingTarget, MeasureText, Paint, ReplaceWith, Shape, Text,
+    Transform,
 };
 use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
@@ -50,9 +51,28 @@ impl Presenter {
         self.presentation.open_drawing()
     }
 
+    // Present a presentation on top of everything that was presented before.
+    // TODO: this won't be possible in future versions, because Presentation will
+    // be an internal abstraction. In the future, Presentation's are built solely by
+    // calling tracing function in the Presenter.
+    pub fn present(&mut self, presentation: Presentation) {
+        self.presentation.push_on_top(presentation)
+    }
+
     /// Converts the Presenter back into the host and the resulting presentation.
-    pub fn into_presentation(self) -> (Host, Presentation) {
+    pub fn into_host_and_presentation(self) -> (Host, Presentation) {
         (self.host, self.presentation)
+    }
+
+    pub fn into_presentation(self) -> Presentation {
+        self.into_host_and_presentation().1
+    }
+}
+
+// TODO: this is a good candidate for a per frame cache.
+impl MeasureText for Presenter {
+    fn measure_text(&self, text: &Text) -> Bounds {
+        self.host.support.measure_text(text)
     }
 }
 

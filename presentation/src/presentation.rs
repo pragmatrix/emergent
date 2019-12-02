@@ -138,6 +138,23 @@ impl Presentation {
             Presentation::Drawing(ref mut drawing) => drawing,
         }
     }
+
+    /// Combines this presentation with another one by layering it on top of the current presentation.
+    pub fn push_on_top(&mut self, presentation: Presentation) {
+        self.replace_with(|p| match p {
+            Presentation::Empty => presentation,
+            Presentation::BackToFront(mut l) => {
+                l.push(presentation);
+                Presentation::BackToFront(l)
+            }
+            Presentation::Scoped(_, _)
+            | Presentation::Area(_, _)
+            | Presentation::InlineArea(_)
+            | Presentation::Clipped(_, _)
+            | Presentation::Transformed(_, _)
+            | Presentation::Drawing(_) => Presentation::BackToFront(vec![p, presentation]),
+        })
+    }
 }
 
 impl Visualize for Presentation {

@@ -27,7 +27,7 @@
 use crate::RenderPresentation;
 use emergent_drawing::{MeasureText, Path, Point, Text};
 use emergent_presentation::Presentation;
-use emergent_presenter::Support;
+use emergent_presenter::{Host, Support};
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -41,14 +41,15 @@ where
 {
     /// The actual model of the application.
     model: Model,
-    /// A copy of the most recent presentation, if available.
-    recent_presentation: RefCell<Option<(DPI, Presentation)>>,
-
-    /// State related to input.
-    input: InputState,
 
     /// System support.
     support: Box<dyn Fn(DPI) -> Support>,
+
+    /// The presenter's host.
+    host: RefCell<Option<Host>>,
+
+    /// State related to input.
+    input: InputState,
 
     // TODO: do we need a veto-system? Yes, probably, optionally saving state?
     close_requested: bool,
@@ -88,10 +89,10 @@ where
 {
     pub fn new(model: M, support_builder: impl Fn(DPI) -> Support + 'static) -> Self {
         WindowApplication {
-            recent_presentation: Default::default(),
             model,
-            input: Default::default(),
             support: Box::new(support_builder),
+            host: None.into(),
+            input: Default::default(),
             close_requested: false,
             msg: PhantomData,
         }
@@ -127,6 +128,7 @@ where
                 button,
                 modifiers,
             } => {
+                /*
                 if let Some(msg) = {
                     let presentation = &mut *self.recent_presentation.borrow_mut();
                     if let (Some((dpi, presentation)), Some(position)) =
@@ -148,14 +150,18 @@ where
                         None
                     }
                 } {
-                    return self.update_application(msg);
-                }
+                return self.update_application(msg);
+                } */
+                return Cmd::None;
             }
             WindowMsg::TouchpadPressure { .. } => {}
             WindowMsg::AxisMotion { .. } => {}
             WindowMsg::Refresh => {}
             WindowMsg::Touch { .. } => {}
-            WindowMsg::HiDPIFactorChanged(_) => {}
+            WindowMsg::HiDPIFactorChanged(_) => {
+                // drop the host if the DPI changes.
+                self.host = None.into()
+            }
         }
         Cmd::None
     }
@@ -193,11 +199,21 @@ where
     where
         M: RenderPresentation<Msg>,
     {
-        let presentation: Presentation = self.model.render_presentation(frame_layout);
-        // TODO: this is horrible, here the full presentation is being cloned.
-        // - Don't clone nested drawings (use Rc?)
-        self.recent_presentation
-            .replace(Some((frame_layout.dpi, presentation.clone())));
+        let mut presentation: Presentation = Presentation::Empty;
+
+        self.host.replace_with(|host| {
+            let mut host = host
+                .take()
+                .unwrap_or_else(|| Host::new((self.support)(frame_layout.dpi)));
+            presentation = host
+                .present(frame_layout.clone(), |presenter| {
+                    // TODO: this is horrible, here the full presentation is being cloned.
+                    self.model.render_presentation(presenter);
+                })
+                .clone();
+            Some(host)
+        });
+
         presentation
     }
 }

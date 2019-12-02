@@ -5,13 +5,14 @@ use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
 use emergent_presentation::{IntoPresentation, Presentation, Scope};
+use emergent_presenter::Presenter;
 
 impl TestCapture {
     pub fn present(
         &self,
         scope: Scope,
         show_contents: bool,
-        measure: &dyn MeasureText,
+        presenter: &Presenter,
     ) -> Presentation {
         let header = self.present_header(scope);
         if !show_contents {
@@ -21,7 +22,7 @@ impl TestCapture {
 
         Presentation::BackToFront(Presentation::layout_vertically(
             vec![header, output.into()],
-            measure,
+            presenter,
         ))
     }
 
@@ -47,15 +48,12 @@ impl TestCapture {
 #[cfg(test)]
 mod tests {
     use crate::libtest::{TestCapture, TestResult};
-    use crate::skia::text::PrimitiveText;
     use emergent_drawing::functions::rect;
-    use emergent_drawing::{
-        Drawing, DrawingTarget, FromTestEnvironment, Paint, Render, Visualize, RGB,
-    };
+    use emergent_drawing::{Drawing, DrawingTarget, Paint, Render, Visualize, RGB};
 
     #[test]
     fn capture_presentations() {
-        let measure = PrimitiveText::from_test_environment();
+        let presenter = crate::skia::test_environment::presenter::from_test_environment();
 
         let output = {
             let mut drawing = Drawing::new();
@@ -70,8 +68,8 @@ mod tests {
         };
 
         capture
-            .present(0.into(), true, &measure)
-            .visualize(&measure)
+            .present(0.into(), true, &presenter)
+            .visualize(&presenter)
             .render();
     }
 }

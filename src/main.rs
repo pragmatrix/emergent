@@ -87,7 +87,7 @@ fn main() {
     let application_thread = thread::spawn(move || {
         let executor = ThreadSpawnExecutor::default();
         let support_builder =
-            |dpi: DPI| Support::new(PrimitiveText::new(dpi), PathSupport::default());
+            |dpi: DPI| Support::new(dpi, PrimitiveText::new(dpi), PathSupport::default());
         let mut application = Application::new(
             app_mailbox,
             WindowApplication::new(emergent, support_builder),

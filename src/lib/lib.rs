@@ -24,6 +24,7 @@ mod window_application;
 pub use window_application::*;
 
 use emergent_presentation::Presentation;
+use emergent_presenter::Presenter;
 use emergent_ui::FrameLayout;
 
 #[test]
@@ -75,7 +76,9 @@ impl ThreadJoiner {
     }
 }
 
-/// A function to produce a presentation with the given layout.
+/// A function to produce a presentation.
+///
+/// TODO: rename to present()?
 pub trait RenderPresentation<Msg> {
-    fn render_presentation(&self, layout: &FrameLayout) -> Presentation;
+    fn render_presentation(&self, presenter: &mut Presenter);
 }
