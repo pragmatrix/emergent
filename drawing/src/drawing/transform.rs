@@ -11,11 +11,6 @@ pub enum Transform {
     Matrix(Matrix),
 }
 
-/// This trait is implemented for types that can represent themselves in a transformed form.
-pub trait Transformed {
-    fn transformed(self, transform: Transform) -> Self;
-}
-
 impl Transform {
     /// Returns a optimized transformation (a * b)
     /// that is equivalent to `Transform::Matrix(Matrix::concat(a.to_matrix(), b.to_matrix()))`
@@ -67,4 +62,21 @@ impl Transform {
         }
         .into()
     }
+}
+
+impl From<Vector> for Transform {
+    fn from(v: Vector) -> Self {
+        Transform::Translate(v)
+    }
+}
+
+impl From<Matrix> for Transform {
+    fn from(m: Matrix) -> Self {
+        Transform::Matrix(m)
+    }
+}
+
+/// This trait is implemented for types that can represent themselves in a transformed form.
+pub trait Transformed {
+    fn transformed(self, transform: impl Into<Transform>) -> Self;
 }

@@ -62,7 +62,7 @@ impl Drawing {
         }
     }
 
-    /// Push a drawing in the front of the current drawing.
+    /// Push a drawing above the current drawing.
     pub fn below(self, topmost: Drawing) -> Self {
         use Drawing::*;
         match self {
@@ -100,7 +100,8 @@ impl Clipped for Drawing {
 
 impl Transformed for Drawing {
     /// Returns the drawing transformed.
-    fn transformed(self, transform: Transform) -> Self {
+    fn transformed(self, transform: impl Into<Transform>) -> Self {
+        let transform = transform.into();
         use Drawing::*;
         match self {
             Empty => Empty,

@@ -48,7 +48,8 @@ impl Clipped for DrawingBounds {
 }
 
 impl Transformed for DrawingBounds {
-    fn transformed(self, transform: Transform) -> Self {
+    fn transformed(self, transform: impl Into<Transform>) -> Self {
+        let transform = transform.into();
         self.map_bounded(|b| transform.to_matrix().map_bounds(*b))
     }
 }

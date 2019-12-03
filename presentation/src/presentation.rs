@@ -7,7 +7,7 @@ use emergent_drawing::{
 /// A presentation is a composable hierarchy of drawing commands and scoped areas.
 ///
 /// Scoped areas are used for hit testing and the association of events.
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Presentation {
     Empty,
     /// Defines a presentation scope.
@@ -47,8 +47,8 @@ impl Clipped for Presentation {
 
 // Required to support SimpleLayout
 impl Transformed for Presentation {
-    fn transformed(self, transform: Transform) -> Self {
-        Self::Transformed(transform, self.into())
+    fn transformed(self, transform: impl Into<Transform>) -> Self {
+        Self::Transformed(transform.into(), self.into())
     }
 }
 

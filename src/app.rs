@@ -120,46 +120,40 @@ impl App {
 
 impl RenderPresentation<Msg> for App {
     fn render_presentation(&self, presenter: &mut Presenter) {
-        let test_run_presentations = {
-            match &self.test_run_result {
-                Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => compiler_messages
-                    .iter()
-                    .map(|cm| cm.to_drawing().into())
-                    .collect(),
-                Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
-                    let mut presentations = Vec::new();
-                    for cm in compiler_messages {
-                        presentations.push(cm.to_drawing().into());
-                    }
-
-                    // TODO: implement Iter in TestCaptures
-                    for capture in captures.0.iter() {
-                        // TODO: add a nice drawing combinator.
-                        // TODO: avoid the access of 0!
-                        let name = &capture.name;
-                        /*
-                        let tap_gesture = {
-                            let name = name.clone();
-                            Gesture::tap(move |_| Msg::ToggleTestcase { name: name.clone() })
-                        }; */
-                        let show_contents = !self.collapsed_tests.contains(name);
-
-                        presentations.push(capture.present(
-                            // tap_gesture.into(),
-                            name.clone().into(),
-                            show_contents,
-                            presenter,
-                        ))
-                    }
-                    presentations
-                }
-                _ => Vec::new(),
+        match &self.test_run_result {
+            Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
+                presenter.stack_vertically(compiler_messages, |presenter, (_, cm)| {
+                    presenter.draw(cm.to_drawing())
+                });
             }
-        };
+            Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
+                // TODO: put around those two a stack vertically.
 
-        presenter.present(Presentation::BackToFront(Presentation::layout_vertically(
-            test_run_presentations,
-            presenter,
-        )));
+                presenter.stack_vertically(compiler_messages, |presenter, (_, cm)| {
+                    presenter.draw(cm.to_drawing())
+                });
+
+                presenter.stack_vertically(&captures.0, |presenter, (_, capture)| {
+                    let name = &capture.name;
+                    let show_contents = !self.collapsed_tests.contains(name);
+
+                    capture.present(
+                        // tap_gesture.into(),
+                        presenter,
+                        name.clone().into(),
+                        show_contents,
+                    );
+                });
+                /*
+                    let tap_gesture = {
+                        let name = name.clone();
+                        Gesture::tap(move |_| Msg::ToggleTestcase { name: name.clone() })
+                    };
+                */
+            }
+            _ => {
+                // TODO: no result yet (should we display some notification... running test, etc?)
+            }
+        }
     }
 }
