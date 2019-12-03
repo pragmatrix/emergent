@@ -3,7 +3,7 @@
 use crate::libtest::TestCapture;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
-use emergent_drawing::{font, Drawing, DrawingTarget, Font, MeasureText};
+use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presentation::{IntoPresentation, Presentation, Scope};
 use emergent_presenter::Presenter;
 
