@@ -5,16 +5,24 @@ use emergent_drawing::functions::{paint, text};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presentation::{IntoPresentation, Presentation, Scope};
-use emergent_presenter::Presenter;
+use emergent_presenter::{Direction, Presenter};
 
 impl TestCapture {
     pub fn present(&self, presenter: &mut Presenter, scope: Scope, show_contents: bool) {
-        // TODO: stack header and contents vertically.
-        let header = self.present_header(scope);
-        presenter.draw(header);
-        if show_contents {
-            presenter.draw(self.draw_output());
-        }
+        presenter.stack_f(
+            Direction::Column,
+            &[
+                &|presenter| {
+                    let header = self.present_header(scope.clone());
+                    presenter.draw(header)
+                },
+                &|presenter| {
+                    if show_contents {
+                        presenter.draw(self.draw_output());
+                    }
+                },
+            ],
+        )
     }
 
     fn present_header(&self, scope: Scope) -> Drawing {

@@ -8,10 +8,10 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{Host, Support};
+use crate::Host;
 use emergent_drawing::{
-    BlendMode, Bounds, Clip, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget, MeasureText,
-    Paint, Point, ReplaceWith, Shape, Text, Transform, Transformed, Vector,
+    Bounds, Drawing, DrawingFastBounds, MeasureText, Point, ReplaceWith, Text, Transform,
+    Transformed, Vector,
 };
 use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
@@ -29,6 +29,25 @@ pub struct Presenter {
     scope: Vec<Scope>,
     /// The current presentation.
     presentation: Presentation,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Direction {
+    Row,
+    RowReverse,
+    Column,
+    ColumnReverse,
+}
+
+impl Direction {
+    pub fn to_vector(self) -> Vector {
+        match self {
+            Direction::Row => Vector::new(1.0, 0.0),
+            Direction::RowReverse => Vector::new(-1.0, 0.0),
+            Direction::Column => Vector::new(0.0, 1.0),
+            Direction::ColumnReverse => Vector::new(0.0, -1.0),
+        }
+    }
 }
 
 impl Presenter {
@@ -76,34 +95,28 @@ impl Presenter {
         self.presentation.open_drawing()
     }
 
-    pub fn stack_vertically<Item>(
+    pub fn stack_items<Item>(
         &mut self,
+        direction: Direction,
         items: &[Item],
         f: impl Fn(&mut Presenter, (usize, &Item)),
     ) {
-        self.stack(items, f, Vector::new(0.0, 1.0))
+        self.stack(direction, items.len(), |presenter, i| {
+            f(presenter, (i, &items[i]))
+        })
     }
 
-    pub fn stack_horizontally<Item>(
-        &mut self,
-        items: &[Item],
-        f: impl Fn(&mut Presenter, (usize, &Item)),
-    ) {
-        self.stack(items, f, Vector::new(1.0, 0.0))
+    pub fn stack_f(&mut self, direction: Direction, fs: &[&dyn Fn(&mut Presenter)]) {
+        self.stack(direction, fs.len(), |presenter, i| (fs[i])(presenter))
     }
 
-    /// Render a slice of items and stack them in the given direction.
-    /// The items are individually rendered in the scope of their index in the item slice.
-    fn stack<Item>(
-        &mut self,
-        items: &[Item],
-        f: impl Fn(&mut Presenter, (usize, &Item)),
-        direction: Vector,
-    ) {
+    /// Stack a number of presentations in the `direction` given by a Vector.
+    pub fn stack(&mut self, direction: Direction, count: usize, f: impl Fn(&mut Presenter, usize)) {
+        let direction = direction.to_vector();
         let mut p = Point::default();
-        for (i, item) in items.iter().enumerate() {
+        for i in 0..count {
             self.scoped(i, |presenter| {
-                let nested = presenter.nested(|presenter| f(presenter, (i, item)));
+                let nested = presenter.nested(|presenter| f(presenter, i));
                 let drawing_bounds = nested.fast_bounds(presenter);
                 if let Some(bounds) = drawing_bounds.as_bounds() {
                     let align = -bounds.point.to_vector();

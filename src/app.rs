@@ -7,7 +7,7 @@ use emergent::skia::text::PrimitiveText;
 use emergent::{RenderPresentation, WindowApplicationMsg, WindowModel};
 use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_presentation::Presentation;
-use emergent_presenter::Presenter;
+use emergent_presenter::{Direction, Presenter};
 use emergent_ui::{FrameLayout, WindowMsg};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -122,28 +122,44 @@ impl RenderPresentation<Msg> for App {
     fn render_presentation(&self, presenter: &mut Presenter) {
         match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
-                presenter.stack_vertically(compiler_messages, |presenter, (_, cm)| {
-                    presenter.draw(cm.to_drawing())
-                });
+                presenter.stack_items(
+                    Direction::Column,
+                    compiler_messages,
+                    |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
+                );
             }
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
                 // TODO: put around those two a stack vertically.
 
-                presenter.stack_vertically(compiler_messages, |presenter, (_, cm)| {
-                    presenter.draw(cm.to_drawing())
-                });
+                presenter.stack_f(
+                    Direction::Column,
+                    &[
+                        &|presenter| {
+                            presenter.stack_items(
+                                Direction::Column,
+                                compiler_messages,
+                                |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
+                            )
+                        },
+                        &|presenter| {
+                            presenter.stack_items(
+                                Direction::Column,
+                                &captures.0,
+                                |presenter, (_, capture)| {
+                                    let name = &capture.name;
+                                    let show_contents = !self.collapsed_tests.contains(name);
 
-                presenter.stack_vertically(&captures.0, |presenter, (_, capture)| {
-                    let name = &capture.name;
-                    let show_contents = !self.collapsed_tests.contains(name);
-
-                    capture.present(
-                        // tap_gesture.into(),
-                        presenter,
-                        name.clone().into(),
-                        show_contents,
-                    );
-                });
+                                    capture.present(
+                                        // tap_gesture.into(),
+                                        presenter,
+                                        name.clone().into(),
+                                        show_contents,
+                                    );
+                                },
+                            )
+                        },
+                    ],
+                );
                 /*
                     let tap_gesture = {
                         let name = name.clone();
