@@ -6,7 +6,7 @@ use emergent_presentation::Presentation;
 use emergent_ui::FrameLayout;
 
 pub struct Host {
-    pub(crate) support: Support,
+    pub support: Support,
     /// A copy of the most recent presentation.
     /// This is primarily used for hit testing.
     recent_presentation: Presentation,

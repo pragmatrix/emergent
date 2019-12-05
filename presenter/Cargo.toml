@@ -8,3 +8,4 @@ edition = "2018"
 emergent-drawing = { path = "../drawing" }
 emergent-presentation = { path = "../presentation" }
 emergent-ui = { path = "../ui" }
+log = "0.4.8"

@@ -121,8 +121,8 @@ impl Presenter {
                 if let Some(bounds) = drawing_bounds.as_bounds() {
                     let align = -bounds.point.to_vector();
                     let nested = nested.transformed((p + align).to_vector());
+                    presenter.presentation.push_on_top(nested);
                     p += Vector::from(bounds.extent) * direction;
-                    presenter.presentation.push_on_top(nested)
                 }
             })
         }

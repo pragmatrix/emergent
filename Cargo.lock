@@ -617,6 +617,7 @@ dependencies = [
  "emergent-drawing 0.1.0",
  "emergent-presentation 0.1.0",
  "emergent-ui 0.1.0",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

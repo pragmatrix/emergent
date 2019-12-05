@@ -87,7 +87,7 @@ mod tests {
     }
 
     fn stack_vec(v: Vector) {
-        let measure = skia::text::PrimitiveText::from_test_environment();
+        let measure = PrimitiveText::from_test_environment();
         let stroke_paint_green = paint().style(paint::Style::Stroke).color(0xff00ff00);
 
         let d1 = bounds_around_text("Bounds around Text");

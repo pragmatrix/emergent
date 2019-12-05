@@ -159,6 +159,10 @@ where
             WindowMsg::Refresh => {}
             WindowMsg::Touch { .. } => {}
             WindowMsg::HiDPIFactorChanged(_) => {
+                // note: this msg is always filtered away.
+                // TODO: rethink filtering logic or replace it,
+                //       it's causing more trouble than anticipated.
+                panic!("dropped host");
                 // drop the host if the DPI changes.
                 self.host = None.into()
             }
@@ -202,9 +206,15 @@ where
         let mut presentation: Presentation = Presentation::Empty;
 
         self.host.replace_with(|host| {
-            let mut host = host
-                .take()
-                .unwrap_or_else(|| Host::new((self.support)(frame_layout.dpi)));
+            // TODO: drop host as soon a DPI message is received.
+            let mut host = host.take();
+            if let Some(ref h) = host {
+                if h.support.dpi != frame_layout.dpi {
+                    host = None
+                }
+            }
+
+            let mut host = host.unwrap_or_else(|| Host::new((self.support)(frame_layout.dpi)));
             presentation = host
                 .present(frame_layout.clone(), |presenter| {
                     // TODO: this is horrible, here the full presentation is being cloned.
