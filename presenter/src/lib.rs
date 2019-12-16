@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate log;
 
+mod gesture_recognizer;
+pub use gesture_recognizer::*;
+
 mod hit_test;
 pub use hit_test::*;
 

@@ -7,13 +7,13 @@ use emergent_presentation::Scope;
 use emergent_presenter::{Direction, Presenter};
 
 impl TestCapture {
-    pub fn present(&self, presenter: &mut Presenter, show_contents: bool) {
-        presenter.scoped(&self.name, |presenter| {
-            presenter.stack_f(
+    pub fn present(&self, p: &mut Presenter, show_contents: bool) {
+        p.scoped(&self.name, |p| {
+            p.stack_f(
                 Direction::Column,
-                &[&|presenter| presenter.draw(self.header()), &|presenter| {
+                &[&|p| p.area(|p| p.draw(self.header())), &|p| {
                     if show_contents {
-                        presenter.draw(self.output());
+                        p.draw(self.output());
                     }
                 }],
             )

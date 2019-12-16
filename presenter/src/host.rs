@@ -1,37 +1,44 @@
 //! State is persisting for the time the presentation is active.
 
-use crate::{Presenter, Support};
+use crate::{GestureRecognizer, Presenter, Support};
 use emergent_drawing::ReplaceWith;
-use emergent_presentation::Presentation;
+use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
+use std::collections::HashMap;
 
 pub struct Host {
     pub support: Support,
     /// A copy of the most recent presentation.
     /// This is primarily used for hit testing.
-    recent_presentation: Presentation,
+    presentation: Presentation,
+
+    /// The active recognizers of the previous presentation.
+    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer>>,
 }
 
 impl Host {
     pub fn new(support: Support) -> Host {
         Host {
             support,
-            recent_presentation: Presentation::Empty,
+            presentation: Presentation::Empty,
+            recognizers: HashMap::new(),
         }
     }
 
     pub fn present(
         &mut self,
         boundary: FrameLayout,
-        f: impl FnOnce(&mut Presenter),
+        present: impl FnOnce(&mut Presenter),
     ) -> &Presentation {
         self.replace_with(|h| {
             let mut presenter = Presenter::new(h, boundary);
-            f(&mut presenter);
-            let (mut host, presentation) = presenter.into_host_and_presentation();
-            host.recent_presentation = presentation;
+            present(&mut presenter);
+            // commit
+            let mut host = presenter.host;
+            host.presentation = presenter.presentation;
+            host.recognizers = presenter.recognizers;
             host
         });
-        &self.recent_presentation
+        &self.presentation
     }
 }

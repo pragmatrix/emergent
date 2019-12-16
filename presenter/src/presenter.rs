@@ -8,13 +8,14 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::Host;
+use crate::{GestureRecognizer, Host};
 use emergent_drawing::{
     Bounds, Drawing, DrawingFastBounds, MeasureText, Point, ReplaceWith, Text, Transform,
     Transformed, Vector,
 };
 use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
+use std::collections::HashMap;
 use std::mem;
 
 /// The presenter is an ephemeral instance that is used to present one single frame.
@@ -22,13 +23,16 @@ use std::mem;
 /// Implementation note: For simplicity of all the function signatures the clients will use,
 /// I've decided to move Host inside the Presenter temporarily as long the frame is being built.
 pub struct Presenter {
-    host: Host,
+    pub(crate) host: Host,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The current scope stack.
     scope: Vec<Scope>,
     /// The current presentation.
-    presentation: Presentation,
+    pub(crate) presentation: Presentation,
+    /// The current recognizers.
+    /// TODO: this requires the complete scope to be copied.
+    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -57,6 +61,7 @@ impl Presenter {
             boundary,
             scope: Vec::new(),
             presentation: Default::default(),
+            recognizers: Default::default(),
         }
     }
 
@@ -80,6 +85,30 @@ impl Presenter {
     pub fn area(&mut self, f: impl FnOnce(&mut Presenter)) {
         let nested = self.nested(f);
         self.presentation.push_on_top(nested.in_area())
+    }
+
+    /// Render a gesture recognizer in the current scope.
+    ///
+    /// If there is no area in the current scope, the whole scope is considered the area of the gesture
+    /// recognizer.
+    ///
+    /// If there multiple areas in the current scope. All the areas decide which events are delivered
+    /// to the gesture recognizer.
+    ///
+    /// Re-rendering the same type of gesture recognizer in the same scope does not update or reset the
+    /// state of the gesture recognizer (for now).
+    ///
+    /// If a gesture recognizer disappears from a scope, it will be removed from the presentation.
+    pub fn recognize(&mut self, recognizer: impl GestureRecognizer + 'static) {
+        match self.host.recognizers.remove(&self.scope) {
+            Some(old_recognizer) => {
+                self.recognizers.insert(self.scope.clone(), old_recognizer);
+            }
+            None => {
+                self.recognizers
+                    .insert(self.scope.clone(), Box::new(recognizer));
+            }
+        }
     }
 
     /// Render a nested presentation, transform it and push it on top of the already existing presentation.
@@ -142,13 +171,8 @@ impl Presenter {
         }
     }
 
-    /// Converts the Presenter back into the host and the resulting presentation.
-    pub fn into_host_and_presentation(self) -> (Host, Presentation) {
-        (self.host, self.presentation)
-    }
-
     pub fn into_presentation(self) -> Presentation {
-        self.into_host_and_presentation().1
+        self.presentation
     }
 
     /// Takes the current presentation out of the presenter and replaces the current one with an
