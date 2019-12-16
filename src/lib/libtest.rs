@@ -7,6 +7,7 @@ use std::io;
 use std::io::{BufRead, BufReader, Read};
 
 // TODO: make that Vec private.
+// TODO: Use some kind of a newtype macro here?
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct TestCaptures(pub Vec<TestCapture>);
 

@@ -146,12 +146,7 @@ impl RenderPresentation<Msg> for App {
                                     let name = &capture.name;
                                     let show_contents = !self.collapsed_tests.contains(name);
 
-                                    capture.present(
-                                        // tap_gesture.into(),
-                                        presenter,
-                                        name.clone().into(),
-                                        show_contents,
-                                    );
+                                    capture.present(presenter, show_contents);
                                 },
                             )
                         },

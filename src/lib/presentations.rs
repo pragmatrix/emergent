@@ -2,30 +2,25 @@
 
 use crate::libtest::TestCapture;
 use emergent_drawing::functions::{paint, text};
-use emergent_drawing::simple_layout::SimpleLayout;
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
-use emergent_presentation::{IntoPresentation, Presentation, Scope};
+use emergent_presentation::Scope;
 use emergent_presenter::{Direction, Presenter};
 
 impl TestCapture {
-    pub fn present(&self, presenter: &mut Presenter, scope: Scope, show_contents: bool) {
-        presenter.stack_f(
-            Direction::Column,
-            &[
-                &|presenter| {
-                    let header = self.present_header(scope.clone());
-                    presenter.draw(header)
-                },
-                &|presenter| {
+    pub fn present(&self, presenter: &mut Presenter, show_contents: bool) {
+        presenter.scoped(&self.name, |presenter| {
+            presenter.stack_f(
+                Direction::Column,
+                &[&|presenter| presenter.draw(self.header()), &|presenter| {
                     if show_contents {
-                        presenter.draw(self.draw_output());
+                        presenter.draw(self.output());
                     }
-                },
-            ],
-        )
+                }],
+            )
+        })
     }
 
-    fn present_header(&self, scope: Scope) -> Drawing {
+    fn header(&self) -> Drawing {
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
         let text = text(&self.name, header_font, None);
@@ -33,7 +28,7 @@ impl TestCapture {
         drawing
     }
 
-    fn draw_output(&self) -> Drawing {
+    fn output(&self) -> Drawing {
         // TODO: render invalid output as text and mark it appropriately
         if !self.output.starts_with("> ") {
             return Drawing::new();
@@ -67,7 +62,7 @@ mod tests {
             output,
         };
 
-        capture.present(&mut presenter, 0.into(), true);
+        capture.present(&mut presenter, true);
 
         presenter.take_presentation().visualize(&presenter).render();
     }
