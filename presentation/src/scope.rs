@@ -29,6 +29,12 @@ impl From<String> for Scope {
     }
 }
 
+impl From<&String> for Scope {
+    fn from(str: &String) -> Self {
+        str.clone().into()
+    }
+}
+
 impl From<usize> for Scope {
     fn from(i: usize) -> Self {
         Scope::Index(i)
