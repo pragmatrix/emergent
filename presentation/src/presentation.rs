@@ -99,19 +99,19 @@ impl DrawTo for Presentation {
 
 impl Presentation {
     pub fn new() -> Presentation {
-        Self::Empty
+        Presentation::Empty
     }
 
-    pub fn in_area(self, scope: impl Into<Scope>) -> Self {
-        self.in_area_with_outset(scope, Outset::default())
+    pub fn in_area(self) -> Self {
+        self.in_area_with_outset(Outset::default())
     }
 
-    pub fn in_area_with_outset(self, scope: impl Into<Scope>, outset: impl Into<Outset>) -> Self {
-        Self::Scoped(scope.into(), Self::Area(outset.into(), self.into()).into())
+    pub fn in_area_with_outset(self, outset: impl Into<Outset>) -> Self {
+        Presentation::Area(outset.into(), self.into())
     }
 
     pub fn scoped(self, scope: impl Into<Scope>) -> Self {
-        Self::Scoped(scope.into(), self.into())
+        Presentation::Scoped(scope.into(), self.into())
     }
 
     /// Change the presentation so that it provides an open drawing that, when drawn to,

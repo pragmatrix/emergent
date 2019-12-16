@@ -15,7 +15,7 @@ pub mod libtest;
 mod line_breaking;
 pub use line_breaking::*;
 
-mod presentations;
+mod test_capture;
 
 pub mod skia;
 mod ui_tests;

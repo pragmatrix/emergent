@@ -61,11 +61,25 @@ impl Presenter {
     }
 
     /// Render a nested presentation into a scope and push it on top of the already existing presentation.
+    /// A scope is meant to be a logical hierarhical structuring identity. Either a string, or an index.
+    ///
+    /// Its responsibilities are:
+    /// - assisting the renderer to optimize by assuming that the content of a scope is related to a
+    ///   scope with the same path from a previous run.
+    /// - Defining the identity of areas.
+    /// - Defining the identity of gesture and other local state.
     pub fn scoped(&mut self, scope: impl Into<Scope>, f: impl FnOnce(&mut Presenter)) {
         self.scope.push(scope.into());
         let nested = self.nested(f);
         let scope = self.scope.pop().unwrap();
         self.presentation.push_on_top(nested.scoped(scope))
+    }
+
+    // Render a nested presentation, and define an area around it that is associated with the
+    // current scope.
+    pub fn area(&mut self, f: impl FnOnce(&mut Presenter)) {
+        let nested = self.nested(f);
+        self.presentation.push_on_top(nested.in_area())
     }
 
     /// Render a nested presentation, transform it and push it on top of the already existing presentation.
