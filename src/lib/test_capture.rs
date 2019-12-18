@@ -4,10 +4,16 @@ use crate::libtest::TestCapture;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presentation::Scope;
+use emergent_presenter::recognizer::TapRecognizer;
 use emergent_presenter::{Direction, Presenter};
 
 impl TestCapture {
-    pub fn present(&self, p: &mut Presenter, show_contents: bool) {
+    pub fn present<Msg: 'static>(
+        &self,
+        p: &mut Presenter,
+        show_contents: bool,
+        toggle_msg: impl Fn() -> Msg + 'static,
+    ) {
         p.scoped(&self.name, |p| {
             p.stack_f(
                 Direction::Column,
@@ -16,7 +22,8 @@ impl TestCapture {
                         p.draw(self.output());
                     }
                 }],
-            )
+            );
+            p.recognize(TapRecognizer::new(toggle_msg))
         })
     }
 

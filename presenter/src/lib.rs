@@ -13,5 +13,7 @@ pub use host::*;
 mod presenter;
 pub use presenter::*;
 
+pub mod recognizer;
+
 mod support;
 pub use support::*;

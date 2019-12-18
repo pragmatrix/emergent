@@ -22,6 +22,8 @@ extern crate log;
 
 mod app;
 mod capture;
+mod msg;
+pub use msg::Msg;
 mod renderer;
 mod skia_renderer;
 mod test_runner;

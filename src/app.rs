@@ -1,6 +1,6 @@
 use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
-use crate::test_watcher;
 use crate::test_watcher::{Notification, TestWatcher};
+use crate::{test_watcher, Msg};
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::{RenderPresentation, WindowApplicationMsg, WindowModel};
@@ -9,17 +9,6 @@ use emergent_ui::WindowMsg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tears::Cmd;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Msg {
-    #[serde(skip)]
-    WatcherNotification(Result<test_watcher::Notification, failure::Error>),
-    ToggleTestcase {
-        name: String,
-    },
-    #[serde(skip)]
-    RerunTestcases(TestEnvironment),
-}
 
 pub struct App {
     watcher: TestWatcher,
@@ -143,10 +132,12 @@ impl RenderPresentation<Msg> for App {
                                 Direction::Column,
                                 &captures.0,
                                 |presenter, (_, capture)| {
-                                    let name = &capture.name;
-                                    let show_contents = !self.collapsed_tests.contains(name);
+                                    let name = capture.name.clone();
+                                    let show_contents = !self.collapsed_tests.contains(&name);
 
-                                    capture.present(presenter, show_contents);
+                                    capture.present(presenter, show_contents, move || {
+                                        Msg::ToggleTestcase { name: name.clone() }
+                                    });
                                 },
                             )
                         },

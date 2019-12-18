@@ -8,7 +8,7 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{GestureRecognizer, Host};
+use crate::{GestureRecognizer, Host, UntypedGestureRecognizer};
 use emergent_drawing::{
     Bounds, Drawing, DrawingFastBounds, MeasureText, Point, ReplaceWith, Text, Transform,
     Transformed, Vector,
@@ -32,7 +32,7 @@ pub struct Presenter {
     pub(crate) presentation: Presentation,
     /// The current recognizers.
     /// TODO: this requires the complete scope to be copied.
-    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer>>,
+    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn UntypedGestureRecognizer>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -99,7 +99,7 @@ impl Presenter {
     /// state of the gesture recognizer (for now).
     ///
     /// If a gesture recognizer disappears from a scope, it will be removed from the presentation.
-    pub fn recognize(&mut self, recognizer: impl GestureRecognizer + 'static) {
+    pub fn recognize(&mut self, recognizer: impl UntypedGestureRecognizer + 'static) {
         match self.host.recognizers.remove(&self.scope) {
             Some(old_recognizer) => {
                 self.recognizers.insert(self.scope.clone(), old_recognizer);

@@ -1,6 +1,6 @@
 //! State is persisting for the time the presentation is active.
 
-use crate::{GestureRecognizer, Presenter, Support};
+use crate::{Presenter, Support, UntypedGestureRecognizer};
 use emergent_drawing::ReplaceWith;
 use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
@@ -13,7 +13,7 @@ pub struct Host {
     presentation: Presentation,
 
     /// The active recognizers of the previous presentation.
-    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer>>,
+    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn UntypedGestureRecognizer>>,
 }
 
 impl Host {

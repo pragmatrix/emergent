@@ -8,4 +8,5 @@ edition = "2018"
 emergent-drawing = { path = "../drawing" }
 emergent-presentation = { path = "../presentation" }
 emergent-ui = { path = "../ui" }
+downcast-rs = "1.1.1"
 log = "0.4.8"
