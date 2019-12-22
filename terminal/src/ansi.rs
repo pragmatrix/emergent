@@ -57,11 +57,7 @@ fn parse_rgb_color(color: &[u8]) -> Option<Rgb> {
         Some((255 * value / max) as u8)
     };
 
-    Some(Rgb {
-        r: scale(colors[0])?,
-        g: scale(colors[1])?,
-        b: scale(colors[2])?,
-    })
+    Some(Rgb { r: scale(colors[0])?, g: scale(colors[1])?, b: scale(colors[2])? })
 }
 
 // Parse colors in `#r(rrr)g(ggg)b(bbb)` format
@@ -129,22 +125,13 @@ impl<'a, H: Handler + TermInfo + 'a, W: io::Write> Performer<'a, H, W> {
         handler: &'b mut H,
         writer: &'b mut W,
     ) -> Performer<'b, H, W> {
-        Performer {
-            _state: state,
-            handler,
-            writer,
-        }
+        Performer { _state: state, handler, writer }
     }
 }
 
 impl Default for Processor {
     fn default() -> Processor {
-        Processor {
-            state: ProcessorState {
-                preceding_char: None,
-            },
-            parser: vte::Parser::new(),
-        }
+        Processor { state: ProcessorState { preceding_char: None }, parser: vte::Parser::new() }
     }
 }
 
@@ -813,8 +800,7 @@ where
                             if let Some(color) = xparse_color(param) {
                                 self.handler.set_color(index, color);
                             } else if param == b"?" {
-                                self.handler
-                                    .dynamic_color_sequence(writer, dynamic_code, index);
+                                self.handler.dynamic_color_sequence(writer, dynamic_code, index);
                             } else {
                                 unhandled(params);
                             }
@@ -1286,11 +1272,7 @@ fn parse_sgr_color(attrs: &[i64], i: &mut usize) -> Option<Color> {
                 return None;
             }
 
-            Some(Color::Spec(Rgb {
-                r: r as u8,
-                g: g as u8,
-                b: b as u8,
-            }))
+            Some(Color::Spec(Rgb { r: r as u8, g: g as u8, b: b as u8 }))
         }
         5 => {
             if attrs.len() < 3 {
@@ -1534,11 +1516,7 @@ mod tests {
             parser.advance(&mut handler, *byte, &mut Void);
         }
 
-        let spec = Rgb {
-            r: 128,
-            g: 66,
-            b: 255,
-        };
+        let spec = Rgb { r: 128, g: 66, b: 255 };
 
         assert_eq!(handler.attr, Some(Attr::Foreground(Color::Spec(spec))));
     }
@@ -1577,10 +1555,7 @@ mod tests {
 
     impl Default for CharsetHandler {
         fn default() -> CharsetHandler {
-            CharsetHandler {
-                index: CharsetIndex::G0,
-                charset: StandardCharset::Ascii,
-            }
+            CharsetHandler { index: CharsetIndex::G0, charset: StandardCharset::Ascii }
         }
     }
 
@@ -1616,10 +1591,7 @@ mod tests {
         }
 
         assert_eq!(handler.index, CharsetIndex::G0);
-        assert_eq!(
-            handler.charset,
-            StandardCharset::SpecialCharacterAndLineDrawing
-        );
+        assert_eq!(handler.charset, StandardCharset::SpecialCharacterAndLineDrawing);
     }
 
     #[test]
@@ -1633,10 +1605,7 @@ mod tests {
         }
 
         assert_eq!(handler.index, CharsetIndex::G1);
-        assert_eq!(
-            handler.charset,
-            StandardCharset::SpecialCharacterAndLineDrawing
-        );
+        assert_eq!(handler.charset, StandardCharset::SpecialCharacterAndLineDrawing);
 
         let mut handler = CharsetHandler::default();
         parser.advance(&mut handler, BYTES[3], &mut Void);
@@ -1646,74 +1615,18 @@ mod tests {
 
     #[test]
     fn parse_valid_rgb_colors() {
-        assert_eq!(
-            xparse_color(b"rgb:f/e/d\x07"),
-            Some(Rgb {
-                r: 0xff,
-                g: 0xee,
-                b: 0xdd
-            })
-        );
-        assert_eq!(
-            xparse_color(b"rgb:11/aa/ff\x07"),
-            Some(Rgb {
-                r: 0x11,
-                g: 0xaa,
-                b: 0xff
-            })
-        );
-        assert_eq!(
-            xparse_color(b"rgb:f/ed1/cb23\x07"),
-            Some(Rgb {
-                r: 0xff,
-                g: 0xec,
-                b: 0xca
-            })
-        );
-        assert_eq!(
-            xparse_color(b"rgb:ffff/0/0\x07"),
-            Some(Rgb {
-                r: 0xff,
-                g: 0x0,
-                b: 0x0
-            })
-        );
+        assert_eq!(xparse_color(b"rgb:f/e/d\x07"), Some(Rgb { r: 0xff, g: 0xee, b: 0xdd }));
+        assert_eq!(xparse_color(b"rgb:11/aa/ff\x07"), Some(Rgb { r: 0x11, g: 0xaa, b: 0xff }));
+        assert_eq!(xparse_color(b"rgb:f/ed1/cb23\x07"), Some(Rgb { r: 0xff, g: 0xec, b: 0xca }));
+        assert_eq!(xparse_color(b"rgb:ffff/0/0\x07"), Some(Rgb { r: 0xff, g: 0x0, b: 0x0 }));
     }
 
     #[test]
     fn parse_valid_legacy_rgb_colors() {
-        assert_eq!(
-            xparse_color(b"#1af\x07"),
-            Some(Rgb {
-                r: 0x10,
-                g: 0xa0,
-                b: 0xf0
-            })
-        );
-        assert_eq!(
-            xparse_color(b"#11aaff\x07"),
-            Some(Rgb {
-                r: 0x11,
-                g: 0xaa,
-                b: 0xff
-            })
-        );
-        assert_eq!(
-            xparse_color(b"#110aa0ff0\x07"),
-            Some(Rgb {
-                r: 0x11,
-                g: 0xaa,
-                b: 0xff
-            })
-        );
-        assert_eq!(
-            xparse_color(b"#1100aa00ff00\x07"),
-            Some(Rgb {
-                r: 0x11,
-                g: 0xaa,
-                b: 0xff
-            })
-        );
+        assert_eq!(xparse_color(b"#1af\x07"), Some(Rgb { r: 0x10, g: 0xa0, b: 0xf0 }));
+        assert_eq!(xparse_color(b"#11aaff\x07"), Some(Rgb { r: 0x11, g: 0xaa, b: 0xff }));
+        assert_eq!(xparse_color(b"#110aa0ff0\x07"), Some(Rgb { r: 0x11, g: 0xaa, b: 0xff }));
+        assert_eq!(xparse_color(b"#1100aa00ff00\x07"), Some(Rgb { r: 0x11, g: 0xaa, b: 0xff }));
     }
 
     #[test]

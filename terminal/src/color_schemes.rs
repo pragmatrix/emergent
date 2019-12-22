@@ -16,10 +16,7 @@ pub mod light {
     use super::{ac, rgb, Primary, Scheme};
 
     pub const PENCIL: Scheme = Scheme {
-        primary: Primary {
-            background: rgb(0x424242),
-            foreground: rgb(0xf1f1f1),
-        },
+        primary: Primary { background: rgb(0x424242), foreground: rgb(0xf1f1f1) },
         normal: ac([
             0x212121, 0xc30771, 0x10a778, 0xa89c14, 0x008ec4, 0x523c79, 0x20a5ba, 0xe0e0e0,
         ]),
@@ -29,10 +26,7 @@ pub mod light {
     };
 
     pub const SEABIRD: Scheme = Scheme {
-        primary: Primary {
-            background: rgb(0xffffff),
-            foreground: rgb(0x61707a),
-        },
+        primary: Primary { background: rgb(0xffffff), foreground: rgb(0x61707a) },
         normal: ac([
             0x0b141a, 0xff4053, 0x11ab00, 0xbf8c00, 0x0099ff, 0x9854ff, 0x00a5ab, 0xffffff,
         ]),
@@ -42,10 +36,7 @@ pub mod light {
     };
 
     pub const SOLARIZED: Scheme = Scheme {
-        primary: Primary {
-            background: rgb(0xfdf6e3),
-            foreground: rgb(0x657b83),
-        },
+        primary: Primary { background: rgb(0xfdf6e3), foreground: rgb(0x657b83) },
         normal: ac([
             0x073642, 0xdc322f, 0x859900, 0xb58900, 0x268bd2, 0xd33682, 0x2aa198, 0xeee8d5,
         ]),
@@ -56,10 +47,7 @@ pub mod light {
 
     // https://github.com/NLKNguyen/papercolor-theme/blob/master/colors/PaperColor.vim
     pub const PAPER: Scheme = Scheme {
-        primary: Primary {
-            background: rgb(0xffffff),
-            foreground: rgb(0x000000),
-        },
+        primary: Primary { background: rgb(0xffffff), foreground: rgb(0x000000) },
         normal: ac([
             0xeeeeee, 0xaf0000, 0x008700, 0x5f8700, 0x0087af, 0x878787, 0x005f87, 0x444444,
         ]),
@@ -83,11 +71,7 @@ const fn ac(colors: [u32; 8]) -> AnsiColors {
 }
 
 const fn rgb(x: u32) -> Rgb {
-    Rgb {
-        r: (x >> 16) as u8,
-        g: (x >> 8) as u8,
-        b: x as u8,
-    }
+    Rgb { r: (x >> 16) as u8, g: (x >> 8) as u8, b: x as u8 }
 }
 
 impl From<Scheme> for List {

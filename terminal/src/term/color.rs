@@ -7,16 +7,8 @@ use crate::config::Colors;
 
 pub const COUNT: usize = 269;
 
-pub const RED: Rgb = Rgb {
-    r: 0xff,
-    g: 0x0,
-    b: 0x0,
-};
-pub const YELLOW: Rgb = Rgb {
-    r: 0xff,
-    g: 0xff,
-    b: 0x0,
-};
+pub const RED: Rgb = Rgb { r: 0xff, g: 0x0, b: 0x0 };
+pub const YELLOW: Rgb = Rgb { r: 0xff, g: 0xff, b: 0x0 };
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Default)]
 pub struct Rgb {
@@ -123,10 +115,8 @@ impl List {
         self[ansi::NamedColor::BrightMagenta] = colors.bright().magenta;
         self[ansi::NamedColor::BrightCyan] = colors.bright().cyan;
         self[ansi::NamedColor::BrightWhite] = colors.bright().white;
-        self[ansi::NamedColor::BrightForeground] = colors
-            .primary
-            .bright_foreground
-            .unwrap_or(colors.primary.foreground);
+        self[ansi::NamedColor::BrightForeground] =
+            colors.primary.bright_foreground.unwrap_or(colors.primary.foreground);
 
         // Foreground and background
         self[ansi::NamedColor::Foreground] = colors.primary.foreground;
@@ -136,10 +126,8 @@ impl List {
         self[ansi::NamedColor::Cursor] = colors.cursor.cursor.unwrap_or_else(Rgb::default);
 
         // Dims
-        self[ansi::NamedColor::DimForeground] = colors
-            .primary
-            .dim_foreground
-            .unwrap_or(colors.primary.foreground * 0.66);
+        self[ansi::NamedColor::DimForeground] =
+            colors.primary.dim_foreground.unwrap_or(colors.primary.foreground * 0.66);
         match colors.dim {
             Some(ref dim) => {
                 self[ansi::NamedColor::DimBlack] = dim.black;
@@ -171,10 +159,8 @@ impl List {
             for g in 0..6 {
                 for b in 0..6 {
                     // Override colors 16..232 with the config (if present)
-                    if let Some(indexed_color) = colors
-                        .indexed_colors
-                        .iter()
-                        .find(|ic| ic.index == index as u8)
+                    if let Some(indexed_color) =
+                        colors.indexed_colors.iter().find(|ic| ic.index == index as u8)
                     {
                         self[index] = indexed_color.color;
                     } else {
@@ -200,10 +186,8 @@ impl List {
             let color_index = 16 + 216 + i;
 
             // Override colors 232..256 with the config (if present)
-            if let Some(indexed_color) = colors
-                .indexed_colors
-                .iter()
-                .find(|ic| ic.index == color_index)
+            if let Some(indexed_color) =
+                colors.indexed_colors.iter().find(|ic| ic.index == color_index)
             {
                 self[index] = indexed_color.color;
                 index += 1;
@@ -211,11 +195,7 @@ impl List {
             }
 
             let value = i * 10 + 8;
-            self[index] = Rgb {
-                r: value,
-                g: value,
-                b: value,
-            };
+            self[index] = Rgb { r: value, g: value, b: value };
             index += 1;
         }
 
