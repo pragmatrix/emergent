@@ -1,7 +1,7 @@
 pub mod presenter {
     use emergent_presenter::Presenter;
 
-    pub fn from_test_environment() -> Presenter {
+    pub fn from_test_environment<Msg: 'static>() -> Presenter<Msg> {
         Presenter::new(
             super::host::from_test_environment(),
             super::frame_layout::from_test_environment(),
@@ -12,7 +12,7 @@ pub mod presenter {
 mod host {
     use emergent_presenter::Host;
 
-    pub fn from_test_environment() -> Host {
+    pub fn from_test_environment<Msg: 'static>() -> Host<Msg> {
         Host::new(super::support::from_test_environment())
     }
 }

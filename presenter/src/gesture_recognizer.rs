@@ -1,6 +1,4 @@
-use downcast_rs::Downcast;
 use emergent_ui::WindowMsg;
-use std::any::Any;
 
 /// A trait to define gesture recognizers.
 ///
@@ -15,18 +13,4 @@ use std::any::Any;
 pub trait GestureRecognizer {
     type Msg: 'static;
     fn update(&mut self, msg: WindowMsg) -> Option<Self::Msg>;
-}
-
-pub trait UntypedGestureRecognizer {
-    fn update(&mut self, msg: WindowMsg) -> Option<Box<dyn Any + 'static>>;
-}
-
-impl<T, Msg: 'static> UntypedGestureRecognizer for T
-where
-    T: GestureRecognizer<Msg = Msg> + 'static,
-{
-    fn update(&mut self, msg: WindowMsg) -> Option<Box<dyn Any + 'static>> {
-        let cmd = GestureRecognizer::update(self, msg);
-        cmd.map(|msg| Box::new(msg).into_any())
-    }
 }

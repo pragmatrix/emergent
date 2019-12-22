@@ -1,10 +1,10 @@
 use crate::app::App;
-use crate::test_runner::{TestEnvironment, TestRunRequest};
 use clap::Arg;
 use emergent::skia::convert::ToSkia;
 use emergent::skia::path_support::PathSupport;
 use emergent::skia::text::PrimitiveText;
-use emergent::{skia, Frame, WindowApplication, WindowApplicationMsg};
+use emergent::test_runner::{TestEnvironment, TestRunRequest};
+use emergent::{skia, Frame, Msg, WindowApplication, WindowApplicationMsg};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use emergent_presenter::Support;
@@ -21,13 +21,8 @@ use winit::{Event, EventsLoop, WindowBuilder, WindowEvent};
 extern crate log;
 
 mod app;
-mod capture;
-mod msg;
-pub use msg::Msg;
 mod renderer;
 mod skia_renderer;
-mod test_runner;
-mod test_watcher;
 
 fn main() {
     // TODO: push logs internally as soon the window is open?
@@ -92,7 +87,7 @@ fn main() {
             |dpi: DPI| Support::new(dpi, PrimitiveText::new(dpi), PathSupport::default());
         let mut application = Application::new(
             app_mailbox,
-            WindowApplication::new(emergent, support_builder),
+            WindowApplication::new(emergent, frame_layout.dpi, support_builder),
             executor,
         );
         application.schedule(initial_cmd.map(WindowApplicationMsg::Application));
@@ -106,7 +101,7 @@ fn main() {
 
         while !application.model().close_requested() {
             let frame_layout = render_surface.window().frame_layout();
-            let presentation = application.model().render_presentation(&frame_layout);
+            let presentation = application.model_mut().render_presentation(&frame_layout);
             let frame = Frame::new(frame_layout, presentation);
 
             // even if we drop the frame, we want to recreate the swapchain so that we are

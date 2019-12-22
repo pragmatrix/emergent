@@ -1,8 +1,8 @@
-use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
-use crate::test_watcher::{Notification, TestWatcher};
-use crate::{test_watcher, Msg};
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
+use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
+use emergent::test_watcher::{Notification, TestWatcher};
+use emergent::{test_watcher, Msg};
 use emergent::{RenderPresentation, WindowApplicationMsg, WindowModel};
 use emergent_presenter::{Direction, Presenter};
 use emergent_ui::WindowMsg;
@@ -61,15 +61,6 @@ impl WindowModel<Msg> for App {
         }
         self.receive_watcher_notifications()
     }
-
-    fn filter_window_msg(&self, msg: WindowMsg) -> Option<WindowApplicationMsg<Msg>> {
-        match msg {
-            WindowMsg::HiDPIFactorChanged(layout) => Some(WindowApplicationMsg::Application(
-                Msg::RerunTestcases(TestEnvironment::new(layout.dpi)),
-            )),
-            msg => Some(WindowApplicationMsg::Window(msg)),
-        }
-    }
 }
 
 impl App {
@@ -105,50 +96,38 @@ impl App {
 }
 
 impl RenderPresentation<Msg> for App {
-    fn render_presentation(&self, presenter: &mut Presenter) {
+    fn render_presentation(&self, p: &mut Presenter<Msg>) {
         match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
-                presenter.stack_items(
+                p.stack_items(
                     Direction::Column,
                     compiler_messages,
                     |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
                 );
             }
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
-                // TODO: put around those two a stack vertically.
-
-                presenter.stack_f(
+                debug!("{} tests captured", captures.0.len());
+                p.stack_f(
                     Direction::Column,
                     &[
-                        &|presenter| {
-                            presenter.stack_items(
+                        &|p| {
+                            debug!("rendering {} compiler messages", compiler_messages.len());
+                            p.stack_items(
                                 Direction::Column,
                                 compiler_messages,
                                 |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
                             )
                         },
-                        &|presenter| {
-                            presenter.stack_items(
-                                Direction::Column,
-                                &captures.0,
-                                |presenter, (_, capture)| {
-                                    let name = capture.name.clone();
-                                    let show_contents = !self.collapsed_tests.contains(&name);
-
-                                    capture.present(presenter, show_contents, move || {
-                                        Msg::ToggleTestcase { name: name.clone() }
-                                    });
-                                },
-                            )
+                        &|p| {
+                            debug!("rendering {} tests", captures.0.len());
+                            p.stack_items(Direction::Column, &captures.0, |p, (_, capture)| {
+                                let name = capture.name.clone();
+                                let show_contents = !self.collapsed_tests.contains(&name);
+                                capture.present(p, show_contents)
+                            })
                         },
                     ],
                 );
-                /*
-                    let tap_gesture = {
-                        let name = name.clone();
-                        Gesture::tap(move |_| Msg::ToggleTestcase { name: name.clone() })
-                    };
-                */
             }
             _ => {
                 // TODO: no result yet (should we display some notification... running test, etc?)

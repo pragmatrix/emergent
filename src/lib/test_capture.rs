@@ -1,29 +1,32 @@
 //! A captured test and its presentation.
 
 use crate::libtest::TestCapture;
+use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
-use emergent_presentation::Scope;
 use emergent_presenter::recognizer::TapRecognizer;
 use emergent_presenter::{Direction, Presenter};
 
 impl TestCapture {
-    pub fn present<Msg: 'static>(
-        &self,
-        p: &mut Presenter,
-        show_contents: bool,
-        toggle_msg: impl Fn() -> Msg + 'static,
-    ) {
+    pub fn present(&self, p: &mut Presenter<Msg>, show_contents: bool) {
         p.scoped(&self.name, |p| {
             p.stack_f(
                 Direction::Column,
-                &[&|p| p.area(|p| p.draw(self.header())), &|p| {
-                    if show_contents {
-                        p.draw(self.output());
-                    }
-                }],
+                &[
+                    &|p| {
+                        p.area(|p| p.draw(self.header()));
+                        let name = self.name.clone();
+                        p.recognize(TapRecognizer::new(move || Msg::ToggleTestcase {
+                            name: name.clone(),
+                        }));
+                    },
+                    &|p| {
+                        if show_contents {
+                            p.draw(self.output());
+                        }
+                    },
+                ],
             );
-            p.recognize(TapRecognizer::new(toggle_msg))
         })
     }
 

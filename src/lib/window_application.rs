@@ -25,12 +25,11 @@
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
 use crate::RenderPresentation;
-use emergent_drawing::{MeasureText, Path, Point, Text};
+use emergent_drawing::{Point, ReplaceWith};
 use emergent_presentation::Presentation;
-use emergent_presenter::{Host, Support};
+use emergent_presenter::{AreaHitTest, Host, Support};
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
 use std::cell::RefCell;
-use std::marker::PhantomData;
 use tears::{Cmd, Model};
 
 /// The generic Window Application Model.
@@ -43,18 +42,18 @@ where
     model: Model,
 
     /// System support.
-    support: Box<dyn Fn(DPI) -> Support>,
+    support_builder: Box<dyn Fn(DPI) -> Support>,
 
     /// The presenter's host.
-    host: RefCell<Option<Host>>,
+    ///
+    /// TODO: RefCell because we want to use it in tandem with the Model.
+    host: RefCell<Host<Msg>>,
 
     /// State related to input.
     input: InputState,
 
     // TODO: do we need a veto-system? Yes, probably, optionally saving state?
     close_requested: bool,
-
-    msg: PhantomData<Msg>,
 }
 
 /// A message sent to the window application can be either a `WindowMsg` or
@@ -71,13 +70,9 @@ where
 {
     fn update(&mut self, msg: WindowApplicationMsg<Msg>) -> Cmd<WindowApplicationMsg<Msg>> {
         use WindowApplicationMsg::*;
-        if let Some(msg) = self.model.filter_msg(msg) {
-            match msg {
-                Window(msg) => self.update_window(msg),
-                Application(msg) => self.update_application(msg),
-            }
-        } else {
-            Cmd::None
+        match msg {
+            Window(msg) => self.update_window(msg),
+            Application(msg) => self.update_model(msg),
         }
     }
 }
@@ -87,14 +82,18 @@ where
     M: WindowModel<Msg>,
     Msg: Send + 'static,
 {
-    pub fn new(model: M, support_builder: impl Fn(DPI) -> Support + 'static) -> Self {
+    pub fn new(
+        model: M,
+        initial_dpi: DPI,
+        support_builder: impl Fn(DPI) -> Support + 'static,
+    ) -> Self {
+        let support = support_builder(initial_dpi);
         WindowApplication {
             model,
-            support: Box::new(support_builder),
-            host: None.into(),
+            support_builder: Box::new(support_builder),
+            host: Host::new(support).into(),
             input: Default::default(),
             close_requested: false,
-            msg: PhantomData,
         }
     }
 
@@ -123,105 +122,63 @@ where
             WindowMsg::CursorEntered => self.input.cursor_entered = true,
             WindowMsg::CursorLeft => self.input.cursor_entered = false,
             WindowMsg::MouseWheel { .. } => {}
-            WindowMsg::MouseInput {
-                state,
-                button,
-                modifiers,
-            } => {
-                /*
-                if let Some(msg) = {
-                    let presentation = &mut *self.recent_presentation.borrow_mut();
-                    if let (Some((dpi, presentation)), Some(position)) =
-                        (presentation, self.input.cursor)
-                    {
+            WindowMsg::MouseInput { .. } => {
+                if let Some(position) = self.input.cursor {
+                    debug!("position for hit testing {:?}", position);
+
+                    let mut hits = {
+                        let host = self.host.borrow();
+                        let presentation = &host.presentation;
                         // TODO: cache support records.
-                        let support = (self.support)(*dpi);
-                        /*
-                        let mut hits = presentation.area_hit_test(position, &support);
-                        if !hits.is_empty() {
-                            let hit = hits.swap_remove(0);
-                            Self::area_mouse_input(hit, state, button, modifiers)
-                        } else {
-                            None
-                        }
-                        */
-                        None
-                    } else {
-                        None
+                        let support = &host.support;
+                        presentation.area_hit_test(position, Vec::new(), support)
+                    };
+
+                    debug!("hits: {:?}", hits);
+
+                    if !hits.is_empty() {
+                        let hit = hits.swap_remove(0);
+                        let msg = self.host.borrow_mut().dispatch_mouse_input(hit, msg);
+                        return msg.map(|msg| self.update_model(msg)).unwrap_or(Cmd::None);
                     }
-                } {
-                return self.update_application(msg);
-                } */
-                return Cmd::None;
+                }
             }
+
             WindowMsg::TouchpadPressure { .. } => {}
             WindowMsg::AxisMotion { .. } => {}
             WindowMsg::Refresh => {}
             WindowMsg::Touch { .. } => {}
-            WindowMsg::HiDPIFactorChanged(_) => {
-                // note: this msg is always filtered away.
-                // TODO: rethink filtering logic or replace it,
-                //       it's causing more trouble than anticipated.
-                panic!("dropped host");
-                // drop the host if the DPI changes.
-                self.host = None.into()
+            WindowMsg::HiDPIFactorChanged(frame_layout) => {
+                debug!("DPI change: regenerating host");
+                self.host = Host::new((self.support_builder)(frame_layout.dpi)).into()
             }
         }
         Cmd::None
     }
 
-    /*
-    fn area_mouse_input(
-        (area, point): (&mut Area<Msg>, Point),
-        state: ElementState,
-        button: MouseButton,
-        _modifiers: ModifiersState,
-    ) -> Option<Msg> {
-        match area {
-            Area::Named(name) => {
-                debug!("Hit named area: {}", name);
-                None
-            }
-            Area::Gesture(Gesture::Tap(f))
-                if state == ElementState::Pressed && button == MouseButton::Left =>
-            {
-                let f = mem::replace(f, Box::new(|_| panic!("event handler already invoked")));
-                Some(f(point))
-            }
-            _ => None,
-        }
-    }
-    */
-
-    fn update_application(&mut self, msg: Msg) -> Cmd<WindowApplicationMsg<Msg>> {
+    fn update_model(&mut self, msg: Msg) -> Cmd<WindowApplicationMsg<Msg>> {
         self.model
             .update(msg)
             .map(WindowApplicationMsg::Application)
     }
 
-    pub fn render_presentation(&self, frame_layout: &FrameLayout) -> Presentation
+    // This function requires self to be mut, because the contained host is modified.
+    // TODO: we might consider lying and taking only &self here, because the host is
+    //       just a caching mechanism (but also stores the recent presentation).
+    pub fn render_presentation(&mut self, frame_layout: &FrameLayout) -> Presentation
     where
         M: RenderPresentation<Msg>,
     {
         let mut presentation: Presentation = Presentation::Empty;
 
-        self.host.replace_with(|host| {
-            // TODO: drop host as soon a DPI message is received.
-            let mut host = host.take();
-            if let Some(ref h) = host {
-                if h.support.dpi != frame_layout.dpi {
-                    host = None
-                }
-            }
-
-            let mut host = host.unwrap_or_else(|| Host::new((self.support)(frame_layout.dpi)));
+        self.host.borrow_mut().replace_with(|mut host| {
             presentation = host
                 .present(frame_layout.clone(), |presenter| {
                     // TODO: this is horrible, here the full presentation is being cloned.
                     self.model.render_presentation(presenter);
                 })
                 .clone();
-            Some(host)
+            host
         });
 
         presentation
@@ -232,27 +189,6 @@ where
 /// filters.
 pub trait WindowModel<Msg: Send> {
     fn update(&mut self, msg: Msg) -> Cmd<Msg>;
-
-    /// Filter / map a `ApplicationWindowMsg` before it is being processed.
-    ///
-    /// This can be used to hijack the window input processing logic of the `WindowApplication`.
-    ///
-    /// The default implementation returns the `ApplicationWindowMsg`.
-    fn filter_msg(&self, msg: WindowApplicationMsg<Msg>) -> Option<WindowApplicationMsg<Msg>> {
-        use WindowApplicationMsg::*;
-        match msg {
-            Window(msg) => self.filter_window_msg(msg),
-            Application(msg) => self.filter_application_msg(msg),
-        }
-    }
-
-    fn filter_window_msg(&self, msg: WindowMsg) -> Option<WindowApplicationMsg<Msg>> {
-        Some(WindowApplicationMsg::Window(msg))
-    }
-
-    fn filter_application_msg(&self, msg: Msg) -> Option<WindowApplicationMsg<Msg>> {
-        Some(WindowApplicationMsg::Application(msg))
-    }
 }
 
 #[derive(Clone, Default, Debug)]

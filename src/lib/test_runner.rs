@@ -1,9 +1,9 @@
-use crate::capture::Capture;
+use crate::libtest::TestCaptures;
+use crate::Capture;
 use cargo::core::compiler;
 use cargo::ops;
 use cargo::ops::{FilterRule, LibRule};
 use cargo_metadata::CompilerMessage;
-use emergent::libtest::TestCaptures;
 use emergent_drawing::FromTestEnvironment;
 use emergent_ui::DPI;
 use std::env;
@@ -68,7 +68,7 @@ impl TestRunRequest {
             // also capture test output.
 
             let shell = cargo::core::Shell::new();
-            let mut config = cargo::Config::new(shell, current_dir, home_dir);
+            let config = cargo::Config::new(shell, current_dir, home_dir);
             env::set_var("EMERGENT_TEST_DPI", environment.dpi.0.to_string());
             let normalized_path = cargo::util::paths::normalize_path(&manifest_path);
             dbg!(&normalized_path);
@@ -160,10 +160,12 @@ impl TestRunRequest {
     }
 }
 
+/*
+
 #[cfg(test)]
 pub mod tests {
+    use crate::libtest::{TestCapture, TestResult};
     use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
-    use emergent::libtest::{TestCapture, TestResult};
     use emergent_drawing::FromTestEnvironment;
     use std::env;
 
@@ -200,6 +202,8 @@ pub mod tests {
         }
     }
 }
+
+*/
 
 impl TestEnvironment {
     pub fn new(dpi: DPI) -> Self {

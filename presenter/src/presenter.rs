@@ -8,7 +8,7 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{GestureRecognizer, Host, UntypedGestureRecognizer};
+use crate::{GestureRecognizer, Host};
 use emergent_drawing::{
     Bounds, Drawing, DrawingFastBounds, MeasureText, Point, ReplaceWith, Text, Transform,
     Transformed, Vector,
@@ -22,8 +22,8 @@ use std::mem;
 ///
 /// Implementation note: For simplicity of all the function signatures the clients will use,
 /// I've decided to move Host inside the Presenter temporarily as long the frame is being built.
-pub struct Presenter {
-    pub(crate) host: Host,
+pub struct Presenter<Msg> {
+    pub(crate) host: Host<Msg>,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The current scope stack.
@@ -32,7 +32,7 @@ pub struct Presenter {
     pub(crate) presentation: Presentation,
     /// The current recognizers.
     /// TODO: this requires the complete scope to be copied.
-    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn UntypedGestureRecognizer>>,
+    pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -54,9 +54,9 @@ impl Direction {
     }
 }
 
-impl Presenter {
-    pub fn new(host: Host, boundary: FrameLayout) -> Presenter {
-        Presenter {
+impl<Msg: 'static> Presenter<Msg> {
+    pub fn new(host: Host<Msg>, boundary: FrameLayout) -> Self {
+        Self {
             host,
             boundary,
             scope: Vec::new(),
@@ -73,7 +73,7 @@ impl Presenter {
     ///   scope with the same path from a previous run.
     /// - Defining the identity of areas.
     /// - Defining the identity of gesture and other local state.
-    pub fn scoped(&mut self, scope: impl Into<Scope>, f: impl FnOnce(&mut Presenter)) {
+    pub fn scoped(&mut self, scope: impl Into<Scope>, f: impl FnOnce(&mut Presenter<Msg>)) {
         self.scope.push(scope.into());
         let nested = self.nested(f);
         let scope = self.scope.pop().unwrap();
@@ -82,7 +82,7 @@ impl Presenter {
 
     // Render a nested presentation, and define an area around it that is associated with the
     // current scope.
-    pub fn area(&mut self, f: impl FnOnce(&mut Presenter)) {
+    pub fn area(&mut self, f: impl FnOnce(&mut Presenter<Msg>)) {
         let nested = self.nested(f);
         self.presentation.push_on_top(nested.in_area())
     }
@@ -99,12 +99,14 @@ impl Presenter {
     /// state of the gesture recognizer (for now).
     ///
     /// If a gesture recognizer disappears from a scope, it will be removed from the presentation.
-    pub fn recognize(&mut self, recognizer: impl UntypedGestureRecognizer + 'static) {
+    pub fn recognize(&mut self, recognizer: impl GestureRecognizer<Msg = Msg> + 'static) {
         match self.host.recognizers.remove(&self.scope) {
             Some(old_recognizer) => {
+                debug!("replaced old recognizer at {:?}", self.scope);
                 self.recognizers.insert(self.scope.clone(), old_recognizer);
             }
             None => {
+                debug!("added new recognizer at {:?}", self.scope);
                 self.recognizers
                     .insert(self.scope.clone(), Box::new(recognizer));
             }
@@ -112,20 +114,24 @@ impl Presenter {
     }
 
     /// Render a nested presentation, transform it and push it on top of the already existing presentation.
-    pub fn transformed(&mut self, transform: impl Into<Transform>, f: impl FnOnce(&mut Presenter)) {
+    pub fn transformed(
+        &mut self,
+        transform: impl Into<Transform>,
+        f: impl FnOnce(&mut Presenter<Msg>),
+    ) {
         let nested = self.nested(f);
         self.presentation
             .push_on_top(nested.transformed(transform.into()))
     }
 
     /// Clear the current presentation, render a nested one, return it and restore the current presentation.
-    fn nested(&mut self, f: impl FnOnce(&mut Presenter)) -> Presentation {
+    fn nested(&mut self, f: impl FnOnce(&mut Presenter<Msg>)) -> Presentation {
         let presentation = mem::replace(&mut self.presentation, Presentation::Empty);
         f(self);
         mem::replace(&mut self.presentation, presentation)
     }
 
-    fn on_top(&mut self, f: impl FnOnce(&mut Presenter)) {
+    fn on_top(&mut self, f: impl FnOnce(&mut Presenter<Msg>)) {
         let nested = self.nested(f);
         self.presentation.push_on_top(nested)
     }
@@ -142,19 +148,24 @@ impl Presenter {
         &mut self,
         direction: Direction,
         items: &[Item],
-        f: impl Fn(&mut Presenter, (usize, &Item)),
+        f: impl Fn(&mut Presenter<Msg>, (usize, &Item)),
     ) {
         self.stack(direction, items.len(), |presenter, i| {
             f(presenter, (i, &items[i]))
         })
     }
 
-    pub fn stack_f(&mut self, direction: Direction, fs: &[&dyn Fn(&mut Presenter)]) {
+    pub fn stack_f(&mut self, direction: Direction, fs: &[&dyn Fn(&mut Presenter<Msg>)]) {
         self.stack(direction, fs.len(), |presenter, i| (fs[i])(presenter))
     }
 
     /// Stack a number of presentations in the `direction` given by a Vector.
-    pub fn stack(&mut self, direction: Direction, count: usize, f: impl Fn(&mut Presenter, usize)) {
+    pub fn stack(
+        &mut self,
+        direction: Direction,
+        count: usize,
+        f: impl Fn(&mut Presenter<Msg>, usize),
+    ) {
         let direction = direction.to_vector();
         let mut p = Point::default();
         for i in 0..count {
@@ -183,7 +194,7 @@ impl Presenter {
 }
 
 // TODO: this is a good candidate for a per frame cache.
-impl MeasureText for Presenter {
+impl<Msg> MeasureText for Presenter<Msg> {
     fn measure_text(&self, text: &Text) -> Bounds {
         self.host.support.measure_text(text)
     }

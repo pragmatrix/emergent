@@ -1,7 +1,7 @@
 //! Single point presentation hit testing.
 
-use emergent_drawing::{Clip, Contains, MeasureText, Path, Point};
-use emergent_presentation::Scope;
+use emergent_drawing::{Clip, Contains, DrawingFastBounds, MeasureText, Path, Point};
+use emergent_presentation::{Presentation, Scope};
 
 pub trait PathContainsPoint {
     fn path_contains_point(&self, path: &Path, p: Point) -> bool;
@@ -11,74 +11,78 @@ pub trait HitTest {
     fn hit_test(&self, p: Point, path_tester: &dyn PathContainsPoint) -> bool;
 }
 
-/*
-pub trait AreaHitTest<Msg> {
-    /// Hit tests at `p` and returns a vector of mutable areas from back to front being the
+pub trait AreaHitTest {
+    /// Hit tests at `p` and returns hits from back to front being the
     /// last record to describe the frontmost positive test.
     ///
-    /// Returns a tuple Area & Point, where Point describes the hit point relative to the
-    /// coordinate system the area was placed.
+    /// Returns a tuple `Vec<Scope>` & `Point`, where `Vec<Scope>` describes the scope path
+    /// where the hit took place and `Point` describes the hit point relative to the coordinate
+    /// system the area was placed.
     ///
-    /// The area is returned mutable, so that FnOnce functions can be called.
+    /// TODO: The `Point` returned is relative to the area it hit. But it should be relative
+    ///       to the scope that surrounds the area it hit? And also the Scope's area should probably
+    ///       bet returned.
     fn area_hit_test(
-        &mut self,
+        &self,
         p: Point,
+        scope: Vec<Scope>,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&mut Area<Msg>, Point)>;
+    ) -> Vec<(Vec<Scope>, Point)>;
 }
-*/
 
-/*
 impl AreaHitTest for Presentation {
     fn area_hit_test(
-        &mut self,
+        &self,
         p: Point,
+        mut scope: Vec<Scope>,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(&mut Scope, Point)> {
+    ) -> Vec<(Vec<Scope>, Point)> {
         match self {
             Presentation::Empty => Vec::new(),
-            Presentation::Scoped(_, nested) => nested.area_hit_test(p, support),
-            Presentation::Area(area, outset, presentation) => {
-                let nested_bounds_plus_outset = presentation.fast_bounds(support).outset(outset);
-                let mut nested = presentation.area_hit_test(p, support);
-                if nested_bounds_plus_outset.contains(p) {
-                    nested.push((area, p))
-                }
-                nested
+            Presentation::Scoped(s, nested) => {
+                // TODO: avoid the clone here? Can't we generate these scope paths a bit more genly?
+                scope.push(s.clone());
+                nested.area_hit_test(p, scope, support)
             }
-            Presentation::InlineArea(area, clip) => {
+            Presentation::Area(outset, nested) => {
+                let nested_bounds_plus_outset = nested.fast_bounds(support).outset(outset);
+                // TODO: scope gets cloned here!
+                let mut hits = nested.area_hit_test(p, scope.clone(), support);
+                if nested_bounds_plus_outset.contains(p) {
+                    hits.push((scope, p))
+                }
+                hits
+            }
+            Presentation::InlineArea(clip) => {
                 if clip.hit_test(p, support) {
-                    vec![(area, p)]
+                    vec![(scope, p)]
                 } else {
                     Vec::new()
                 }
             }
-            Presentation::Clipped(clip, presentation) => {
+            Presentation::Clipped(clip, nested) => {
                 // clip clips both, areas and drawings for now.
                 if clip.hit_test(p, support) {
-                    presentation.area_hit_test(p, support)
+                    nested.area_hit_test(p, scope, support)
                 } else {
                     Vec::new()
                 }
             }
-            Presentation::Transformed(t, presentation) => {
+            Presentation::Transformed(t, nested) => {
                 let p = t.invert().unwrap().map_point(p);
-                presentation.area_hit_test(p, support)
+                nested.area_hit_test(p, scope, support)
             }
-            Presentation::BackToFront(presentations) => {
-                presentations
-                    .iter_mut()
-                    .fold(Vec::new(), |mut c, presentation| {
-                        c.extend(presentation.area_hit_test(p, support));
-                        c
-                    })
+            Presentation::BackToFront(nested) => {
+                nested.iter().fold(Vec::new(), |mut c, nested| {
+                    // TODO: avoid that scope.clone() here.
+                    c.extend(nested.area_hit_test(p, scope.clone(), support));
+                    c
+                })
             }
             Presentation::Drawing(_) => Vec::new(),
         }
     }
 }
-
-*/
 
 impl HitTest for Clip {
     fn hit_test(&self, p: Point, support: &dyn PathContainsPoint) -> bool {

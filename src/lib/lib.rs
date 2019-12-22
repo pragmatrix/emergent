@@ -5,6 +5,9 @@ extern crate log;
 
 use std::thread::JoinHandle;
 
+mod capture;
+pub use capture::*;
+
 mod frame;
 pub use frame::*;
 
@@ -15,7 +18,12 @@ pub mod libtest;
 mod line_breaking;
 pub use line_breaking::*;
 
+mod msg;
+pub use msg::*;
+
 mod test_capture;
+pub mod test_runner;
+pub mod test_watcher;
 
 pub mod skia;
 mod ui_tests;
@@ -80,5 +88,5 @@ impl ThreadJoiner {
 ///
 /// TODO: rename to present()?
 pub trait RenderPresentation<Msg> {
-    fn render_presentation(&self, presenter: &mut Presenter);
+    fn render_presentation(&self, presenter: &mut Presenter<Msg>);
 }
