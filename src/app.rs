@@ -111,12 +111,16 @@ impl RenderPresentation<Msg> for App {
                     Direction::Column,
                     &[
                         &|p| {
-                            debug!("rendering {} compiler messages", compiler_messages.len());
-                            p.stack_items(
-                                Direction::Column,
-                                compiler_messages,
-                                |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
-                            )
+                            if captures.0.is_empty() {
+                                // only render compiler messages if we don't have any
+                                // captures to show (later we can just collapse them by default).
+                                debug!("rendering {} compiler messages", compiler_messages.len());
+                                p.stack_items(
+                                    Direction::Column,
+                                    compiler_messages,
+                                    |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
+                                )
+                            }
                         },
                         &|p| {
                             debug!("rendering {} tests", captures.0.len());
