@@ -87,7 +87,12 @@ fn main() {
             |dpi: DPI| Support::new(dpi, PrimitiveText::new(dpi), PathSupport::default());
         let mut application = Application::new(
             app_mailbox,
-            WindowApplication::new(emergent, frame_layout.dpi, support_builder),
+            WindowApplication::new(
+                emergent,
+                frame_layout.dpi,
+                support_builder,
+                Some(|dpi| Msg::RerunTestcases(TestEnvironment { dpi })),
+            ),
             executor,
         );
         application.schedule(initial_cmd.map(WindowApplicationMsg::Application));

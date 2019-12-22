@@ -54,6 +54,9 @@ where
 
     // TODO: do we need a veto-system? Yes, probably, optionally saving state?
     close_requested: bool,
+
+    // A msg to generate when DPIs are changing.
+    dpi_msg: Option<Box<dyn Fn(DPI) -> Msg>>,
 }
 
 /// A message sent to the window application can be either a `WindowMsg` or
@@ -86,6 +89,7 @@ where
         model: M,
         initial_dpi: DPI,
         support_builder: impl Fn(DPI) -> Support + 'static,
+        dpi_msg: Option<impl Fn(DPI) -> Msg + 'static>,
     ) -> Self {
         let support = support_builder(initial_dpi);
         WindowApplication {
@@ -94,6 +98,7 @@ where
             host: Host::new(support).into(),
             input: Default::default(),
             close_requested: false,
+            dpi_msg: dpi_msg.map(|f| Box::new(f) as Box<dyn Fn(DPI) -> Msg + 'static>),
         }
     }
 
@@ -150,7 +155,13 @@ where
             WindowMsg::Touch { .. } => {}
             WindowMsg::HiDPIFactorChanged(frame_layout) => {
                 debug!("DPI change: regenerating host");
-                self.host = Host::new((self.support_builder)(frame_layout.dpi)).into()
+                let dpi = frame_layout.dpi;
+                self.host = Host::new((self.support_builder)(dpi)).into();
+
+                if let Some(dpi_msg) = &self.dpi_msg {
+                    let msg = dpi_msg(dpi);
+                    return self.update_model(msg);
+                }
             }
         }
         Cmd::None
