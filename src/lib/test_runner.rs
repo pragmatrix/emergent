@@ -160,51 +160,6 @@ impl TestRunRequest {
     }
 }
 
-/*
-
-#[cfg(test)]
-pub mod tests {
-    use crate::libtest::{TestCapture, TestResult};
-    use crate::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
-    use emergent_drawing::FromTestEnvironment;
-    use std::env;
-
-    #[test]
-    fn run_tests_self() {
-        let request = TestRunRequest::new_lib(&env::current_dir().unwrap());
-        if let TestRunResult::TestsCaptured(_, captures) = request
-            .capture_tests(TestEnvironment::from_test_environment())
-            .unwrap()
-        {
-            println!("captures:\n{:?}", captures);
-
-            let captures = captures.0;
-
-            assert!(captures.contains(&TestCapture {
-                name: "test_output_capture".into(),
-                result: TestResult::Ok(),
-                output: "CAPTURE_ME\n".into()
-            }));
-
-            assert!(captures.contains(&TestCapture {
-                name: "mod_test::test_in_mod_capture".into(),
-                result: TestResult::Ok(),
-                output: "CAPTURE_ME_IN_MOD\n".into()
-            }));
-
-            assert!(captures.contains(&TestCapture {
-                name: "test_output_capture_multiline".into(),
-                result: TestResult::Ok(),
-                output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
-            }));
-        } else {
-            assert!(false);
-        }
-    }
-}
-
-*/
-
 impl TestEnvironment {
     pub fn new(dpi: DPI) -> Self {
         TestEnvironment { dpi }
