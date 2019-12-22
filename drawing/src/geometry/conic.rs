@@ -1,4 +1,4 @@
-use crate::{scalar, Point, Scalar, Vector};
+use crate::{scalar, Point};
 
 /// A conic curve defined by three points and a weight.
 #[derive(Clone, PartialEq, Default, Debug)]

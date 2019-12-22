@@ -1,6 +1,5 @@
 use crate::{
-    point::point, scalar, Arc, Bounds, Circle, FastBounds, Oval, Point, Radians, Rect, RoundedRect,
-    Scalar, Vector,
+    point::point, scalar, Arc, Bounds, Circle, FastBounds, Oval, Point, Rect, RoundedRect, Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::iter;
