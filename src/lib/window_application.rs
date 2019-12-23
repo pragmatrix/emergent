@@ -29,7 +29,9 @@ use emergent_drawing::{Point, ReplaceWith};
 use emergent_presentation::Presentation;
 use emergent_presenter::{AreaHitTest, Host, Support};
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
+use std::borrow::Borrow;
 use std::cell::RefCell;
+use std::ops::Deref;
 use tears::{Cmd, Model};
 
 /// The generic Window Application Model.
@@ -134,9 +136,7 @@ where
                     let mut hits = {
                         let host = self.host.borrow();
                         let presentation = &host.presentation;
-                        // TODO: cache support records.
-                        let support = &host.support;
-                        presentation.area_hit_test(position, Vec::new(), support)
+                        presentation.area_hit_test(position, Vec::new(), host.support.deref())
                     };
 
                     debug!("hits: {:?}", hits);

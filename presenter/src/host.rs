@@ -1,11 +1,13 @@
 use crate::{GestureRecognizer, Presenter, Support};
-use emergent_drawing::{Point, ReplaceWith};
+use emergent_drawing::Point;
 use emergent_presentation::{Presentation, Scope};
-use emergent_ui::{FrameLayout, ModifiersState, MouseButton, WindowMsg};
+use emergent_ui::{FrameLayout, WindowMsg};
 use std::collections::HashMap;
+use std::mem;
+use std::rc::Rc;
 
 pub struct Host<Msg> {
-    pub support: Support,
+    pub support: Rc<Support>,
     /// A copy of the most recent presentation.
     /// This is primarily used for hit testing.
     pub presentation: Presentation,
@@ -14,10 +16,10 @@ pub struct Host<Msg> {
     pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
 }
 
-impl<Msg: 'static> Host<Msg> {
+impl<Msg> Host<Msg> {
     pub fn new(support: Support) -> Host<Msg> {
         Host {
-            support,
+            support: Rc::new(support),
             presentation: Presentation::Empty,
             recognizers: HashMap::new(),
         }
@@ -28,24 +30,24 @@ impl<Msg: 'static> Host<Msg> {
         boundary: FrameLayout,
         present: impl FnOnce(&mut Presenter<Msg>),
     ) -> &Presentation {
-        self.replace_with(|h| {
-            let mut presenter = Presenter::new(h, boundary);
-            present(&mut presenter);
-            // commit
-            let mut host = presenter.host;
-            host.presentation = presenter.presentation;
-            host.recognizers = presenter.recognizers;
-            host
-        });
+        let active_recognizers = mem::replace(&mut self.recognizers, HashMap::new());
+        let mut presenter = Presenter::new(self.support.clone(), boundary, active_recognizers);
+        present(&mut presenter);
+        // commit
+        self.presentation = presenter.presentation;
+        self.recognizers = presenter.recognizers;
         &self.presentation
     }
 
     /// Dispatches mouse input to a gesture recognizer and return a Msg if it produces one.
     pub fn dispatch_mouse_input(
         &mut self,
-        (scope_path, point): (Vec<Scope>, Point),
+        (scope_path, _point): (Vec<Scope>, Point),
         msg: WindowMsg,
-    ) -> Option<Msg> {
+    ) -> Option<Msg>
+    where
+        Msg: 'static,
+    {
         debug!("Hit scoped: {:?}", scope_path);
 
         self.recognizers

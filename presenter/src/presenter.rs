@@ -8,7 +8,7 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{GestureRecognizer, Host};
+use crate::{GestureRecognizer, Support};
 use emergent_drawing::{
     Bounds, Drawing, DrawingFastBounds, MeasureText, Point, ReplaceWith, Text, Transform,
     Transformed, Vector,
@@ -17,15 +17,18 @@ use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
 use std::collections::HashMap;
 use std::mem;
+use std::rc::Rc;
 
 /// The presenter is an ephemeral instance that is used to present one single frame.
 ///
 /// Implementation note: For simplicity of all the function signatures the clients will use,
 /// I've decided to move Host inside the Presenter temporarily as long the frame is being built.
 pub struct Presenter<Msg> {
-    pub(crate) host: Host<Msg>,
+    support: Rc<Support>,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
+    /// The reusable recognizers that were installed in previous presentation.
+    active_recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
     /// The current scope stack.
     scope: Vec<Scope>,
     /// The current presentation.
@@ -54,11 +57,16 @@ impl Direction {
     }
 }
 
-impl<Msg: 'static> Presenter<Msg> {
-    pub fn new(host: Host<Msg>, boundary: FrameLayout) -> Self {
+impl<Msg> Presenter<Msg> {
+    pub fn new(
+        support: Rc<Support>,
+        boundary: FrameLayout,
+        active_recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
+    ) -> Self {
         Self {
-            host,
+            support,
             boundary,
+            active_recognizers,
             scope: Vec::new(),
             presentation: Default::default(),
             recognizers: Default::default(),
@@ -99,8 +107,11 @@ impl<Msg: 'static> Presenter<Msg> {
     /// state of the gesture recognizer (for now).
     ///
     /// If a gesture recognizer disappears from a scope, it will be removed from the presentation.
-    pub fn recognize(&mut self, recognizer: impl GestureRecognizer<Msg = Msg> + 'static) {
-        match self.host.recognizers.remove(&self.scope) {
+    pub fn recognize(&mut self, recognizer: impl GestureRecognizer<Msg = Msg> + 'static)
+    where
+        Msg: 'static,
+    {
+        match self.active_recognizers.remove(&self.scope) {
             Some(old_recognizer) => {
                 debug!("replaced old recognizer at {:?}", self.scope);
                 self.recognizers.insert(self.scope.clone(), old_recognizer);
@@ -196,6 +207,6 @@ impl<Msg: 'static> Presenter<Msg> {
 // TODO: this is a good candidate for a per frame cache.
 impl<Msg> MeasureText for Presenter<Msg> {
     fn measure_text(&self, text: &Text) -> Bounds {
-        self.host.support.measure_text(text)
+        self.support.measure_text(text)
     }
 }

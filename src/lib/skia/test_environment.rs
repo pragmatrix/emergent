@@ -1,10 +1,12 @@
 pub mod presenter {
     use emergent_presenter::Presenter;
+    use std::collections::HashMap;
 
-    pub fn from_test_environment<Msg: 'static>() -> Presenter<Msg> {
+    pub fn from_test_environment<Msg>() -> Presenter<Msg> {
         Presenter::new(
-            super::host::from_test_environment(),
+            super::support::from_test_environment().into(),
             super::frame_layout::from_test_environment(),
+            HashMap::new(),
         )
     }
 }
