@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate log;
 
+mod component;
+pub use component::*;
+
 mod gesture_recognizer;
 pub use gesture_recognizer::*;
 

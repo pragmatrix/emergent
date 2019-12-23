@@ -2,15 +2,22 @@ use crate::{GestureRecognizer, Presenter, Support};
 use emergent_drawing::Point;
 use emergent_presentation::{Presentation, Scope};
 use emergent_ui::{FrameLayout, WindowMsg};
+use std::any::Any;
 use std::collections::HashMap;
-use std::mem;
 use std::rc::Rc;
+use std::{any, mem};
+
+pub type ComponentKey = (Vec<Scope>, any::TypeId);
+pub type ComponentPool = HashMap<ComponentKey, Box<dyn Any>>;
 
 pub struct Host<Msg> {
     pub support: Rc<Support>,
     /// A copy of the most recent presentation.
     /// This is primarily used for hit testing.
     pub presentation: Presentation,
+
+    /// The active components of the previous presentation.
+    pub(crate) components: ComponentPool,
 
     /// The active recognizers of the previous presentation.
     pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
@@ -21,6 +28,7 @@ impl<Msg> Host<Msg> {
         Host {
             support: Rc::new(support),
             presentation: Presentation::Empty,
+            components: ComponentPool::new(),
             recognizers: HashMap::new(),
         }
     }
@@ -31,11 +39,18 @@ impl<Msg> Host<Msg> {
         present: impl FnOnce(&mut Presenter<Msg>),
     ) -> &Presentation {
         let active_recognizers = mem::replace(&mut self.recognizers, HashMap::new());
-        let mut presenter = Presenter::new(self.support.clone(), boundary, active_recognizers);
+        let active_components = mem::replace(&mut self.components, ComponentPool::new());
+        let mut presenter = Presenter::new(
+            self.support.clone(),
+            boundary,
+            active_recognizers,
+            active_components,
+        );
         present(&mut presenter);
         // commit
         self.presentation = presenter.presentation;
         self.recognizers = presenter.recognizers;
+        self.components = presenter.components;
         &self.presentation
     }
 

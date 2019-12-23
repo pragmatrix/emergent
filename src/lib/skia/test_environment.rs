@@ -7,6 +7,7 @@ pub mod presenter {
             super::support::from_test_environment().into(),
             super::frame_layout::from_test_environment(),
             HashMap::new(),
+            HashMap::new(),
         )
     }
 }

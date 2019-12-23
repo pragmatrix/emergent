@@ -8,16 +8,18 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{GestureRecognizer, Support};
+use crate::{ComponentPool, GestureRecognizer, Support};
 use emergent_drawing::{
     Bounds, Drawing, DrawingFastBounds, MeasureText, Point, ReplaceWith, Text, Transform,
     Transformed, Vector,
 };
 use emergent_presentation::{Presentation, Scope};
 use emergent_ui::FrameLayout;
+use std::any::Any;
 use std::collections::HashMap;
-use std::mem;
+use std::ops::DerefMut;
 use std::rc::Rc;
+use std::{any, mem};
 
 /// The presenter is an ephemeral instance that is used to present one single frame.
 ///
@@ -27,15 +29,21 @@ pub struct Presenter<Msg> {
     support: Rc<Support>,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
-    /// The reusable recognizers that were installed in previous presentation.
-    active_recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
+    /// The current new and reused recognizers.
+    pub(crate) active_recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
+    /// The reusable components that were installed in previous presentation.
+    active_components: ComponentPool,
+
     /// The current scope stack.
     scope: Vec<Scope>,
+
     /// The current presentation.
     pub(crate) presentation: Presentation,
-    /// The current recognizers.
-    /// TODO: this requires the complete scope to be copied.
+
+    /// The current new and reused recognizers.
     pub(crate) recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
+    /// The current new and reused components.
+    pub(crate) components: ComponentPool,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -62,14 +70,17 @@ impl<Msg> Presenter<Msg> {
         support: Rc<Support>,
         boundary: FrameLayout,
         active_recognizers: HashMap<Vec<Scope>, Box<dyn GestureRecognizer<Msg = Msg>>>,
+        active_components: ComponentPool,
     ) -> Self {
         Self {
             support,
             boundary,
             active_recognizers,
+            active_components,
             scope: Vec::new(),
             presentation: Default::default(),
             recognizers: Default::default(),
+            components: ComponentPool::new(),
         }
     }
 
@@ -95,7 +106,7 @@ impl<Msg> Presenter<Msg> {
         self.presentation.push_on_top(nested.in_area())
     }
 
-    /// Render a gesture recognizer in the current scope.
+    /// Present a gesture recognizer in the current scope.
     ///
     /// If there is no area in the current scope, the whole scope is considered the area of the gesture
     /// recognizer.
@@ -112,9 +123,9 @@ impl<Msg> Presenter<Msg> {
         Msg: 'static,
     {
         match self.active_recognizers.remove(&self.scope) {
-            Some(old_recognizer) => {
-                debug!("replaced old recognizer at {:?}", self.scope);
-                self.recognizers.insert(self.scope.clone(), old_recognizer);
+            Some(reusable) => {
+                debug!("reused recognizer at {:?}", self.scope);
+                self.recognizers.insert(self.scope.clone(), reusable);
             }
             None => {
                 debug!("added new recognizer at {:?}", self.scope);
@@ -122,6 +133,28 @@ impl<Msg> Presenter<Msg> {
                     .insert(self.scope.clone(), Box::new(recognizer));
             }
         }
+    }
+
+    /// Stick or reuse a typed component in the current scope.
+    pub fn resolve<C: 'static>(&mut self, construct: impl FnOnce() -> C) -> &mut C {
+        let type_id = any::TypeId::of::<C>();
+        // TODO: prevent this clone!
+        let key = (self.scope.clone(), type_id);
+        let v = match self.active_components.remove(&key) {
+            Some(reusable) => reusable,
+            // TODO: why downcast later when we directly create the concrete instance here.
+            None => Box::new(construct()),
+        };
+
+        // TODO: find a one-step process for inserting and getting a mutable reference to value
+        // (using entry)?.
+        self.components.insert((self.scope.clone(), type_id), v);
+        self.components
+            .get_mut(&key)
+            .unwrap()
+            .deref_mut()
+            .downcast_mut::<C>()
+            .unwrap()
     }
 
     /// Render a nested presentation, transform it and push it on top of the already existing presentation.
