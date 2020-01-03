@@ -13,7 +13,8 @@ use tears::Cmd;
 pub struct App {
     watcher: TestWatcher,
     notification_receiver: Receiver<test_watcher::Notification>,
-    test_run_result: Option<TestRunResult>,
+
+    pub(crate) test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
     collapsed_tests: HashSet<String>,
 }

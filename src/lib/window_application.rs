@@ -29,7 +29,7 @@ use emergent_drawing::{Point, ReplaceWith};
 use emergent_presentation::Presentation;
 use emergent_presenter::{AreaHitTest, Host, Support};
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
-use std::borrow::Borrow;
+use emergent_view::View;
 use std::cell::RefCell;
 use std::ops::Deref;
 use tears::{Cmd, Model};

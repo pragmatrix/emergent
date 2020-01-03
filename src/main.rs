@@ -23,6 +23,7 @@ extern crate log;
 mod app;
 mod renderer;
 mod skia_renderer;
+mod view;
 
 fn main() {
     // TODO: push logs internally as soon the window is open?

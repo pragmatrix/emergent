@@ -567,6 +567,7 @@ dependencies = [
  "emergent-presenter 0.1.0",
  "emergent-terminal 0.1.0",
  "emergent-ui 0.1.0",
+ "emergent-view 0.1.0",
  "env_logger 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -650,9 +651,17 @@ name = "emergent-ui"
 version = "0.1.0"
 dependencies = [
  "emergent-drawing 0.1.0",
- "emergent-presentation 0.1.0",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "emergent-view"
+version = "0.1.0"
+dependencies = [
+ "emergent-drawing 0.1.0",
+ "emergent-presenter 0.1.0",
+ "emergent-ui 0.1.0",
 ]
 
 [[package]]

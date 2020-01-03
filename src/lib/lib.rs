@@ -31,9 +31,7 @@ mod ui_tests;
 mod window_application;
 pub use window_application::*;
 
-use emergent_presentation::Presentation;
 use emergent_presenter::Presenter;
-use emergent_ui::FrameLayout;
 
 #[test]
 fn test_output_capture() {

@@ -1,10 +1,10 @@
 [package]
-name = "emergent-ui"
+name = "emergent-view"
 version = "0.1.0"
 authors = ["Armin Sander <armin@replicator.org>"]
 edition = "2018"
 
 [dependencies]
 emergent-drawing = { path = "../drawing" }
-serde = { version = "1.0.100", features = ["derive"] }
-winit = { version = "0.19.2", features = ["serde"] }
+emergent-ui = { path = "../ui" }
+emergent-presenter = { path = "../presenter" }
