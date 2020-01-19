@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 base64 = "0.10.1"
-vte = "0.3.3"
+vte = "0.5.0"
 log = "0.4.8"

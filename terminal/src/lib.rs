@@ -3,7 +3,7 @@
 //! Most of it was taken from the
 //! Alacritty project
 //!   alacritty_terminal/src
-//!   commit 44037fa42aa80002ce54f0a8e4a6203e3e12aaf5
+//!   commit 2199bbef5122d81a5bb5958d62f1c9b1d7d7696a
 //!   and slightly modified.
 //!
 //! Details about the modifications are listed in the individual source files.
