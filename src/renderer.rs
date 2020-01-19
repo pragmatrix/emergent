@@ -10,6 +10,7 @@ use vulkano::instance::{ApplicationInfo, Instance, PhysicalDevice, Version};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain;
+use vulkano::swapchain::ColorSpace;
 use vulkano::swapchain::{
     PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainCreationError,
 };
@@ -123,7 +124,7 @@ pub fn create_context_and_frame_state<W: Window>(
             alpha,
             PresentMode::Fifo,
             true,
-            None,
+            ColorSpace::SrgbNonLinear,
         )
         .unwrap()
     };
@@ -242,6 +243,9 @@ void main() {
         line_width: None,
         viewports: None,
         scissors: None,
+        compare_mask: None,
+        write_mask: None,
+        reference: None,
     };
 
     // The render pass we created above only describes the layout of our framebuffers. Before we

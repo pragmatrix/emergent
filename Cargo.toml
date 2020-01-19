@@ -46,13 +46,9 @@ winit = { version = "0.20.0", features = ["serde"] }
 # to the same version as the physical device's version,
 # because of the version consistency Skia expects.
 vk-sys = { path = "vulkano/vk-sys" }
-vulkano = { path = "vulkano/vulkano" }
-vulkano-win = { path = "vulkano/vulkano-win" }
-vulkano-shaders = { path = "vulkano/vulkano-shaders" }
-
-#vulkano = "0.11.1"
-#vulkano-win = "0.11.1"
-#vulkano-shaders = "0.11.1"
+vulkano = { path = "vulkano/vulkano", version = "0.16" }
+vulkano-win = { path = "vulkano/vulkano-win", version = "0.16" }
+vulkano-shaders = { path = "vulkano/vulkano-shaders", version = "0.16" }
 
 # logging
 log = "0.4.8"
