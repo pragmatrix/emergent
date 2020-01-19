@@ -34,8 +34,8 @@ impl Default for Presentation {
 }
 
 impl Scoped for Presentation {
-    fn scoped(self, scope: Scope) -> Self {
-        Self::Scoped(scope, self.into())
+    fn scoped(self, scope: impl Into<Scope>) -> Self {
+        Self::Scoped(scope.into(), self.into())
     }
 }
 

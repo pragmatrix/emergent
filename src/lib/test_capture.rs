@@ -5,11 +5,23 @@ use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presenter::recognizer::TapRecognizer;
-use emergent_presenter::{Direction, Presenter};
+use emergent_presenter::{Context, Direction, IndexMappable, Item, Reducible, View};
 
 impl TestCapture {
-    pub fn present(&self, p: &mut Presenter<Msg>, show_contents: bool) {
-        p.scoped(&self.name, |p| {
+    pub fn present(&self, c: &mut Context<Msg>, show_contents: bool) -> View<Msg> {
+        c.nested(&self.name, |c| {
+            let header = Item::new(&self.name).map(|_, title| Self::view_header(title).into());
+
+            if !show_contents {
+                return header.reduce(c, ());
+            }
+
+            let contents =
+                Item::new(&self.output).map(|_, output| Self::view_output(output).into());
+
+            header.extend(&contents).reduce(c, Direction::Column)
+
+            /*
             p.stack_f(
                 Direction::Column,
                 &[
@@ -26,39 +38,40 @@ impl TestCapture {
                         }
                     },
                 ],
-            );
+            );*/
         })
     }
 
-    fn header(&self) -> Drawing {
-        let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
+    fn view_header(title: &str) -> View<Msg> {
+        let ref header_font = Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
-        let text = text(&self.name, header_font, None);
+        let text = text(title, header_font, None);
         drawing.draw_shape(&text.into(), paint());
-        drawing
+        drawing.into()
     }
 
-    fn output(&self) -> Drawing {
+    fn view_output(output: &str) -> View<Msg> {
         // TODO: render invalid output as text and mark it appropriately
-        if !self.output.starts_with("> ") {
-            return Drawing::new();
+        if !output.starts_with("> ") {
+            return Drawing::new().into();
         };
 
         // TODO: handle parse errors:
-        serde_json::from_str(&self.output[2..]).unwrap()
+        let drawing: Drawing = serde_json::from_str(&output[2..]).unwrap();
+        drawing.into()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::libtest::{TestCapture, TestResult};
-    use crate::skia::test_environment::presenter;
+    use crate::skia::test_environment::context;
     use emergent_drawing::functions::rect;
     use emergent_drawing::{Drawing, DrawingTarget, Paint, Render, Visualize, RGB};
 
     #[test]
     fn capture_presentations() {
-        let mut presenter = presenter::from_test_environment();
+        let mut context = context::from_test_environment();
 
         let output = {
             let mut drawing = Drawing::new();
@@ -72,8 +85,7 @@ mod tests {
             output,
         };
 
-        capture.present(&mut presenter, true);
-
-        presenter.take_presentation().visualize(&presenter).render();
+        let view = capture.present(&mut context, true);
+        view.into_presentation().visualize(&context).render();
     }
 }

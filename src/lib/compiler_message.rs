@@ -62,7 +62,6 @@ impl ToDrawing for ANSIString {
 
 impl ToDrawing for CompilerMessage {
     fn to_drawing(&self) -> Drawing {
-        info!("compiler message: to drawing");
         let mut drawing = Drawing::new();
         match &self.message.rendered {
             Some(rendered) => {

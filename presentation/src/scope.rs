@@ -1,5 +1,16 @@
+use crate::Scoped;
 use std::borrow::Cow;
 use std::fmt;
+
+pub type ScopePath = Vec<Scope>;
+
+impl Scoped for Vec<Scope> {
+    fn scoped(mut self, scope: impl Into<Scope>) -> Self {
+        // TODO: rather unfortunate that we need to prepend here. May use another datatype.
+        self.insert(0, scope.into());
+        self
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum Scope {

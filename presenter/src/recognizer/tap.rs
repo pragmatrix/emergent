@@ -1,5 +1,4 @@
 use crate::GestureRecognizer;
-use emergent_drawing::Point;
 use emergent_ui::{ElementState, MouseButton, WindowMsg};
 
 pub struct TapRecognizer<Msg> {

@@ -1,5 +1,6 @@
-use crate::Presenter;
-use emergent_drawing::{Bounds, Vector};
+#![allow(dead_code)]
+
+use emergent_drawing::Vector;
 use emergent_presentation::Presentation;
 
 /// A list component. Structures nested presentations in a scrolling list
@@ -24,8 +25,8 @@ struct Cached<Key> {
     presentation: Presentation,
 }
 
+/*
 impl List {
-    #[allow(dead_code)]
     pub fn new() -> List {
         Self {
             top_offset: 0,
@@ -33,12 +34,11 @@ impl List {
         }
     }
 
-    #[allow(dead_code)]
     pub fn present<Msg, Key>(
         &mut self,
-        p: &mut Presenter<Msg>,
+        p: &mut Context<Msg>,
         keys: &[Key],
-        f: impl Fn(&mut Presenter<Msg>, &Key, usize),
+        f: impl Fn(&mut Context<Msg>, &Key, usize),
     ) where
         Key: Clone + 'static,
     {
@@ -60,3 +60,5 @@ impl List {
         }
     }
 }
+
+*/

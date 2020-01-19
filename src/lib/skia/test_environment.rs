@@ -1,13 +1,11 @@
-pub mod presenter {
-    use emergent_presenter::Presenter;
-    use std::collections::HashMap;
+pub mod context {
+    use emergent_presenter::{Context, ScopeState, View};
 
-    pub fn from_test_environment<Msg>() -> Presenter<Msg> {
-        Presenter::new(
+    pub fn from_test_environment<Msg>() -> Context<Msg> {
+        Context::new(
             super::support::from_test_environment().into(),
             super::frame_layout::from_test_environment(),
-            HashMap::new(),
-            HashMap::new(),
+            ScopeState::new(),
         )
     }
 }

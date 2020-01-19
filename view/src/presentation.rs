@@ -1,6 +1,8 @@
 //! Experimental referential presentations.
 
-use emergent_drawing::{BlendMode, Clip, Paint, Point, Rect, Shape, Transform};
+#![allow(dead_code)]
+
+use emergent_drawing::{BlendMode, Clip, Paint, Shape, Transform};
 use std::marker::PhantomData;
 
 #[derive(Debug)]
@@ -177,6 +179,8 @@ impl<T> Table<T> {
 
 #[test]
 pub fn test() {
+    use emergent_drawing::Point;
+
     let mut p = Presentation::default();
     p.draw(
         Transform::Identity,
