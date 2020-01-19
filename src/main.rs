@@ -15,7 +15,10 @@ use tears::{Application, ThreadSpawnExecutor};
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
-use winit::{Event, EventsLoop, WindowBuilder, WindowEvent};
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::platform::desktop::EventLoopExtDesktop;
+use winit::window::WindowBuilder;
 
 #[macro_use]
 extern crate log;
@@ -54,13 +57,13 @@ fn main() {
 
     let instance = renderer::new_instance();
 
-    let mut events_loop = EventsLoop::new();
+    let mut event_loop = EventLoop::new();
 
     let initial_window_placement = emergent_config::window_placement::Initial::load();
 
     let window_surface = {
         let surface = WindowBuilder::new()
-            .build_vk_surface(&events_loop, instance.clone())
+            .build_vk_surface(&event_loop, instance.clone())
             .unwrap();
         initial_window_placement.apply_to_window(surface.window());
         surface
@@ -137,47 +140,48 @@ fn main() {
         debug!("shutting down renderer loop");
     });
 
-    use winit::ControlFlow;
-
-    events_loop.run_forever(move |event| match event {
-        Event::WindowEvent { event, .. } => match event {
-            WindowEvent::Resized(_) => {
-                let msg = WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
-                mailbox.post(WindowApplicationMsg::Window(msg));
-                // TODO: handle window placement changes in a unified way
-                // (isn't this the application's job?)
-                if window_placement.update(window_surface.window()) {
-                    window_placement.store()
-                }
-                ControlFlow::Continue
-            }
-            WindowEvent::Moved(_) => {
-                let msg = WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
-                mailbox.post(WindowApplicationMsg::Window(msg));
-                if window_placement.update(window_surface.window()) {
-                    window_placement.store()
-                }
-                ControlFlow::Continue
-            }
-            WindowEvent::CloseRequested => {
-                // also forward this to the application, which is expected to shut down in response.
-                let msg = WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
-                mailbox.post(WindowApplicationMsg::Window(msg));
-
-                info!("close requested");
-                ControlFlow::Break
-            }
-            event => {
-                if let Some(msg) = WindowMsg::from_window_and_event(window_surface.window(), event)
-                {
+    event_loop.run_return(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(_) => {
+                    let msg =
+                        WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
                     mailbox.post(WindowApplicationMsg::Window(msg));
+                    // TODO: handle window placement changes in a unified way
+                    // (isn't this the application's job?)
+                    if window_placement.update(window_surface.window()) {
+                        window_placement.store()
+                    }
                 }
-                ControlFlow::Continue
+                WindowEvent::Moved(_) => {
+                    let msg =
+                        WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
+                    mailbox.post(WindowApplicationMsg::Window(msg));
+                    if window_placement.update(window_surface.window()) {
+                        window_placement.store()
+                    }
+                }
+                WindowEvent::CloseRequested => {
+                    // also forward this to the application, which is expected to shut down in response.
+                    let msg =
+                        WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
+                    mailbox.post(WindowApplicationMsg::Window(msg));
+
+                    info!("close requested");
+                    *control_flow = ControlFlow::Exit
+                }
+                event => {
+                    if let Some(msg) =
+                        WindowMsg::from_window_and_event(window_surface.window(), event)
+                    {
+                        mailbox.post(WindowApplicationMsg::Window(msg));
+                    }
+                }
+            },
+            event => {
+                trace!("unhandled event: {:?}", event);
             }
-        },
-        event => {
-            trace!("unhandled event: {:?}", event);
-            ControlFlow::Continue
         }
     });
 

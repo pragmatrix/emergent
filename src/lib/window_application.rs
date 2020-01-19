@@ -116,12 +116,8 @@ where
             WindowMsg::ReceivedCharacter(_) => {}
             WindowMsg::Focused(_) => {}
             WindowMsg::KeyboardInput(_) => {}
-            WindowMsg::CursorMoved {
-                position,
-                modifiers,
-            } => {
+            WindowMsg::CursorMoved { position, .. } => {
                 self.input.cursor = Some(position);
-                self.input.modifiers = modifiers
             }
             WindowMsg::CursorEntered => self.input.cursor_entered = true,
             WindowMsg::CursorLeft => self.input.cursor_entered = false,
@@ -148,9 +144,8 @@ where
 
             WindowMsg::TouchpadPressure { .. } => {}
             WindowMsg::AxisMotion { .. } => {}
-            WindowMsg::Refresh => {}
             WindowMsg::Touch { .. } => {}
-            WindowMsg::HiDPIFactorChanged(frame_layout) => {
+            WindowMsg::ScaleFactorChanged(frame_layout) => {
                 debug!("DPI change: regenerating host");
                 let dpi = frame_layout.dpi;
                 self.host = Host::new((self.support_builder)(dpi)).into();
