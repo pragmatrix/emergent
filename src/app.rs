@@ -2,18 +2,17 @@ use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use emergent::test_watcher::{Notification, TestWatcher};
+use emergent::WindowModel;
 use emergent::{test_watcher, Msg};
-use emergent::{RenderPresentation, WindowApplicationMsg, WindowModel};
-use emergent_presenter::{Direction, Presenter};
-use emergent_ui::WindowMsg;
-use serde::{Deserialize, Serialize};
+use emergent_presenter::{Context, Data, Direction, IndexMappable, Reducible, View, ViewRenderer};
 use std::collections::HashSet;
 use tears::Cmd;
 
 pub struct App {
     watcher: TestWatcher,
     notification_receiver: Receiver<test_watcher::Notification>,
-    test_run_result: Option<TestRunResult>,
+
+    pub(crate) test_run_result: Option<TestRunResult>,
     latest_test_error: Option<String>,
     collapsed_tests: HashSet<String>,
 }
@@ -95,46 +94,42 @@ impl App {
     }
 }
 
-impl RenderPresentation<Msg> for App {
-    fn render_presentation(&self, p: &mut Presenter<Msg>) {
+impl ViewRenderer<Msg> for App {
+    fn render_view(&self, ctx: &mut Context<Msg>) -> View<Msg> {
         match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
-                p.stack_items(
-                    Direction::Column,
-                    compiler_messages,
-                    |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
-                );
+                Data::new(compiler_messages)
+                    .map(|_, cm| cm.to_drawing().into())
+                    .reduce(ctx, Direction::Column)
             }
+
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
                 debug!("{} tests captured", captures.0.len());
-                p.stack_f(
-                    Direction::Column,
-                    &[
-                        &|p| {
-                            if captures.0.is_empty() {
-                                // only render compiler messages if we don't have any
-                                // captures to show (later we can just collapse them by default).
-                                debug!("rendering {} compiler messages", compiler_messages.len());
-                                p.stack_items(
-                                    Direction::Column,
-                                    compiler_messages,
-                                    |presenter, (_, cm)| presenter.draw(cm.to_drawing()),
-                                )
-                            }
-                        },
-                        &|p| {
-                            debug!("rendering {} tests", captures.0.len());
-                            p.stack_items(Direction::Column, &captures.0, |p, (_, capture)| {
-                                let name = capture.name.clone();
-                                let show_contents = !self.collapsed_tests.contains(&name);
-                                capture.present(p, show_contents)
-                            })
-                        },
-                    ],
-                );
+
+                // only render compiler messages if we don't have any
+                // captures to show (later we can just collapse them by default).
+                let compiler_messages = if captures.0.is_empty() {
+                    compiler_messages.as_slice()
+                } else {
+                    &[]
+                };
+
+                let compiler_messages =
+                    Data::new(compiler_messages).map(|_, cm| cm.to_drawing().into());
+
+                let captures = Data::new(&captures.0).map(|c, capture| {
+                    let show_contents = !self.collapsed_tests.contains(&capture.name);
+                    let inner_view = capture.present(c, show_contents);
+                    inner_view
+                });
+
+                let elements = compiler_messages.extend(&captures);
+                let view = elements.reduce(ctx, Direction::Column);
+                view
             }
             _ => {
                 // TODO: no result yet (should we display some notification... running test, etc?)
+                View::new()
             }
         }
     }

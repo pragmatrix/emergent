@@ -17,7 +17,8 @@ members = [
   "presentation",
   "presenter",
   "terminal",
-  "ui"
+  "ui",
+  "view"
 ]
 
 [dependencies]
@@ -30,6 +31,7 @@ emergent-config = { path = "config" }
 emergent-presentation = { path = "presentation" }
 emergent-presenter = { path = "presenter" }
 emergent-ui = { path = "ui" }
+emergent-view = { path = "view" }
 
 # channels
 crossbeam-channel = "0.3.8"

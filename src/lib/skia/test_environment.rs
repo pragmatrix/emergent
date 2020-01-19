@@ -1,15 +1,16 @@
-pub mod presenter {
-    use emergent_presenter::Presenter;
+pub mod context {
+    use emergent_presenter::{Context, ScopeState};
 
-    pub fn from_test_environment<Msg: 'static>() -> Presenter<Msg> {
-        Presenter::new(
-            super::host::from_test_environment(),
+    pub fn from_test_environment<Msg>() -> Context<Msg> {
+        Context::new(
+            super::support::from_test_environment().into(),
             super::frame_layout::from_test_environment(),
+            ScopeState::new(),
         )
     }
 }
 
-mod host {
+pub mod host {
     use emergent_presenter::Host;
 
     pub fn from_test_environment<Msg: 'static>() -> Host<Msg> {

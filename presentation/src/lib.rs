@@ -11,5 +11,5 @@ pub use scope::*;
 
 /// A trait that describes types that can be surrounded by a scope identifiers.
 pub trait Scoped {
-    fn scoped(self, scope: Scope) -> Self;
+    fn scoped(self, scope: impl Into<Scope>) -> Self;
 }

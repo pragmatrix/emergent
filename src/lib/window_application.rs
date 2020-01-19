@@ -24,10 +24,9 @@
 //!
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
-use crate::RenderPresentation;
-use emergent_drawing::{Point, ReplaceWith};
+use emergent_drawing::Point;
 use emergent_presentation::Presentation;
-use emergent_presenter::{AreaHitTest, Host, Support};
+use emergent_presenter::{AreaHitTest, Host, Support, ViewRenderer};
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
 use std::cell::RefCell;
 use tears::{Cmd, Model};
@@ -133,10 +132,8 @@ where
 
                     let mut hits = {
                         let host = self.host.borrow();
-                        let presentation = &host.presentation;
-                        // TODO: cache support records.
-                        let support = &host.support;
-                        presentation.area_hit_test(position, Vec::new(), support)
+                        let presentation = host.presentation();
+                        presentation.area_hit_test(position, Vec::new(), host.support())
                     };
 
                     debug!("hits: {:?}", hits);
@@ -178,21 +175,15 @@ where
     //       just a caching mechanism (but also stores the recent presentation).
     pub fn render_presentation(&mut self, frame_layout: &FrameLayout) -> Presentation
     where
-        M: RenderPresentation<Msg>,
+        M: ViewRenderer<Msg>,
     {
-        let mut presentation: Presentation = Presentation::Empty;
+        self.host
+            .borrow_mut()
+            .present(frame_layout.clone(), |context| {
+                self.model.render_view(context)
+            });
 
-        self.host.borrow_mut().replace_with(|mut host| {
-            presentation = host
-                .present(frame_layout.clone(), |presenter| {
-                    // TODO: this is horrible, here the full presentation is being cloned.
-                    self.model.render_presentation(presenter);
-                })
-                .clone();
-            host
-        });
-
-        presentation
+        self.host.borrow().presentation().clone()
     }
 }
 
