@@ -2,13 +2,13 @@ use crate::configuration::Configuration;
 use serde::{Deserialize, Serialize};
 use std::option::Option;
 use std::path::PathBuf;
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
-use winit::{Window, WindowBuilder};
+use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::window::Window;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Initial {
     Default,
-    Size(LogicalSize),
+    Size(LogicalSize<f64>),
     Placement(WindowPlacement),
 }
 
@@ -31,8 +31,6 @@ impl Initial {
         let pos = placement.and_then(|placement| placement.position());
         let size = placement.and_then(|placement| placement.size());
 
-        let dpi_factor = window.get_hidpi_factor();
-
         // the order in which size and pos is set _is_ significant because
         // if the dpis for some reason.
 
@@ -41,8 +39,7 @@ impl Initial {
         }
 
         if let Some(pos) = pos {
-            let logical = LogicalPosition::from_physical(pos, dpi_factor);
-            window.set_position(logical);
+            window.set_outer_position(pos);
         }
 
         placement.map(|p| {
@@ -54,18 +51,21 @@ impl Initial {
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct WindowRect {
+    // position is physical (todo: may consider to store logical, so that we place the windows
+    // at the same positions even when the scaling changes)
     pub left: f64,
     pub top: f64,
+    // size is in logical
     pub width: f64,
     pub height: f64,
 }
 
 impl WindowRect {
-    pub fn position(&self) -> PhysicalPosition {
+    pub fn position(&self) -> PhysicalPosition<f64> {
         PhysicalPosition::new(self.left, self.top)
     }
 
-    pub fn size(&self) -> LogicalSize {
+    pub fn size(&self) -> LogicalSize<f64> {
         LogicalSize::new(self.width, self.height)
     }
 }
@@ -102,14 +102,13 @@ impl WindowPlacement {
             WindowState::Maximized => true,
         };
 
-        let factor = window.get_hidpi_factor();
-        let pos = window.get_position()?;
-        let physical = PhysicalPosition::from_logical(pos, factor);
-        let size = window.get_inner_size()?;
+        let factor = window.scale_factor();
+        let pos = window.outer_position().ok()?;
+        let size = window.inner_size().to_logical(factor);
 
         let rect = WindowRect {
-            left: physical.x,
-            top: physical.y,
+            left: pos.x as _,
+            top: pos.y as _,
             width: size.width,
             height: size.height,
         };
@@ -130,12 +129,12 @@ impl WindowPlacement {
     }
 
     /// The physical position.
-    pub fn position(&self) -> Option<PhysicalPosition> {
+    pub fn position(&self) -> Option<PhysicalPosition<f64>> {
         self.rect().map(|r| r.position())
     }
 
     /// The logical size.
-    pub fn size(&self) -> Option<LogicalSize> {
+    pub fn size(&self) -> Option<LogicalSize<f64>> {
         self.rect().map(|r| r.size())
     }
 
@@ -197,32 +196,23 @@ pub trait State {
 
 impl State for Window {
     fn state(&self) -> WindowState {
-        let sz = self.get_inner_size().unwrap();
-        if sz.width == 0.0 && sz.height == 0.0 {
+        let sz = self.inner_size();
+        if sz.width == 0 && sz.height == 0 {
             return WindowState::Minimized;
         };
 
-        let factor = self.get_hidpi_factor();
-        let id = self.get_current_monitor();
-        let monitor_size = id.get_dimensions();
-        // outer_size is computed slightly to large on Windows.
-        let monitor_size_logical = LogicalSize::from_physical(monitor_size, factor);
-        let outer_size = self.get_outer_size();
-        if outer_size.is_none() {
-            return WindowState::Normal;
-        }
-        let outer_size = PhysicalSize::from_logical(outer_size.unwrap(), factor);
+        let id = self.current_monitor();
+        let monitor_size = id.size();
+        // outer_size is computed slightly too large on Windows.
+        let outer_size = self.outer_size();
         debug!("monitor size: {:?}", monitor_size);
-        debug!("monitor size (logical): {:?}", monitor_size_logical);
         debug!("outer size: {:?}", outer_size);
-        debug!("outer size (logical): {:?}", self.get_outer_size());
         // Computation of logical and physical sizes seem to be too large and there is
         // no way to actually find out where the maximizable area is on window (!= screen size).
         // So we'd assume that when one dimension is larger or equal the screen size, the Window
         // is maximized.
-        if outer_size.width.round() >= monitor_size.width.round()
-            || outer_size.height.round() >= monitor_size.height.round()
-        {
+        // also: https://github.com/rust-windowing/winit/issues/208
+        if outer_size.width >= monitor_size.width || outer_size.height >= monitor_size.height {
             return WindowState::Maximized;
         }
         WindowState::Normal

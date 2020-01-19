@@ -1,14 +1,13 @@
 use crate::{FrameLayout, Window, DPI};
 
-impl Window for winit::Window {
+impl Window for winit::window::Window {
     fn frame_layout(&self) -> FrameLayout {
-        let dimensions = self
-            .get_inner_size()
-            .expect("window does not exist anymore");
+        let dimensions = self.inner_size();
 
-        let hidpi_factor = self.get_hidpi_factor();
-        let dimensions: (u32, u32) = dimensions.to_physical(hidpi_factor).into();
-        let dpi = DPI::DEFAULT_SCREEN.map(|dpi| dpi * hidpi_factor);
+        let scale_factor = self.scale_factor();
+        let dimensions = (dimensions.width, dimensions.height);
+        let dpi = DPI::DEFAULT_SCREEN.map(|dpi| dpi * scale_factor);
+
         FrameLayout { dimensions, dpi }
     }
 }
