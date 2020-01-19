@@ -89,6 +89,16 @@ impl<Msg> View<Msg> {
     pub fn into_presentation(self) -> Presentation {
         self.destructure().0
     }
+
+    pub fn recognizer<'a>(
+        &mut self,
+        path: &ScopePath,
+    ) -> Option<&mut (dyn GestureRecognizer<Msg = Msg> + 'static)> {
+        self.recognizers
+            .iter_mut()
+            .find(|(p, _r)| p == path)
+            .map(|(_p, r)| r.as_mut())
+    }
 }
 
 impl<Msg> Scoped for View<Msg> {

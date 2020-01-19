@@ -1,6 +1,6 @@
 use crate::{Context, ScopeState, Support, View};
 use emergent_drawing::Point;
-use emergent_presentation::{Presentation, Scope};
+use emergent_presentation::{Presentation, Scope, ScopePath};
 use emergent_ui::{FrameLayout, WindowMsg};
 use std::mem;
 use std::ops::Deref;
@@ -46,20 +46,18 @@ impl<Msg> Host<Msg> {
     /// Dispatches mouse input to a gesture recognizer and return a Msg if it produces one.
     pub fn dispatch_mouse_input(
         &mut self,
-        (scope_path, _point): (Vec<Scope>, Point),
-        _msg: WindowMsg,
+        (scope_path, _point): (ScopePath, Point),
+        msg: WindowMsg,
     ) -> Option<Msg>
     where
         Msg: 'static,
     {
         debug!("Hit scoped: {:?}", scope_path);
 
-        todo!("reenable recognizer event dispatching");
+        // TODO: what about multiple hits?
 
-        /*
-        self.recognizers
-            .get_mut(&scope_path)
-            .and_then(|recognizer| recognizer.update(msg))
-            */
+        self.view
+            .recognizer(&scope_path)
+            .and_then(|r| r.update(msg))
     }
 }
