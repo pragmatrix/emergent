@@ -26,7 +26,7 @@ mod skia_renderer;
 
 fn main() {
     // TODO: push logs internally as soon the window is open?
-    env_logger::builder().default_format_timestamp(false).init();
+    env_logger::builder().format_timestamp(None).init();
 
     let matches = clap::App::new("Emergent")
         .author("Armin Sander")
