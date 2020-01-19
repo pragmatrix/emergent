@@ -25,7 +25,11 @@ impl ToDrawing for ANSIString {
         let mut drawing = Drawing::new();
 
         // TODO: probably need a concept for a default font?
-        let font = Font::new("Fira Code", font::Style::default(), font::Size::new(10.0));
+        let font = Font::new(
+            "JetBrains Mono",
+            font::Style::default(),
+            font::Size::new(10.0),
+        );
 
         let mut block = text_block(&font, None);
 
@@ -72,7 +76,11 @@ impl ToDrawing for CompilerMessage {
             None => {
                 let msg = &self.message.message;
                 // TODO: find some way to define font families and select proper default fonts for each platform.
-                let font = Font::new("Fira Code", font::Style::default(), font::Size::new(14.0));
+                let font = Font::new(
+                    "JetBrains Mono",
+                    font::Style::default(),
+                    font::Size::new(14.0),
+                );
                 let text = text(&msg, &font, None);
                 drawing.draw(text, paint());
                 drawing
