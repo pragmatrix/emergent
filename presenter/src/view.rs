@@ -1,7 +1,6 @@
 use crate::{Context, GestureRecognizer};
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
-    Union,
 };
 use emergent_presentation::{Presentation, Scope, ScopePath, Scoped};
 use std::cell::RefCell;
