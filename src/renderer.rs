@@ -15,7 +15,6 @@ use vulkano::swapchain::{
 };
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
-use vulkano_shaders;
 
 #[derive(Debug, Clone, Default)]
 struct Vertex {

@@ -1,5 +1,5 @@
 pub mod context {
-    use emergent_presenter::{Context, ScopeState, View};
+    use emergent_presenter::{Context, ScopeState};
 
     pub fn from_test_environment<Msg>() -> Context<Msg> {
         Context::new(
@@ -10,7 +10,7 @@ pub mod context {
     }
 }
 
-mod host {
+pub mod host {
     use emergent_presenter::Host;
 
     pub fn from_test_environment<Msg: 'static>() -> Host<Msg> {

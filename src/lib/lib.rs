@@ -31,8 +31,6 @@ mod ui_tests;
 mod window_application;
 pub use window_application::*;
 
-use emergent_presenter::{Context, View};
-
 #[test]
 fn test_output_capture() {
     println!("CAPTURE_ME");

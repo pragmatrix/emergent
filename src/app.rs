@@ -1,6 +1,5 @@
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
-use emergent::libtest::TestCapture;
 use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use emergent::test_watcher::{Notification, TestWatcher};
 use emergent::WindowModel;

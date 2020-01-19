@@ -24,7 +24,7 @@
 //!
 //! where messages are sent from top to down, and frames / render commands from bottom to up.
 
-use emergent_drawing::{Point, ReplaceWith};
+use emergent_drawing::Point;
 use emergent_presentation::Presentation;
 use emergent_presenter::{AreaHitTest, Host, Support, ViewRenderer};
 use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};

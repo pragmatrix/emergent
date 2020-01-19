@@ -128,7 +128,7 @@ impl DrawingBackend for Backend {
         let alloc = vk::Alloc::default();
         // TODO: verify TILING, IMAGE_LAYOUT and FORMAT assumptions.
         let image_info = &unsafe {
-            vk::ImageInfo::from_image(
+            vk::ImageInfo::new(
                 image_object as _,
                 alloc,
                 vk::ImageTiling::OPTIMAL,
