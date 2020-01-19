@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 emergent-drawing = { path = "../drawing" }
 serde = { version = "1.0.100", features = ["derive"] }
-winit = { version = "0.19.2", features = ["serde"] }
+winit = { version = "0.20.0", features = ["serde"] }
