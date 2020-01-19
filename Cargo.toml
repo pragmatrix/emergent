@@ -34,7 +34,7 @@ emergent-ui = { path = "ui" }
 emergent-view = { path = "view" }
 
 # channels
-crossbeam-channel = "0.3.8"
+crossbeam-channel = "0.4.0"
 
 # skia
 skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "shaper"] }
