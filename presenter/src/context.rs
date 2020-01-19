@@ -76,48 +76,6 @@ impl<Msg> Context<Msg> {
         view(&mut nested_context)
     }
 
-    // Render a nested presentation, and define an area around it that is associated with the
-    // current scope.
-    /*
-    pub fn area(&mut self, f: impl FnOnce(&mut Presenter<Msg>)) {
-        let nested = self.nested(f);
-        self.presentation.push_on_top(nested.in_area())
-    }
-    */
-
-    /*
-
-    /// Present a gesture recognizer in the current scope.
-    ///
-    /// If there is no area in the current scope, the whole scope is considered the area of the gesture
-    /// recognizer.
-    ///
-    /// If there multiple areas in the current scope. All the areas decide which events are delivered
-    /// to the gesture recognizer.
-    ///
-    /// Re-rendering the same type of gesture recognizer in the same scope does not update or reset the
-    /// state of the gesture recognizer (for now).
-    ///
-    /// If a gesture recognizer disappears from a scope, it will be removed from the presentation.
-
-        pub fn recognize(&mut self, recognizer: impl GestureRecognizer<Msg = Msg> + 'static)
-        where
-            Msg: 'static,
-        {
-            let key = recognizer.type_id();
-            match self.previous.recognizers.remove(&key) {
-                Some(previous_recognizer) => {
-                    debug!("reused recognizer");
-                    self.current.recognizers.insert(key, previous_recognizer);
-                }
-                None => {
-                    debug!("added new recognizer");
-                    self.current.recognizers.insert(key, Box::new(recognizer));
-                }
-            }
-        }
-    */
-
     /*
     /// Stick or reuse a typed component in the current scope.
     pub fn resolve<C: 'static>(&mut self, construct: impl FnOnce() -> C) -> &mut C {
