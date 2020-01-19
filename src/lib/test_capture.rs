@@ -10,7 +10,14 @@ use emergent_presenter::{Context, Direction, IndexMappable, Item, Reducible, Vie
 impl TestCapture {
     pub fn present(&self, c: &mut Context<Msg>, show_contents: bool) -> View<Msg> {
         c.nested(&self.name, |c| {
-            let header = Item::new(&self.name).map(|_, title| Self::view_header(title).into());
+            let header = Item::new(&self.name).map(|_, name| {
+                let name = name.to_string();
+                Self::view_header(&name)
+                    .in_area()
+                    .with_recognizer(TapRecognizer::new(move || Msg::ToggleTestcase {
+                        name: name.clone(),
+                    }))
+            });
 
             if !show_contents {
                 return header.reduce(c, ());
@@ -20,25 +27,6 @@ impl TestCapture {
                 Item::new(&self.output).map(|_, output| Self::view_output(output).into());
 
             header.extend(&contents).reduce(c, Direction::Column)
-
-            /*
-            p.stack_f(
-                Direction::Column,
-                &[
-                    &|p| {
-                        p.area(|p| p.draw(self.header()));
-                        let name = self.name.clone();
-                        p.recognize(TapRecognizer::new(move || Msg::ToggleTestcase {
-                            name: name.clone(),
-                        }));
-                    },
-                    &|p| {
-                        if show_contents {
-                            p.draw(self.output());
-                        }
-                    },
-                ],
-            );*/
         })
     }
 

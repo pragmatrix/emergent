@@ -52,6 +52,27 @@ impl<Msg> View<Msg> {
         }
     }
 
+    /// Put the presentation inside an area.
+    pub fn in_area(self) -> Self {
+        Self {
+            presentation: self.presentation.in_area(),
+            ..self
+        }
+    }
+
+    /// Attach a recognizer to this view.
+    pub fn with_recognizer(
+        mut self,
+        recognizer: impl GestureRecognizer<Msg = Msg> + 'static,
+    ) -> Self
+    where
+        Msg: 'static,
+    {
+        self.recognizers
+            .push((ScopePath::new(), Box::new(recognizer)));
+        self
+    }
+
     pub fn presentation(&self) -> &Presentation {
         &self.presentation
     }
