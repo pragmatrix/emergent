@@ -8,7 +8,7 @@ use emergent_presenter::recognizer::TapRecognizer;
 use emergent_presenter::{Context, Direction, IndexMappable, Item, Reducible, View};
 
 impl TestCapture {
-    pub fn present(&self, c: &mut Context<Msg>, show_contents: bool) -> View<Msg> {
+    pub fn present(&self, c: &mut Context, show_contents: bool) -> View<Msg> {
         c.nested(&self.name, |c| {
             let header = Item::new(&self.name).map(|_, name| {
                 let name = name.to_string();

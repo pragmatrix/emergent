@@ -16,12 +16,12 @@ use std::rc::Rc;
 
 /// The context is an ephemeral instance that is used to present something inside a space that
 /// is defined by a named or indexed scope.
-pub struct Context<Msg> {
+pub struct Context {
     support: Rc<Support>,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The state tree from the previous view rendering process.
-    previous: ScopeState<Msg>,
+    previous: ScopeState,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -43,8 +43,8 @@ impl Direction {
     }
 }
 
-impl<Msg> Context<Msg> {
-    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopeState<Msg>) -> Self {
+impl Context {
+    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopeState) -> Self {
         Self {
             support,
             boundary,
@@ -60,10 +60,10 @@ impl<Msg> Context<Msg> {
     ///
     /// TODO: we can probably just move the context here into the function `f` or even just return a nested context for
     ///       consumption.
-    pub fn nested(
+    pub fn nested<Msg>(
         &mut self,
         scope: impl Into<Scope>,
-        view: impl FnOnce(&mut Context<Msg>) -> View<Msg>,
+        view: impl FnOnce(&mut Context) -> View<Msg>,
     ) -> View<Msg> {
         let scope = scope.into();
         let previous = self
@@ -103,7 +103,7 @@ impl<Msg> Context<Msg> {
 }
 
 // TODO: this is a good candidate for a per frame cache.
-impl<Msg> MeasureText for Context<Msg> {
+impl MeasureText for Context {
     fn measure_text(&self, text: &Text) -> Bounds {
         self.support.measure_text(text)
     }

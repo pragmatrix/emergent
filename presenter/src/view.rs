@@ -6,7 +6,7 @@ use emergent_presentation::{Presentation, Scope, ScopePath, Scoped};
 use std::cell::RefCell;
 
 pub trait ViewRenderer<Msg> {
-    fn render_view(&self, context: &mut Context<Msg>) -> View<Msg>;
+    fn render_view(&self, context: &mut Context) -> View<Msg>;
 }
 
 pub struct View<Msg> {

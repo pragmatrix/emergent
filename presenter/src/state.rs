@@ -1,29 +1,23 @@
 use emergent_presentation::Scope;
-use std::any;
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::marker::PhantomData;
 
-pub type MemoPool = HashMap<any::TypeId, Box<dyn Any>>;
+pub type StateStore = HashMap<TypeId, Box<dyn Any>>;
 
 /// The state of an call scope.
-pub struct ScopeState<Msg> {
-    /// The components that are in this space.
-    pub components: MemoPool,
+pub struct ScopeState {
+    /// The state that is stored in this space.
+    pub store: StateStore,
 
     /// Nested scopes.
-    pub nested: HashMap<Scope, ScopeState<Msg>>,
-
-    // TODO: remove (also maybe Host and Context)
-    pd: PhantomData<Msg>,
+    pub nested: HashMap<Scope, ScopeState>,
 }
 
-impl<Msg> ScopeState<Msg> {
+impl ScopeState {
     pub fn new() -> Self {
         Self {
-            components: Default::default(),
+            store: Default::default(),
             nested: Default::default(),
-            pd: PhantomData,
         }
     }
 }

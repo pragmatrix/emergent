@@ -1,6 +1,6 @@
 use crate::{Context, ScopeState, Support, View};
 use emergent_drawing::Point;
-use emergent_presentation::{Presentation, Scope, ScopePath};
+use emergent_presentation::{Presentation, ScopePath};
 use emergent_ui::{FrameLayout, WindowMsg};
 use std::mem;
 use std::ops::Deref;
@@ -10,7 +10,7 @@ pub struct Host<Msg> {
     support: Rc<Support>,
 
     /// The state of the presentation, scoped by the call hierarchy.
-    state: ScopeState<Msg>,
+    state: ScopeState,
 
     /// The current view, containing the presentation and all the recognizers.
     view: View<Msg>,
@@ -28,7 +28,7 @@ impl<Msg> Host<Msg> {
     pub fn present(
         &mut self,
         boundary: FrameLayout,
-        present: impl FnOnce(&mut Context<Msg>) -> View<Msg>,
+        present: impl FnOnce(&mut Context) -> View<Msg>,
     ) {
         let state = mem::replace(&mut self.state, ScopeState::new());
         let mut context = Context::new(self.support.clone(), boundary, state);

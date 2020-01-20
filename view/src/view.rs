@@ -3,7 +3,7 @@ use emergent_ui::WindowMsg;
 
 pub trait View<State, Msg> {
     fn update(&mut self, state: &State);
-    fn present(&mut self, presenter: &mut Context<Msg>);
+    fn present(&mut self, presenter: &mut Context);
     fn dispatch(&mut self, _wm: WindowMsg) -> Option<Msg> {
         None
     }
