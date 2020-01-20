@@ -604,7 +604,7 @@ dependencies = [
  "notify 4.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",
- "shh 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shh 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia-safe 0.21.0",
  "tears 0.1.0",
  "vk-sys 0.5.0",
@@ -1780,7 +1780,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "shh"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2522,7 +2522,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum shaderc-sys 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "96874aafeb936b4c9b0c4fa1c79b1abdeac9289700efc5a313c3f65c95fa3f62"
 "checksum shared_library 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11"
 "checksum shell-escape 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "170a13e64f2a51b77a45702ba77287f5c6829375b04a69cf2222acd17d0cfab9"
-"checksum shh 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9cff8b151d3d290604d9c93f0400bd4d98e2837a5461532bc6c95d0129ea0964"
+"checksum shh 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5205eb079ac8be8ec77b7470aff4a050610d42c32819deee362ca414c926d3ab"
 "checksum shlex 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7fdf1b9db47230893d76faad238fd6097fd6d6a9245cd7a4d90dbd639536bbd2"
 "checksum sized-chunks 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f01db57d7ee89c8e053245deb77040a6cc8508311f381c88749c33d4b9b78785"
 "checksum slab 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
