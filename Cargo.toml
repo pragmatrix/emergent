@@ -34,13 +34,13 @@ emergent-ui = { path = "ui" }
 emergent-view = { path = "view" }
 
 # channels
-crossbeam-channel = "0.4.0"
+crossbeam-channel = "0.4"
 
 # skia
 skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "shaper"] }
 
 # window & rendering
-winit = { version = "0.20.0", features = ["serde"] }
+winit = { version = "0.20", features = ["serde"] }
 
 # we need a custom vulkano build that sets the request Vulkan instance version
 # to the same version as the physical device's version,
@@ -51,25 +51,25 @@ vulkano-win = { path = "vulkano/vulkano-win", version = "0.16" }
 vulkano-shaders = { path = "vulkano/vulkano-shaders", version = "0.16" }
 
 # logging
-log = "0.4.8"
-env_logger = "0.7.1"
+log = "0.4"
+env_logger = "0.7"
 
 # serialization
 
-serde = { version = "1.0.100", features = ["derive"] }
-serde_json = "1.0.39"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 # test runner
 
 cargo = "0.41.0"
-failure = "0.1.5"
-shh = "1.0.1"
-cargo_metadata = "0.9.1"
+failure = "0.1"
+shh = "1.0"
+cargo_metadata = "0.9"
 
 # test watcher
 
-cargo-watch = "7.2.1"
-clap = "2.33.0"
+cargo-watch = "7.2"
+clap = "2.33"
 watchexec = "=1.10.3"
 # for RawEvent that watchexec uses
 notify = "4.0.12"
