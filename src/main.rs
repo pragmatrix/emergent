@@ -190,7 +190,7 @@ fn main() {
 }
 
 // TODO: add a bench for this!
-fn shaper_perf() {
+fn _shaper_perf() {
     icu::init();
 
     let measure = skia::text::PrimitiveText::new(DPI::DEFAULT_SCREEN);
@@ -203,7 +203,7 @@ fn shaper_perf() {
         Typeface::from_name(&font.name, font.style.to_skia()).expect("failed to resolve typeface");
     let font = skia_safe::Font::from_typeface(&typeface, *font.size as f32);
 
-    for i in 0..20000 {
+    for _i in 0..20000 {
         measure.measure_text(&text);
     }
 }
