@@ -1,11 +1,11 @@
 pub mod context {
-    use emergent_presenter::{Context, ScopeState};
+    use emergent_presenter::{Context, ScopedState};
 
     pub fn from_test_environment() -> Context {
         Context::new(
             super::support::from_test_environment().into(),
             super::frame_layout::from_test_environment(),
-            ScopeState::new(),
+            ScopedState::new(),
         )
     }
 }

@@ -12,7 +12,7 @@ pub enum Presentation {
     Empty,
     /// Defines a presentation scope.
     /// This qualifies all nested names with the scope's name.
-    Scoped(Scope, Box<Presentation>),
+    Scoped(Scope<Presentation>, Box<Presentation>),
     /// Defines a named area around the (fast) bounds of a presentation, including an Outset.
     Area(Outset, Box<Presentation>),
     /// Defines an area by providing a Clip at the current drawing position and scope.
@@ -33,8 +33,8 @@ impl Default for Presentation {
     }
 }
 
-impl Scoped for Presentation {
-    fn scoped(self, scope: impl Into<Scope>) -> Self {
+impl Scoped<Presentation> for Presentation {
+    fn scoped(self, scope: impl Into<Scope<Presentation>>) -> Self {
         Self::Scoped(scope.into(), self.into())
     }
 }
@@ -110,7 +110,7 @@ impl Presentation {
         Presentation::Area(outset.into(), self.into())
     }
 
-    pub fn scoped(self, scope: impl Into<Scope>) -> Self {
+    pub fn scoped(self, scope: impl Into<Scope<Presentation>>) -> Self {
         Presentation::Scoped(scope.into(), self.into())
     }
 

@@ -18,8 +18,8 @@ pub use context::*;
 
 pub mod recognizer;
 
-mod state;
-pub use state::*;
+mod scoped_state;
+pub use scoped_state::*;
 
 mod view;
 pub use view::*;

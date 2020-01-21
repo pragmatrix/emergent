@@ -8,11 +8,19 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{ScopeState, Support, View};
+use crate::{ScopedState, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Text, Vector};
-use emergent_presentation::Scope;
+use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
+use std::any::Any;
 use std::rc::Rc;
+
+// Can't use Context here, because it does not support certain trait which Scope / ScopePath needs to.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Default)]
+pub struct ContextMarker;
+
+pub type ContextScope = Scope<ContextMarker>;
+pub type ContextPath = ScopePath<ContextMarker>;
 
 /// The context is an ephemeral instance that is used to present something inside a space that
 /// is defined by a named or indexed scope.
@@ -21,7 +29,10 @@ pub struct Context {
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The state tree from the previous view rendering process.
-    previous: ScopeState,
+    previous: ScopedState,
+    /// The states in this scoped context.
+    /// These are collected and then promoted into the Views that are returned.
+    modified: Vec<Box<dyn Any>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -44,17 +55,18 @@ impl Direction {
 }
 
 impl Context {
-    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopeState) -> Self {
+    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopedState) -> Self {
         Self {
             support,
             boundary,
             previous,
+            modified: Default::default(),
         }
     }
 
     /// Produce a view inside the given scoped context.
     ///
-    /// A scope is meant to be a hierarchical structuring identity that resembles the function call hierarchy is not
+    /// A scope is meant to be a hierarchical structuring identity that resembles the function call hierarchy and is not
     /// necessarily related to the resulting view graph.
     ///
     /// A scope is either a string or an index.
@@ -65,44 +77,36 @@ impl Context {
     ///       consumption.
     pub fn scoped<Msg>(
         &mut self,
-        scope: impl Into<Scope>,
+        scope: impl Into<ContextScope>,
         view: impl FnOnce(&mut Context) -> View<Msg>,
     ) -> View<Msg> {
         let scope = scope.into();
         let previous = self
             .previous
-            .nested
-            .remove(&scope)
-            .unwrap_or_else(ScopeState::new);
+            .remove_scope(scope.clone())
+            .unwrap_or_else(ScopedState::new);
 
         let mut nested_context = Context::new(self.support.clone(), self.boundary, previous);
         view(&mut nested_context)
+            .context_scoped(scope)
+            .store_states(nested_context.modified)
     }
 
-    /*
-    /// Stick or reuse a typed component in the current scope.
-    pub fn resolve<C: 'static>(&mut self, construct: impl FnOnce() -> C) -> &mut C {
-        let type_id = any::TypeId::of::<C>();
-        // TODO: prevent this clone!
-        let v = match self.previous.components.remove(&type_id) {
-            Some(reusable) => reusable,
-            // TODO: why downcast later when we directly create the concrete instance here.
-            None => Box::new(construct()),
-        };
-
-        // TODO: find a one-step process for inserting and getting a mutable reference to value
-        // (using entry)?.
-        self.current.components.insert(type_id, v);
-        self.current
-            .components
-            .get_mut(&type_id)
-            .unwrap()
-            .deref_mut()
-            .downcast_mut::<C>()
-            .unwrap()
+    /// Tries to reuse a typed state from the current scoped context. This removes the typed state.
+    pub fn reuse<S: 'static>(&mut self, construct: impl FnOnce() -> S) -> S {
+        self.previous.remove_state().unwrap_or_else(construct)
     }
 
-    */
+    /// Calls a function that may modify a state that is delivered alongside with the current view that is generated.
+    pub fn with_state<S: 'static>(
+        &mut self,
+        construct: impl FnOnce() -> S,
+        modify: impl FnOnce(S) -> S,
+    ) {
+        // TODO: can we actually test if the state has been modified?
+        let new_state = modify(self.reuse(construct));
+        self.modified.push(Box::new(new_state))
+    }
 }
 
 // TODO: this is a good candidate for a per frame cache.

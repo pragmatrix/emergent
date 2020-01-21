@@ -1,7 +1,9 @@
 //! Single point presentation hit testing.
 
 use emergent_drawing::{Clip, Contains, DrawingFastBounds, MeasureText, Path, Point};
-use emergent_presentation::{Presentation, Scope};
+use emergent_presentation::{Presentation, ScopePath};
+
+pub type PresentationPath = ScopePath<Presentation>;
 
 pub trait PathContainsPoint {
     fn path_contains_point(&self, path: &Path, p: Point) -> bool;
@@ -25,18 +27,18 @@ pub trait AreaHitTest {
     fn area_hit_test(
         &self,
         p: Point,
-        scope: Vec<Scope>,
+        scope: PresentationPath,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(Vec<Scope>, Point)>;
+    ) -> Vec<(PresentationPath, Point)>;
 }
 
 impl AreaHitTest for Presentation {
     fn area_hit_test(
         &self,
         p: Point,
-        mut scope: Vec<Scope>,
+        mut scope: PresentationPath,
         support: &(impl PathContainsPoint + MeasureText),
-    ) -> Vec<(Vec<Scope>, Point)> {
+    ) -> Vec<(PresentationPath, Point)> {
         match self {
             Presentation::Empty => Vec::new(),
             Presentation::Scoped(s, nested) => {

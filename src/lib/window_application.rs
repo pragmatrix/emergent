@@ -136,7 +136,10 @@ where
 
                     if !hits.is_empty() {
                         let hit = hits.swap_remove(0);
-                        let msg = self.host.borrow_mut().dispatch_mouse_input(hit, msg);
+                        let msg = self
+                            .host
+                            .borrow_mut()
+                            .dispatch_mouse_input((hit.0.into(), hit.1), msg);
                         return msg.map(|msg| self.update_model(msg)).unwrap_or(Cmd::None);
                     }
                 }
