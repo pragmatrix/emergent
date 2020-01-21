@@ -9,7 +9,7 @@ use emergent_presenter::{Context, Direction, IndexMappable, Item, Reducible, Vie
 
 impl TestCapture {
     pub fn present(&self, c: &mut Context, show_contents: bool) -> View<Msg> {
-        c.nested(&self.name, |c| {
+        c.scoped(&self.name, |c| {
             let header = Item::new(&self.name).map(|_, name| {
                 let name = name.to_string();
                 Self::view_header(&name)

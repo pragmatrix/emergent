@@ -52,15 +52,18 @@ impl Context {
         }
     }
 
-    /// Render a nested view into the given scope.
-    /// A scope is meant to be a logical hierarchical structuring identity. Either a string, or an index.
+    /// Produce a view inside the given scoped context.
     ///
-    /// The return value _is_ the nested view, for the re-rendering to work, the nested view has to be added to
-    /// a parent view with the same scope.
+    /// A scope is meant to be a hierarchical structuring identity that resembles the function call hierarchy is not
+    /// necessarily related to the resulting view graph.
+    ///
+    /// A scope is either a string or an index.
+    ///
+    /// The return value _is_ the view that was produced inside the scoped context.
     ///
     /// TODO: we can probably just move the context here into the function `f` or even just return a nested context for
     ///       consumption.
-    pub fn nested<Msg>(
+    pub fn scoped<Msg>(
         &mut self,
         scope: impl Into<Scope>,
         view: impl FnOnce(&mut Context) -> View<Msg>,

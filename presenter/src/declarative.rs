@@ -135,7 +135,7 @@ where
         let len = self.len();
 
         let views: Vec<View<Msg>> = (0..len)
-            .map(|i| context.nested(i, |c| self.map_i(c, i)))
+            .map(|i| context.scoped(i, |c| self.map_i(c, i)))
             .collect();
         let reduced = reducer.reduce(context, views);
         reduced

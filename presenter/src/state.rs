@@ -6,7 +6,7 @@ pub type StateStore = HashMap<TypeId, Box<dyn Any>>;
 
 /// The state of an call scope.
 pub struct ScopeState {
-    /// The state that is stored in this space.
+    /// The state that is stored in this scope.
     pub store: StateStore,
 
     /// Nested scopes.
