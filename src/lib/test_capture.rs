@@ -5,18 +5,18 @@ use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presenter::recognizer::TapRecognizer;
-use emergent_presenter::{Context, Direction, IndexMappable, Item, Reducible, View};
+use emergent_presenter::{
+    Context, Direction, GestureRecognizer, IndexMappable, Item, Reducible, View,
+};
 
 impl TestCapture {
     pub fn present(&self, c: &mut Context, show_contents: bool) -> View<Msg> {
         c.scoped(&self.name, |c| {
             let header = Item::new(&self.name).map(|_, name| {
                 let name = name.to_string();
-                Self::view_header(&name)
-                    .in_area()
-                    .with_recognizer(TapRecognizer::new(move || Msg::ToggleTestcase {
-                        name: name.clone(),
-                    }))
+                Self::view_header(&name).in_area().with_recognizer(
+                    TapRecognizer::new().map(move |_| Msg::ToggleTestcase { name: name.clone() }),
+                )
             });
 
             if !show_contents {

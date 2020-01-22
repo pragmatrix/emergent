@@ -97,15 +97,22 @@ impl Context {
         self.previous.remove_state().unwrap_or_else(construct)
     }
 
-    /// Calls a function that may modify a state that is delivered alongside with the current view that is generated.
-    pub fn with_state<S: 'static>(
+    /// Calls a function that uses a state.
+    ///
+    /// This marks the state as live and stores it alongside the returned view if the context is resolved.
+    /// TODO: the state should probably not be able to be modified, so it can be passed as a reference only
+    ///       to `with_state`?
+    /// TODO: if the return type is a View<> could we embed the state into the view returned and don't need to
+    ///       store it in the Context?
+    pub fn with_state<S: 'static, R>(
         &mut self,
         construct: impl FnOnce() -> S,
-        modify: impl FnOnce(S) -> S,
-    ) {
+        with_state: impl FnOnce(S) -> (S, R),
+    ) -> R {
         // TODO: can we actually test if the state has been modified?
-        let new_state = modify(self.reuse(construct));
-        self.modified.push(Box::new(new_state))
+        let (new_state, result) = with_state(self.reuse(construct));
+        self.modified.push(Box::new(new_state));
+        result
     }
 }
 

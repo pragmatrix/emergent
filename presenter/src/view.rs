@@ -23,7 +23,7 @@ pub struct View<Msg> {
     bounds: RefCell<Option<DrawingBounds>>,
 
     /// The recognizers that are active.
-    recognizers: Vec<(PresentationPath, Box<dyn GestureRecognizer<Msg = Msg>>)>,
+    recognizers: Vec<(PresentationPath, Box<dyn GestureRecognizer<Event = Msg>>)>,
 
     /// The collected states of the function call scopes.
     states: Vec<(ContextPath, Box<dyn Any>)>,
@@ -72,7 +72,7 @@ impl<Msg> View<Msg> {
     /// Attach a recognizer to this view.
     pub fn with_recognizer(
         mut self,
-        recognizer: impl GestureRecognizer<Msg = Msg> + 'static,
+        recognizer: impl GestureRecognizer<Event = Msg> + 'static,
     ) -> Self
     where
         Msg: 'static,
@@ -90,7 +90,7 @@ impl<Msg> View<Msg> {
         self,
     ) -> (
         Presentation,
-        Vec<(PresentationPath, Box<dyn GestureRecognizer<Msg = Msg>>)>,
+        Vec<(PresentationPath, Box<dyn GestureRecognizer<Event = Msg>>)>,
     ) {
         (self.presentation, self.recognizers)
     }
@@ -102,7 +102,7 @@ impl<Msg> View<Msg> {
     pub fn recognizer<'a>(
         &mut self,
         path: &PresentationPath,
-    ) -> Option<&mut (dyn GestureRecognizer<Msg = Msg> + 'static)> {
+    ) -> Option<&mut (dyn GestureRecognizer<Event = Msg> + 'static)> {
         self.recognizers
             .iter_mut()
             .find(|(p, _r)| p == path)

@@ -8,7 +8,8 @@ use emergent::{skia, Frame, Msg, WindowApplication, WindowApplicationMsg};
 use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use emergent_presenter::Support;
-use emergent_ui::{Window, WindowMsg, DPI};
+use emergent_ui as ui;
+use emergent_ui::{Window, DPI};
 use skia_safe::{icu, Typeface};
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor};
@@ -145,9 +146,9 @@ fn main() {
         match event {
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::Resized(_) => {
-                    let msg =
-                        WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
-                    mailbox.post(WindowApplicationMsg::Window(msg));
+                    let event =
+                        ui::WindowEvent::from_winit(window_surface.window(), event).unwrap();
+                    mailbox.post(WindowApplicationMsg::Window(event));
                     // TODO: handle window placement changes in a unified way
                     // (isn't this the application's job?)
                     if window_placement.update(window_surface.window()) {
@@ -155,27 +156,26 @@ fn main() {
                     }
                 }
                 WindowEvent::Moved(_) => {
-                    let msg =
-                        WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
-                    mailbox.post(WindowApplicationMsg::Window(msg));
+                    let event =
+                        ui::WindowEvent::from_winit(window_surface.window(), event).unwrap();
+                    mailbox.post(WindowApplicationMsg::Window(event));
                     if window_placement.update(window_surface.window()) {
                         window_placement.store()
                     }
                 }
                 WindowEvent::CloseRequested => {
                     // also forward this to the application, which is expected to shut down in response.
-                    let msg =
-                        WindowMsg::from_window_and_event(window_surface.window(), event).unwrap();
-                    mailbox.post(WindowApplicationMsg::Window(msg));
+                    let event =
+                        ui::WindowEvent::from_winit(window_surface.window(), event).unwrap();
+                    mailbox.post(WindowApplicationMsg::Window(event));
 
                     info!("close requested");
                     *control_flow = ControlFlow::Exit
                 }
                 event => {
-                    if let Some(msg) =
-                        WindowMsg::from_window_and_event(window_surface.window(), event)
+                    if let Some(event) = ui::WindowEvent::from_winit(window_surface.window(), event)
                     {
-                        mailbox.post(WindowApplicationMsg::Window(msg));
+                        mailbox.post(WindowApplicationMsg::Window(event));
                     }
                 }
             },

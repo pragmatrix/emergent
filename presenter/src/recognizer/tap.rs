@@ -1,28 +1,27 @@
 use crate::GestureRecognizer;
-use emergent_ui::{ElementState, MouseButton, WindowMsg};
+use emergent_drawing::Point;
+use emergent_ui::WindowMessage;
 
-pub struct TapRecognizer<Msg> {
-    tapped: Box<dyn Fn() -> Msg>,
+pub struct TapRecognizer {}
+
+pub enum Event {
+    Tapped(Point),
 }
 
-impl<Msg: 'static> TapRecognizer<Msg> {
-    pub fn new(tapped: impl Fn() -> Msg + 'static) -> Self {
-        Self {
-            tapped: Box::new(tapped),
-        }
+impl TapRecognizer {
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
-impl<Msg: 'static> GestureRecognizer for TapRecognizer<Msg> {
-    type Msg = Msg;
-    fn update(&mut self, msg: WindowMsg) -> Option<Msg> {
-        match msg {
-            WindowMsg::MouseInput { state, button, .. }
-                if state == ElementState::Pressed && button == MouseButton::Left =>
-            {
-                Some((self.tapped)())
-            }
-            _ => None,
+impl GestureRecognizer for TapRecognizer {
+    type Event = Event;
+    fn update(&mut self, msg: WindowMessage) -> Option<Event> {
+        if msg.event.left_button_pressed() {
+            let position = msg.state.cursor_position().unwrap();
+            Some(Event::Tapped(position))
+        } else {
+            None
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::{Context, PresentationPath, ScopedState, Support, View};
 use emergent_drawing::Point;
 use emergent_presentation::Presentation;
-use emergent_ui::{FrameLayout, WindowMsg};
+use emergent_ui::{FrameLayout, WindowMessage};
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -47,7 +47,7 @@ impl<Msg> Host<Msg> {
     pub fn dispatch_mouse_input(
         &mut self,
         (view_path, _point): (PresentationPath, Point),
-        msg: WindowMsg,
+        msg: WindowMessage,
     ) -> Option<Msg>
     where
         Msg: 'static,
