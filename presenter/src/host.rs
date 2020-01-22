@@ -25,14 +25,10 @@ impl<Msg> Host<Msg> {
         }
     }
 
-    pub fn present(
-        &mut self,
-        boundary: FrameLayout,
-        present: impl FnOnce(&mut Context) -> View<Msg>,
-    ) {
+    pub fn present(&mut self, boundary: FrameLayout, present: impl FnOnce(Context) -> View<Msg>) {
         let state = mem::replace(&mut self.state, ScopedState::new());
-        let mut context = Context::new(self.support.clone(), boundary, state);
-        self.view = present(&mut context);
+        let context = Context::new(self.support.clone(), boundary, state);
+        self.view = present(context);
     }
 
     pub fn support(&self) -> &Support {

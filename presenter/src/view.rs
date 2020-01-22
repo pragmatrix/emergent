@@ -9,7 +9,7 @@ use std::cell::RefCell;
 pub mod scroll;
 
 pub trait ViewRenderer<Msg> {
-    fn render_view(&self, context: &mut Context) -> View<Msg>;
+    fn render_view(&self, context: Context) -> View<Msg>;
 }
 
 pub struct View<Msg> {
@@ -120,6 +120,11 @@ impl<Msg> View<Msg> {
     pub fn store_states(mut self, states: impl IntoIterator<Item = Box<dyn Any>>) -> Self {
         self.states
             .extend(states.into_iter().map(|s| (ScopePath::new(), s)));
+        self
+    }
+
+    pub fn store_state(mut self, state: impl Any + 'static) -> Self {
+        self.states.push((ScopePath::new(), Box::new(state)));
         self
     }
 }

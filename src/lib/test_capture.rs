@@ -10,7 +10,7 @@ use emergent_presenter::{
 };
 
 impl TestCapture {
-    pub fn present(&self, c: &mut Context, show_contents: bool) -> View<Msg> {
+    pub fn present(&self, mut c: Context, show_contents: bool) -> View<Msg> {
         c.scoped(&self.name, |c| {
             let header = Item::new(&self.name).map(|_, name| {
                 let name = name.to_string();
@@ -73,7 +73,12 @@ mod tests {
             output,
         };
 
-        let view = capture.present(&mut context, true);
-        view.into_presentation().visualize(&context).render();
+        // TODO: a more direct way to visualize views would be nice, it's a bit confusing to have to clone
+        //       support from context before it is consumed.
+
+        let support = context.support();
+        let view = capture.present(context, true);
+        // TODO: this &* is counter-intuitive too (comes from the Rc wrapper).
+        view.into_presentation().visualize(&*support).render();
     }
 }

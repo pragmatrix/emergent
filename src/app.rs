@@ -97,8 +97,8 @@ impl App {
 }
 
 impl ViewRenderer<Msg> for App {
-    fn render_view(&self, ctx: &mut Context) -> View<Msg> {
-        let view = match &self.test_run_result {
+    fn render_view(&self, ctx: Context) -> View<Msg> {
+        let content = |ctx| match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
                 Data::new(compiler_messages)
                     .map(|_, cm| cm.to_drawing().into())
@@ -135,7 +135,7 @@ impl ViewRenderer<Msg> for App {
             }
         };
 
-        scroll::view(ctx, view)
+        scroll::view(ctx, content)
     }
 }
 

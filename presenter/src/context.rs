@@ -12,7 +12,6 @@ use crate::{ScopedState, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
-use std::any::Any;
 use std::rc::Rc;
 
 // Can't use Context here, because it does not support certain trait which Scope / ScopePath needs to.
@@ -30,9 +29,6 @@ pub struct Context {
     boundary: FrameLayout,
     /// The state tree from the previous view rendering process.
     previous: ScopedState,
-    /// The states in this scoped context.
-    /// These are collected and then promoted into the Views that are returned.
-    modified: Vec<Box<dyn Any>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -60,7 +56,6 @@ impl Context {
             support,
             boundary,
             previous,
-            modified: Default::default(),
         }
     }
 
@@ -78,7 +73,7 @@ impl Context {
     pub fn scoped<Msg>(
         &mut self,
         scope: impl Into<ContextScope>,
-        view: impl FnOnce(&mut Context) -> View<Msg>,
+        view: impl FnOnce(Context) -> View<Msg>,
     ) -> View<Msg> {
         let scope = scope.into();
         let previous = self
@@ -86,10 +81,8 @@ impl Context {
             .remove_scope(scope.clone())
             .unwrap_or_else(ScopedState::new);
 
-        let mut nested_context = Context::new(self.support.clone(), self.boundary, previous);
-        view(&mut nested_context)
-            .context_scoped(scope)
-            .store_states(nested_context.modified)
+        let nested_context = Context::new(self.support.clone(), self.boundary, previous);
+        view(nested_context).context_scoped(scope)
     }
 
     /// Tries to reuse a typed state from the current scoped context. This removes the typed state.
@@ -104,15 +97,19 @@ impl Context {
     ///       to `with_state`?
     /// TODO: if the return type is a View<> could we embed the state into the view returned and don't need to
     ///       store it in the Context?
-    pub fn with_state<S: 'static, R>(
-        &mut self,
+    pub fn with_state<S: 'static, Msg>(
+        mut self,
         construct: impl FnOnce() -> S,
-        with_state: impl FnOnce(S) -> (S, R),
-    ) -> R {
+        with_state: impl FnOnce(Context, S) -> (S, View<Msg>),
+    ) -> View<Msg> {
         // TODO: can we actually test if the state has been modified?
-        let (new_state, result) = with_state(self.reuse(construct));
-        self.modified.push(Box::new(new_state));
-        result
+        let state = self.reuse(construct);
+        let (new_state, view) = with_state(self, state);
+        view.store_state(new_state)
+    }
+
+    pub fn support(&self) -> Rc<Support> {
+        self.support.clone()
     }
 }
 
