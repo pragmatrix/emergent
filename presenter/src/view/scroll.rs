@@ -21,17 +21,19 @@ pub fn view<Msg: 'static>(
                 content_transform: Vector::new(100.0, 100.0),
             }
         },
-        |ctx, s: State| {
+        |ctx, s| {
             info!("scrollivew at: {:?}", s.content_transform);
-            let content = build_content(ctx).transformed(s.content_transform);
-            (s, content)
+            build_content(ctx).transformed(s.content_transform)
         },
     );
 
     view.in_area()
         .with_recognizer(PanRecognizer::new().apply(|mut s: State, e| {
             match e {
-                pan::Event::Pressed(_) => {}
+                pan::Event::Pressed(_) => {
+                    info!("scrollview: pressed");
+                    s.content_transform += Vector::new(10.0, 10.0);
+                }
                 pan::Event::Moved(_, v) => {
                     info!("scrollview: moved: {:?}", v);
                     s.content_transform += Vector::new(1.0, 1.0);

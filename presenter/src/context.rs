@@ -24,7 +24,7 @@ pub type ContextPath = ScopePath<ContextMarker>;
 /// The context is an ephemeral instance that is used to present something inside a space that
 /// is defined by a named or indexed scope.
 ///
-/// TODO: may rename to ViewState?
+/// TODO: may rename to ViewState or (View)Builder?
 pub struct Context {
     support: Rc<Support>,
     /// Boundaries of the presentation.
@@ -90,19 +90,14 @@ impl Context {
     /// Calls a function that uses a state.
     ///
     /// This marks the state as live and stores it alongside the returned view if the context is resolved.
-    /// TODO: the state should probably not be able to be modified, so it can be passed as a reference only
-    ///       to `with_state`?
-    /// TODO: if the return type is a View<> could we embed the state into the view returned and don't need to
-    ///       store it in the Context?
     pub fn with_state<S: 'static, Msg>(
         mut self,
         construct: impl FnOnce() -> S,
-        with_state: impl FnOnce(Context, S) -> (S, View<Msg>),
+        with_state: impl FnOnce(Context, &S) -> (View<Msg>),
     ) -> View<Msg> {
-        // TODO: can we actually test if the state has been modified?
         let state = self.recycle_state().unwrap_or_else(construct);
-        let (new_state, view) = with_state(self, state);
-        view.store_state(new_state)
+        let view = with_state(self, &state);
+        view.store_state(state)
     }
 
     /// Tries to recycle a typed state from the current context. This removes the typed state.
