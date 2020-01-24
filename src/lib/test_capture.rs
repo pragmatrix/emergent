@@ -15,7 +15,8 @@ impl TestCapture {
             let header = Item::new(&self.name).map(|_, name| {
                 let name = name.to_string();
                 Self::view_header(&name).in_area().with_recognizer(
-                    TapRecognizer::new().map(move |_| Msg::ToggleTestcase { name: name.clone() }),
+                    TapRecognizer::new()
+                        .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() })),
                 )
             });
 

@@ -1,8 +1,11 @@
-use crate::{Context, ContextPath, ContextScope, GestureRecognizer, PresentationPath};
+use crate::{
+    Context, ContextPath, ContextScope, GestureRecognizer, PresentationPath, PresentationScope,
+    ScopedState,
+};
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
-use emergent_presentation::{Presentation, Scope, ScopePath, Scoped};
+use emergent_presentation::{Presentation, ScopePath, Scoped};
 use std::any::Any;
 use std::cell::RefCell;
 
@@ -23,9 +26,14 @@ pub struct View<Msg> {
     bounds: RefCell<Option<DrawingBounds>>,
 
     /// The recognizers that are active.
-    recognizers: Vec<(PresentationPath, Box<dyn GestureRecognizer<Event = Msg>>)>,
+    recognizers: Vec<(
+        PresentationPath,
+        ContextPath,
+        Box<dyn GestureRecognizer<Event = Msg>>,
+    )>,
 
     /// The collected states of the function call scopes.
+    /// TODO: may put them into ScopedStates?
     states: Vec<(ContextPath, Box<dyn Any>)>,
 }
 
@@ -77,8 +85,11 @@ impl<Msg> View<Msg> {
     where
         Msg: 'static,
     {
-        self.recognizers
-            .push((PresentationPath::default(), Box::new(recognizer)));
+        self.recognizers.push((
+            PresentationPath::default(),
+            ContextPath::default(),
+            Box::new(recognizer),
+        ));
         self
     }
 
@@ -90,23 +101,27 @@ impl<Msg> View<Msg> {
         self,
     ) -> (
         Presentation,
-        Vec<(PresentationPath, Box<dyn GestureRecognizer<Event = Msg>>)>,
+        Vec<(
+            PresentationPath,
+            ContextPath,
+            Box<dyn GestureRecognizer<Event = Msg>>,
+        )>,
+        Vec<ScopedState>,
     ) {
-        (self.presentation, self.recognizers)
+        (self.presentation, self.recognizers, self.states)
     }
 
     pub fn into_presentation(self) -> Presentation {
         self.destructure().0
     }
 
-    pub fn recognizer<'a>(
-        &mut self,
-        path: &PresentationPath,
-    ) -> Option<&mut (dyn GestureRecognizer<Event = Msg> + 'static)> {
+    pub(crate) fn presentation_scoped(mut self, scope: impl Into<PresentationScope>) -> Self {
+        let scope = scope.into();
+        self.presentation.replace_with(|p| p.scoped(scope.clone()));
         self.recognizers
             .iter_mut()
-            .find(|(p, _r)| p == path)
-            .map(|(_p, r)| r.as_mut())
+            .for_each(|(p, _c, _r)| p.replace_with(|p| p.scoped(scope.clone())));
+        self
     }
 
     pub fn context_scoped(mut self, scope: impl Into<ContextScope>) -> Self {
@@ -114,28 +129,21 @@ impl<Msg> View<Msg> {
         self.states
             .iter_mut()
             .for_each(|(s, _)| s.replace_with(|s| s.scoped(scope.clone())));
+        self.recognizers
+            .iter_mut()
+            .for_each(|(_p, c, _r)| c.replace_with(|c| c.scoped(scope.clone())));
+
         self
     }
 
     pub fn store_states(mut self, states: impl IntoIterator<Item = Box<dyn Any>>) -> Self {
         self.states
-            .extend(states.into_iter().map(|s| (ScopePath::new(), s)));
+            .extend(states.into_iter().map(|s| (ContextPath::new(), s)));
         self
     }
 
     pub fn store_state(mut self, state: impl Any + 'static) -> Self {
-        self.states.push((ScopePath::new(), Box::new(state)));
-        self
-    }
-}
-
-impl<Msg> Scoped<Presentation> for View<Msg> {
-    fn scoped(mut self, scope: impl Into<Scope<Presentation>>) -> Self {
-        let scope = scope.into();
-        self.presentation.replace_with(|p| p.scoped(scope.clone()));
-        self.recognizers
-            .iter_mut()
-            .for_each(|(p, _r)| p.replace_with(|p| p.scoped(scope.clone())));
+        self.states.push((ContextPath::new(), Box::new(state)));
         self
     }
 }

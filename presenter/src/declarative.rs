@@ -2,7 +2,6 @@
 
 use crate::{Context, Direction, View};
 use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
-use emergent_presentation::Scoped;
 
 // TODO: View<Msg> and Context<Msg> could be made into a generic V and C?
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
@@ -150,7 +149,7 @@ impl<Msg> ViewReducer<Msg> for () {
         let views = views
             .into_iter()
             .enumerate()
-            .map(|(i, view)| view.scoped(i));
+            .map(|(i, view)| view.presentation_scoped(i));
         View::new_combined(views)
     }
 }
@@ -164,7 +163,7 @@ impl<Msg> ViewReducer<Msg> for Direction {
         let direction = self.to_vector();
 
         let views = views.into_iter().enumerate().map(|(i, view)| {
-            let view = view.scoped(i);
+            let view = view.presentation_scoped(i);
             let drawing_bounds = view.fast_bounds(&context);
             if let Some(bounds) = drawing_bounds.as_bounds() {
                 let align = -bounds.point.to_vector();

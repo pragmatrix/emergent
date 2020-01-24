@@ -1,4 +1,6 @@
-use crate::{Context, View};
+use crate::recognizer::pan;
+use crate::recognizer::PanRecognizer;
+use crate::{Context, GestureRecognizer, View};
 use emergent_drawing::{Transformed, Vector};
 
 struct State {
@@ -8,16 +10,35 @@ struct State {
 
 // Experiment: create a scroll view around a content view.
 /// TODO: this must be somehow be lazy, and perhaps something that that can be bound to the elements that generate the content views?
-pub fn view<Msg>(context: Context, content: impl FnOnce(Context) -> View<Msg>) -> View<Msg> {
-    // get state, do we need state to be mutable, or not?
-
-    context.with_state(
-        || State {
-            content_transform: Vector::new(100.0, 100.0),
+pub fn view<Msg: 'static>(
+    context: Context,
+    build_content: impl FnOnce(Context) -> View<Msg>,
+) -> View<Msg> {
+    let view = context.with_state(
+        || {
+            info!("scrollview: resetting state");
+            State {
+                content_transform: Vector::new(100.0, 100.0),
+            }
         },
         |ctx, s: State| {
-            let content = content(ctx).transformed(s.content_transform);
+            info!("scrollivew at: {:?}", s.content_transform);
+            let content = build_content(ctx).transformed(s.content_transform);
             (s, content)
         },
-    )
+    );
+
+    view.in_area()
+        .with_recognizer(PanRecognizer::new().apply(|mut s: State, e| {
+            match e {
+                pan::Event::Pressed(_) => {}
+                pan::Event::Moved(_, v) => {
+                    info!("scrollview: moved: {:?}", v);
+                    s.content_transform += Vector::new(1.0, 1.0);
+                }
+                pan::Event::Released(_, _) => {}
+            };
+
+            (s, None)
+        }))
 }

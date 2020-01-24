@@ -7,7 +7,7 @@ pub type ScopePath<T> = Vec<Scope<T>>;
 
 impl<T> Scoped<T> for Vec<Scope<T>> {
     fn scoped(mut self, scope: impl Into<Scope<T>>) -> Self {
-        // TODO: rather unfortunate that we need to prepend here. May use another datatype.
+        // TODO: rather unfortunate that we need to prepend here. May use another data type.
         self.insert(0, scope.into());
         self
     }

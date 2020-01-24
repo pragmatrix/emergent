@@ -1,8 +1,9 @@
 //! Single point presentation hit testing.
 
 use emergent_drawing::{Clip, Contains, DrawingFastBounds, MeasureText, Path, Point};
-use emergent_presentation::{Presentation, ScopePath};
+use emergent_presentation::{Presentation, Scope, ScopePath};
 
+pub type PresentationScope = Scope<Presentation>;
 pub type PresentationPath = ScopePath<Presentation>;
 
 pub trait PathContainsPoint {

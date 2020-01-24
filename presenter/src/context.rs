@@ -8,7 +8,7 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{ScopedState, Support, View};
+use crate::{ScopedStore, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
@@ -23,12 +23,14 @@ pub type ContextPath = ScopePath<ContextMarker>;
 
 /// The context is an ephemeral instance that is used to present something inside a space that
 /// is defined by a named or indexed scope.
+///
+/// TODO: may rename to ViewState?
 pub struct Context {
     support: Rc<Support>,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The state tree from the previous view rendering process.
-    previous: ScopedState,
+    previous: ScopedStore,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -51,7 +53,7 @@ impl Direction {
 }
 
 impl Context {
-    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopedState) -> Self {
+    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopedStore) -> Self {
         Self {
             support,
             boundary,
@@ -79,15 +81,10 @@ impl Context {
         let previous = self
             .previous
             .remove_scope(scope.clone())
-            .unwrap_or_else(ScopedState::new);
+            .unwrap_or_else(ScopedStore::new);
 
         let nested_context = Context::new(self.support.clone(), self.boundary, previous);
         view(nested_context).context_scoped(scope)
-    }
-
-    /// Tries to reuse a typed state from the current scoped context. This removes the typed state.
-    pub fn reuse<S: 'static>(&mut self, construct: impl FnOnce() -> S) -> S {
-        self.previous.remove_state().unwrap_or_else(construct)
     }
 
     /// Calls a function that uses a state.
@@ -103,9 +100,14 @@ impl Context {
         with_state: impl FnOnce(Context, S) -> (S, View<Msg>),
     ) -> View<Msg> {
         // TODO: can we actually test if the state has been modified?
-        let state = self.reuse(construct);
+        let state = self.recycle_state().unwrap_or_else(construct);
         let (new_state, view) = with_state(self, state);
         view.store_state(new_state)
+    }
+
+    /// Tries to recycle a typed state from the current context. This removes the typed state.
+    fn recycle_state<S: 'static>(&mut self) -> Option<S> {
+        self.previous.remove_state()
     }
 
     pub fn support(&self) -> Rc<Support> {
