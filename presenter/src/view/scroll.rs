@@ -11,24 +11,27 @@ struct State {
 // Experiment: create a scroll view around a content view.
 /// TODO: this must be somehow be lazy, and perhaps something that that can be bound to the elements that generate the content views?
 pub fn view<Msg: 'static>(
-    context: Context,
+    mut context: Context,
     build_content: impl FnOnce(Context) -> View<Msg>,
 ) -> View<Msg> {
-    let view = context.with_state(
-        || {
-            info!("scrollview: resetting state");
-            State {
-                content_transform: Vector::new(100.0, 100.0),
-            }
-        },
-        |ctx, s| {
-            info!("scrollview at: {:?}", s.content_transform);
-            build_content(ctx).transformed(s.content_transform)
-        },
-    );
+    let view = context
+        .with_state(
+            || {
+                info!("scrollview: resetting state");
+                State {
+                    content_transform: Vector::new(100.0, 100.0),
+                }
+            },
+            |ctx, s| {
+                info!("scrollview at: {:?}", s.content_transform);
+                build_content(ctx).transformed(s.content_transform)
+            },
+        )
+        .in_area();
 
-    view.in_area()
-        .with_recognizer(PanRecognizer::new().apply(|mut s: State, e| {
+    context.add_recognizer(view, || {
+        info!("creating new recognizer");
+        PanRecognizer::new().apply(|mut s: State, e| {
             match e {
                 pan::Event::Pressed(_) => {
                     info!("scrollview: pressed");
@@ -42,5 +45,6 @@ pub fn view<Msg: 'static>(
             };
 
             (s, None)
-        }))
+        })
+    })
 }

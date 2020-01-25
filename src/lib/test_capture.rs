@@ -12,12 +12,14 @@ use emergent_presenter::{
 impl TestCapture {
     pub fn present(&self, mut c: Context, show_contents: bool) -> View<Msg> {
         c.scoped(&self.name, |c| {
-            let header = Item::new(&self.name).map(|_, name| {
+            let header = Item::new(&self.name).map(|mut c, name| {
                 let name = name.to_string();
-                Self::view_header(&name).in_area().with_recognizer(
+                let view = Self::view_header(&name).in_area();
+
+                c.add_recognizer(view, || {
                     TapRecognizer::new()
-                        .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() })),
-                )
+                        .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
+                })
             });
 
             if !show_contents {

@@ -110,7 +110,7 @@ where
 
         match event {
             WindowEvent::CloseRequested => self.close_requested = true,
-            WindowEvent::MouseInput { .. } => {
+            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. } => {
                 if let Some(position) = self.window_state.cursor_position() {
                     debug!("position for hit testing {:?}", position);
 

@@ -1,5 +1,6 @@
 use crate::{ContextPath, ContextScope};
 use emergent_drawing::ReplaceWith;
+use std::any;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -11,9 +12,10 @@ pub type TypedStore = HashMap<TypeId, Box<dyn Any>>;
 /// The state of an call scope.
 ///
 /// TODO: can we flatten this somehow? This depends largely on the use cases of the context.
+#[derive(Debug)]
 pub struct ScopedStore {
     /// The states that is stored in this scope.
-    states: TypedStore,
+    pub(crate) states: TypedStore,
 
     /// Nested scoped stores.
     nested: HashMap<ContextScope, ScopedStore>,

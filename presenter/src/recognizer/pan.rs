@@ -40,6 +40,10 @@ impl GestureRecognizer for PanRecognizer {
                 State::Moved(p, current - p),
                 Some(Event::Moved(p, current - p)),
             ),
+            (State::Moved(p, _), WindowEvent::CursorMoved(current)) => (
+                State::Moved(p, current - p),
+                Some(Event::Moved(p, current - p)),
+            ),
             (state, _) => (state, None),
         };
         self.state = state;

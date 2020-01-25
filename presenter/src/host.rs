@@ -1,6 +1,6 @@
 use crate::{
-    Context, ContextPath, GestureRecognizer, InputState, PresentationPath, ScopedStore, Support,
-    View,
+    Context, GestureRecognizer, InputState, PresentationPath, RecognizerRecord, ScopedStore,
+    Support, View,
 };
 use emergent_drawing::Point;
 use emergent_presentation::Presentation;
@@ -8,12 +8,6 @@ use emergent_ui::{FrameLayout, WindowMessage};
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
-
-type RecognizerRecord<Msg> = (
-    PresentationPath,
-    ContextPath,
-    Box<dyn GestureRecognizer<Event = Msg>>,
-);
 
 pub struct Host<Msg> {
     support: Rc<Support>,
@@ -37,8 +31,20 @@ impl<Msg> Host<Msg> {
         }
     }
 
-    pub fn present(&mut self, boundary: FrameLayout, present: impl FnOnce(Context) -> View<Msg>) {
+    pub fn present(&mut self, boundary: FrameLayout, present: impl FnOnce(Context) -> View<Msg>)
+    where
+        Msg: 'static,
+    {
+        // First get all the states from the previous run.
         let store = mem::replace(&mut self.store, ScopedStore::default());
+        // Wrap recognizers including their boxes into another Box<dyn Any> so that we
+        // can transport it alongside the regular states.
+        // TODO: find a better way to transport them as Box<Any>.
+        let recognizer_store =
+            ScopedStore::from_values(self.recognizers.drain(..).map(|r| r.into_scoped_state()));
+        info!("top recognizers: {:?}", recognizer_store.states);
+        let store = store.merged(recognizer_store);
+
         let context = Context::new(self.support.clone(), boundary, store);
         let (presentation, recognizers, states) = present(context).destructure();
 
@@ -68,11 +74,12 @@ impl<Msg> Host<Msg> {
 
         // TODO: what about multiple hits?
 
-        let (c, r) = self
+        let r = self
             .recognizers
             .iter_mut()
-            .find(|(p, _c, _r)| *p == presentation_path)
-            .map(|(_p, c, r)| (&*c, r.as_mut()))?;
+            .find(|r| *r.presentation_path() == presentation_path)?;
+
+        let c = r.context_path().clone();
 
         debug!("recognizer for hit at context: {:?}", c);
         let states = self.store.remove_states_at(&c);

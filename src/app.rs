@@ -98,7 +98,7 @@ impl App {
 
 impl ViewRenderer<Msg> for App {
     fn render_view(&self, ctx: Context) -> View<Msg> {
-        let content = |ctx| match &self.test_run_result {
+        let content = |ctx: Context| match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
                 Data::new(compiler_messages)
                     .map(|_, cm| cm.to_drawing().into())

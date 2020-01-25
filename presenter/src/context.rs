@@ -1,17 +1,20 @@
-//! The presenter provides functionality to create presentations.
+//! The builder provides functionality to create views.
 //!
 //! These are:
-//! - Scoping
-//! - Event registration.
+//! - Scoping nested views.
+//! - Recognizer registration.
+//! - Function local view state (this is cool).
 //! And planned are:
 //! - Simple per-frame key / value caching
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{ScopedStore, Support, View};
+use crate::{GestureRecognizer, RecognizerRecord, ScopedStore, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
+use std::any;
+use std::any::Any;
 use std::rc::Rc;
 
 // Can't use Context here, because it does not support certain trait which Scope / ScopePath needs to.
@@ -87,22 +90,51 @@ impl Context {
         view(nested_context).context_scoped(scope)
     }
 
-    /// Calls a function that uses a state.
-    ///
-    /// This marks the state as live and stores it alongside the returned view if the context is resolved.
+    /// Calls a function that uses a state and generates a view.
     pub fn with_state<S: 'static, Msg>(
-        mut self,
+        &mut self,
         construct: impl FnOnce() -> S,
-        with_state: impl FnOnce(Context, &S) -> (View<Msg>),
+        with_state: impl FnOnce(Context, &S) -> View<Msg>,
     ) -> View<Msg> {
         let state = self.recycle_state().unwrap_or_else(construct);
-        let view = with_state(self, &state);
+        let scope: ContextScope = any::type_name::<S>().into();
+        let view = self.scoped(scope, |ctx| with_state(ctx, &state));
         view.store_state(state)
+    }
+
+    /// Adds a recognizer to the view.
+    ///
+    /// May reuse a recognizer with the same type from the context.
+    pub fn add_recognizer<Msg, R>(
+        &mut self,
+        view: View<Msg>,
+        construct: impl FnOnce() -> R,
+    ) -> View<Msg>
+    where
+        Msg: 'static,
+        R: GestureRecognizer<Event = Msg> + 'static,
+    {
+        // recycling tries to pull out  a boxed version of the recognizer, because we can not cast directly
+        // from the `GestureRecognizer` trait to the `Any` trait when we push down states.
+        let r = self.recycle_state::<R>();
+        let r = r.unwrap_or_else(construct);
+
+        let record = RecognizerRecord::new(
+            Box::new(r),
+            Box::new(|b: &mut Box<dyn Any>| b.downcast_mut::<R>().unwrap()),
+        );
+        view.record_recognizer(record)
     }
 
     /// Tries to recycle a typed state from the current context. This removes the typed state.
     fn recycle_state<S: 'static>(&mut self) -> Option<S> {
-        self.previous.remove_state()
+        match self.previous.remove_state() {
+            None => {
+                info!("failed to recycle state: {:?}", any::type_name::<S>());
+                None
+            }
+            Some(r) => Some(r),
+        }
     }
 
     pub fn support(&self) -> Rc<Support> {

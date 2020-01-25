@@ -1,15 +1,13 @@
 use crate::InputState;
 use emergent_drawing::ReplaceWith;
 use emergent_ui::WindowMessage;
+use std::any::Any;
 use std::marker::PhantomData;
 
 /// A trait to define gesture recognizers.
 ///
 /// Gesture recognizers are persisting and are updated with
 /// each WindowMessage.
-///
-/// Their lifetime is bound to the context scope they are rendered at first.
-
 pub trait GestureRecognizer {
     type Event;
 
