@@ -22,7 +22,7 @@ pub fn view<Msg: 'static>(
             }
         },
         |ctx, s| {
-            info!("scrollivew at: {:?}", s.content_transform);
+            info!("scrollview at: {:?}", s.content_transform);
             build_content(ctx).transformed(s.content_transform)
         },
     );
