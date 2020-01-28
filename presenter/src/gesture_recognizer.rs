@@ -53,13 +53,14 @@ pub trait GestureRecognizer {
     }
 
     /// Activates an input transaction in response to an event.
-    fn activate<T>(self) -> Activate<Self, T>
+    fn activate<F, T>(self, initiator: F) -> Activate<Self, F, T>
     where
         T: Transaction,
         Self: Sized,
     {
         Activate {
             recognizer: self,
+            initiator,
             transaction: None,
         }
     }
@@ -125,18 +126,20 @@ where
     }
 }
 
-pub struct Activate<R, T>
+pub struct Activate<R, F, T>
 where
     T: Transaction,
 {
     recognizer: R,
+    initiator: F,
     transaction: Option<(T::ViewState, T)>,
 }
 
-impl<R, T> GestureRecognizer for Activate<R, T>
+impl<R, F, T> GestureRecognizer for Activate<R, F, T>
 where
     R: GestureRecognizer,
     T: Transaction<InputEvent = R::Event>,
+    F: Fn(T::InputEvent, &mut T::ViewState) -> transaction::InitialResponse<T>,
     T::ViewState: 'static + Clone, // Clone to support rollback
 {
     type Event = T::OutputEvent;
@@ -178,7 +181,7 @@ where
 
         match &mut self.transaction {
             None => {
-                let response = T::try_begin(e, state);
+                let response = (self.initiator)(e, state);
                 match response.action {
                     Neglect => {}
                     Begin(t) => {

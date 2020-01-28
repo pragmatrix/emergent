@@ -112,26 +112,9 @@ pub trait Transaction {
     type ViewState;
     type OutputEvent;
 
-    /// Decides if the transaction should be activated.
-    fn try_begin(event: Self::InputEvent, state: &mut Self::ViewState) -> InitialResponse<Self>
-    where
-        Self: Sized;
-
     fn update(
         &mut self,
         event: Self::InputEvent,
         state: &mut Self::ViewState,
     ) -> UpdateResponse<Self::OutputEvent>;
-}
-
-#[test]
-#[allow(dead_code)]
-fn type_inference_return_type_polymorphism() {
-    fn action() -> UpdateResponse<()> {
-        commit()
-    }
-
-    fn action_with_event() -> UpdateResponse<()> {
-        commit().with_event(())
-    }
 }
