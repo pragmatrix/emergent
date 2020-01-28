@@ -31,32 +31,29 @@ pub trait GestureRecognizer {
         F: Fn(Self::Event) -> Option<To>,
         Self: Sized,
     {
-        Map::new(self, f)
+        Map {
+            recognizer: self,
+            map_event: f,
+        }
     }
 
-    /// Apply the resulting event to another a function that can modify another view state and return another event.
-    /// TODO: use a kind of typed ContextPath, a StateReference?
+    /// Apply the resulting event to another function that can modify another view state and return another event.
     fn apply<To, F, S>(self, f: F) -> Apply<Self, F, S>
     where
         F: Fn(S, Self::Event) -> (S, Option<To>),
         Self: Sized,
     {
-        Apply::new(self, f)
+        Apply {
+            recognizer: self,
+            apply: f,
+            pd: PhantomData,
+        }
     }
 }
 
 pub struct Map<R, F> {
     recognizer: R,
     map_event: F,
-}
-
-impl<R, F> Map<R, F> {
-    pub fn new(recognizer: R, map_event: F) -> Self {
-        Self {
-            recognizer,
-            map_event,
-        }
-    }
 }
 
 impl<From, To, R, F> GestureRecognizer for Map<R, F>
@@ -80,16 +77,6 @@ pub struct Apply<R, F, S> {
     recognizer: R,
     apply: F,
     pd: PhantomData<*const S>,
-}
-
-impl<R, F, S> Apply<R, F, S> {
-    pub fn new(recognizer: R, apply: F) -> Self {
-        Self {
-            recognizer,
-            apply,
-            pd: PhantomData,
-        }
-    }
 }
 
 impl<From, To, R, F, S: 'static> GestureRecognizer for Apply<R, F, S>
