@@ -41,8 +41,8 @@ pub struct InitialResponse<T>
 where
     T: Transaction,
 {
-    action: InitialAction<T>,
-    event: Option<T::OutputEvent>,
+    pub action: InitialAction<T>,
+    pub event: Option<T::OutputEvent>,
 }
 
 impl<T> InitialResponse<T>
@@ -66,8 +66,8 @@ pub enum UpdateAction {
 }
 
 pub struct UpdateResponse<OutputEvent> {
-    action: UpdateAction,
-    event: Option<OutputEvent>,
+    pub action: UpdateAction,
+    pub event: Option<OutputEvent>,
 }
 
 impl<OutputEvent> UpdateResponse<OutputEvent> {
@@ -109,18 +109,18 @@ impl<OutputEvent> UpdateResponse<OutputEvent> {
 /// - may optionally return an event at any time.
 pub trait Transaction {
     type InputEvent;
-    type ExternalState;
+    type ViewState;
     type OutputEvent;
 
     /// Decides if the transaction should be activated.
-    fn try_begin(event: Self::InputEvent, state: &mut Self::ExternalState) -> InitialResponse<Self>
+    fn try_begin(event: Self::InputEvent, state: &mut Self::ViewState) -> InitialResponse<Self>
     where
         Self: Sized;
 
     fn update(
         &mut self,
         event: Self::InputEvent,
-        state: &mut Self::ExternalState,
+        state: &mut Self::ViewState,
     ) -> UpdateResponse<Self::OutputEvent>;
 }
 

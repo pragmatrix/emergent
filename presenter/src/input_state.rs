@@ -51,4 +51,25 @@ impl InputState {
             self.recognizer_context
         )
     }
+
+    /// Return a mutable reference to a typed state record.
+    pub fn get_mut<S: 'static>(&mut self) -> Option<&mut S> {
+        let type_id = TypeId::of::<S>();
+        let states = &mut self.states;
+
+        states
+            .iter_mut()
+            .find(|s| s.deref().type_id() == type_id)
+            .map(|s| s.downcast_mut::<S>().unwrap())
+
+        /*
+        for i in 0..states.len() {
+            if states[i].deref().type_id() == type_id {
+                return Some(states[i].downcast_mut::<S>().unwrap());
+            }
+        }
+
+        None
+        */
+    }
 }
