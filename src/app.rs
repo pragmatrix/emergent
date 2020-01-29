@@ -156,7 +156,7 @@ pub mod tests {
             .capture_tests(TestEnvironment::from_test_environment())
             .unwrap()
         {
-            println!("captures:\n{:?}", captures);
+            info!("captures:\n{:?}", captures);
 
             let captures = captures.0;
 

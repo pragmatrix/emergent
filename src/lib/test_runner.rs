@@ -116,12 +116,10 @@ impl TestRunRequest {
             (test_result, capture.end())
         };
 
-        // TODO: use a log for that
-
-        println!(">>> TEST RESULT: {:?}", test_result);
-        println!(">>> CAPTURED BEGIN");
-        println!("{}", String::from_utf8_lossy(&captured));
-        println!(">>> CAPTURED END");
+        debug!(">>> TEST RESULT: {:?}", test_result);
+        debug!(">>> CAPTURED BEGIN");
+        debug!("{}", String::from_utf8_lossy(&captured));
+        debug!(">>> CAPTURED END");
 
         let cursor = Cursor::new(&captured);
 

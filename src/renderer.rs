@@ -75,7 +75,7 @@ pub fn create_context_and_frame_state<W: Window>(
     // TODO: select a proper physical device, the first one might not be suitable for
     //       rendering on the screen.
     let physical_device = PhysicalDevice::enumerate(&instance).next().unwrap();
-    println!(
+    info!(
         "Using device: {} (type: {:?})",
         physical_device.name(),
         physical_device.ty()
@@ -306,7 +306,7 @@ impl<W: Window> RenderContext<W> {
                     continue;
                 }
                 Err(e) => {
-                    println!("{:?}", e);
+                    error!("{:?}", e);
                     return Box::new(sync::now(self.device.clone()));
                 }
             }
@@ -389,7 +389,7 @@ impl<W: Window> RenderContext<W> {
             // This error tends to happen when the user is manually resizing the window.
             // Simply restarting the loop is the easiest way to fix this issue.
             Err(SwapchainCreationError::UnsupportedDimensions) => {
-                println!(
+                warn!(
                     "unsupported dimensions {:?}, recreating swapchain",
                     dimensions
                 );
