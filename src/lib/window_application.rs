@@ -114,22 +114,27 @@ where
                 if let Some(position) = self.window_state.cursor_position() {
                     debug!("position for hit testing {:?}", position);
 
-                    let mut hits = {
+                    let hits = {
                         let host = self.host.borrow();
                         let presentation = host.presentation();
                         presentation.area_hit_test(position, Vec::new(), host.support())
                     };
 
                     debug!("hits: {:?}", hits);
+                    let msg = WindowMessage::new(self.window_state.clone(), event);
 
-                    if !hits.is_empty() {
-                        let hit = hits.swap_remove(0);
-                        let msg = self.host.borrow_mut().dispatch_mouse_input(
-                            (hit.0.into(), hit.1),
-                            WindowMessage::new(self.window_state.clone(), event),
-                        );
-                        return msg.map(|msg| self.update_model(msg)).unwrap_or(Cmd::None);
-                    }
+                    let cmds: Cmd<WindowApplicationMsg<Msg>> = hits
+                        .into_iter()
+                        .map(|hit| {
+                            let msg = self
+                                .host
+                                .borrow_mut()
+                                .dispatch_mouse_input((hit.0.into(), hit.1), msg.clone());
+                            msg.map(|msg| self.update_model(msg)).unwrap_or(Cmd::None)
+                        })
+                        .collect();
+
+                    return cmds;
                 }
             }
 
