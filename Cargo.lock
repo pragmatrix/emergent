@@ -720,6 +720,7 @@ name = "emergent-ui"
 version = "0.1.0"
 dependencies = [
  "emergent-drawing 0.1.0",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

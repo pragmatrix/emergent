@@ -1,5 +1,6 @@
 use emergent::Frame;
-use emergent_ui::Window;
+use emergent_ui::{measure_fn, Window};
+use std::convert::TryInto;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::DynamicState;
@@ -39,6 +40,18 @@ pub struct FrameState<W: Window> {
 }
 
 pub trait DrawingSurface {}
+
+const PREFERRED_SWAPCHAIN_IMAGES: usize = 2;
+const PREFERRED_PRESENT_MODE: [PresentMode; 4] = [
+    // note that AMD drivers don't seem to support Mailbox on Windows.
+    PresentMode::Mailbox,
+    // immediate seems to drastically reduce input lag on Windows in window mode and also does not tear.
+    PresentMode::Immediate,
+    // that's bad.
+    PresentMode::Fifo,
+    // and worse.
+    PresentMode::Relaxed,
+];
 
 pub trait DrawingBackend {
     type Surface: DrawingSurface;
@@ -103,6 +116,8 @@ pub fn create_context_and_frame_state<W: Window>(
     let (swapchain, images) = {
         let caps = surface.capabilities(physical_device).unwrap();
 
+        debug!("surface capabilities: {:?}", caps);
+
         let usage = caps.supported_usage_flags;
 
         let alpha = caps.supported_composite_alpha.iter().next().unwrap();
@@ -111,10 +126,44 @@ pub fn create_context_and_frame_state<W: Window>(
         let window = surface.window();
         let initial_dimensions = window.frame_layout().dimensions;
 
+        let images = {
+            let preferred = PREFERRED_SWAPCHAIN_IMAGES.try_into().unwrap();
+
+            if let Some(max) = caps.max_image_count {
+                max.min(preferred)
+            } else {
+                preferred
+            }
+            .max(caps.min_image_count)
+        };
+
+        let present_mode = {
+            let caps = caps.present_modes;
+            let mut supported = Vec::new();
+            if caps.mailbox {
+                supported.push(PresentMode::Mailbox);
+            }
+            if caps.immediate {
+                supported.push(PresentMode::Immediate);
+            }
+            if caps.fifo {
+                supported.push(PresentMode::Fifo);
+            }
+            if caps.relaxed {
+                supported.push(PresentMode::Relaxed);
+            }
+
+            PREFERRED_PRESENT_MODE
+                .iter()
+                .copied()
+                .find(|p| supported.contains(p))
+                .expect("unsupported Vulkan Presentation Mode")
+        };
+
         Swapchain::new(
             device.clone(),
             surface.clone(),
-            caps.min_image_count,
+            images,
             format,
             [initial_dimensions.0, initial_dimensions.1],
             1,
@@ -122,7 +171,7 @@ pub fn create_context_and_frame_state<W: Window>(
             &queue,
             SurfaceTransform::Identity,
             alpha,
-            PresentMode::Fifo,
+            present_mode,
             true,
             ColorSpace::SrgbNonLinear,
         )
@@ -303,6 +352,7 @@ impl<W: Window> RenderContext<W> {
                 Err(FlushError::OutOfDate) => {
                     self.recreate_swapchain(frame_state);
                     previous_render = Box::new(sync::now(self.device.clone()));
+                    // redraw again
                     continue;
                 }
                 Err(e) => {
@@ -321,22 +371,28 @@ impl<W: Window> RenderContext<W> {
         drawing_backend: &mut impl DrawingBackend,
         frame: &Frame,
     ) -> Result<Box<dyn GpuFuture>, FlushError> {
-        // for some reason we can't join this with acquire_future and drop it afterwards.
-        drop(previous);
-
-        let image_num = self.acquire_next_fb(frame_state);
-
+        let (acquire_future, image_num) =
+            measure_fn("acquire_next_fb", || self.acquire_next_fb(frame_state));
         let framebuffer = &frame_state.framebuffers[image_num];
 
         {
-            let mut surface = drawing_backend.new_surface_from_framebuffer(framebuffer);
-            drawing_backend.draw(frame, &mut surface);
+            let mut surface = measure_fn("create surface", || {
+                drawing_backend.new_surface_from_framebuffer(framebuffer)
+            });
+            measure_fn("draw", || {
+                drawing_backend.draw(frame, &mut surface);
+            });
         }
 
-        self.present(frame_state, image_num)
+        let f = previous
+            .join(acquire_future)
+            .then_swapchain_present(self.queue.clone(), frame_state.swapchain.clone(), image_num)
+            .then_signal_fence_and_flush();
+
+        f.map(|f| Box::new(f) as _)
     }
 
-    pub fn acquire_next_fb(&self, frame: &mut FrameState<W>) -> usize {
+    pub fn acquire_next_fb(&self, frame: &mut FrameState<W>) -> (impl GpuFuture, usize) {
         let (image_num, suboptimal, acquire_future) =
             swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
 
@@ -344,24 +400,7 @@ impl<W: Window> RenderContext<W> {
             debug!("acquired a suboptimal swapchain image");
         }
 
-        // drop(previous.join(acquire_future));
-        drop(acquire_future);
-        image_num
-    }
-
-    pub fn present(
-        &self,
-        frame: &mut FrameState<W>,
-        image_num: usize,
-    ) -> Result<Box<dyn GpuFuture>, FlushError> {
-        let future: Box<dyn GpuFuture> =
-            Box::new(sync::now(self.device.clone()).then_swapchain_present(
-                self.queue.clone(),
-                frame.swapchain.clone(),
-                image_num,
-            ));
-
-        Ok(future)
+        (acquire_future, image_num)
     }
 
     /// Returns true if the dimensions of the swapchain do not match the window's physical size.

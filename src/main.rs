@@ -9,7 +9,7 @@ use emergent_config::WindowPlacement;
 use emergent_drawing::{font, functions, Font, MeasureText};
 use emergent_presenter::Support;
 use emergent_ui as ui;
-use emergent_ui::{Window, DPI};
+use emergent_ui::{measure_fn, Window, DPI};
 use skia_safe::{icu, Typeface};
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor};
@@ -106,11 +106,14 @@ fn main() {
             renderer::create_context_and_frame_state(instance, render_surface.clone());
         let frame_state = &mut frame_state;
         let drawing_backend = &mut context.new_skia_backend().unwrap();
-        let mut future: Box<dyn GpuFuture> = Box::new(sync::now(context.device.clone()));
+        let mut previous_frame_end: Box<dyn GpuFuture> =
+            Box::new(sync::now(context.device.clone()));
 
         while !application.model().close_requested() {
             let frame_layout = render_surface.window().frame_layout();
-            let presentation = application.model_mut().render_presentation(&frame_layout);
+            let presentation = measure_fn("render_presentation", || {
+                application.model_mut().render_presentation(&frame_layout)
+            });
             let frame = Frame::new(frame_layout, presentation);
 
             // even if we drop the frame, we want to recreate the swapchain so that we are
@@ -122,7 +125,8 @@ fn main() {
             let frame_layout = render_surface.window().frame_layout();
             trace!("window frame layout: {:?}", frame_layout);
             if frame.layout == frame_layout {
-                let _future = context.render(future, frame_state, drawing_backend, &frame);
+                previous_frame_end =
+                    context.render(previous_frame_end, frame_state, drawing_backend, &frame);
             } else {
                 warn!(
                     "skipping frame, wrong layout, expected {:?}, window: {:?}",
@@ -130,12 +134,7 @@ fn main() {
                 );
             }
 
-            // if we don't drop the future here, the last image rendered won't be shown.
-            // TODO: Can't we do this asynchronously, or run the
-            //       application update asynchronously here?
-            future = Box::new(sync::now(context.device.clone()));
-
-            application.update();
+            measure_fn("application.update()", || application.update());
         }
 
         debug!("shutting down renderer loop");
@@ -179,6 +178,12 @@ fn main() {
                     }
                 }
             },
+            // swallow events that would clog the trace log.
+            Event::DeviceEvent { .. }
+            | Event::NewEvents(_)
+            | Event::MainEventsCleared
+            | Event::RedrawEventsCleared => {}
+
             event => {
                 trace!("unhandled event: {:?}", event);
             }
