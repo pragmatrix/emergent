@@ -8,12 +8,12 @@ pub struct InputState {
     /// The recognizer's path. This is used for resolving states.
     recognizer_context: ContextPath,
     /// The states available to be modified by the gesture recognizer.
-    /// Usually there are not many state per context path, so a vector should be fine for doing lookups.
+    /// There should be a very limited amount of states per context path, so a vector is fine for doing
+    /// lookups.
     states: Vec<Box<dyn Any>>,
 }
 
 impl InputState {
-    // TODO: is it even worth pushing _all_ states into a hashmap here?
     pub fn new(
         recognizer_context: ContextPath,
         states: impl IntoIterator<Item = Box<dyn Any>>,

@@ -9,7 +9,7 @@ struct State {
 }
 
 // Experiment: create a scroll view around a content view.
-/// TODO: this must be somehow be lazy, and perhaps something that that can be bound to the elements that generate the content views?
+/// TODO: this must be somehow be lazy, and perhaps something that can be bound to the elements that generate the content views?
 pub fn view<Msg: 'static>(
     mut context: Context,
     build_content: impl FnOnce(Context) -> View<Msg>,
@@ -29,7 +29,7 @@ pub fn view<Msg: 'static>(
         )
         .in_area();
 
-    context.add_recognizer(view, || {
+    context.attach_recognizer(view, || {
         info!("creating new recognizer");
         MoverRecognizer::new(|state: &mut State| &mut state.content_transform)
     })

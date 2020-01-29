@@ -18,7 +18,7 @@ pub struct Host<Msg> {
     /// The recognizers that are active.
     recognizers: Vec<RecognizerRecord<Msg>>,
 
-    /// The store of all collected states of the context scopes.
+    /// The store of all captured states of the context scopes.
     store: ScopedStore,
 }
 
@@ -36,11 +36,9 @@ impl<Msg> Host<Msg> {
     where
         Msg: 'static,
     {
-        // First get all the states from the previous run.
+        // get all the states from the previous run.
         let store = mem::replace(&mut self.store, ScopedStore::default());
-        // Wrap recognizers including their boxes into another Box<dyn Any> so that we
-        // can transport it alongside the regular states.
-        // TODO: find a better way to transport them as Box<Any>.
+        // move all recognizers into the store so that they can get recycled, too.
         let recognizer_store =
             ScopedStore::from_values(self.recognizers.drain(..).map(|r| r.into_scoped_state()));
         info!("recognizers at []: {:?}", recognizer_store.states);

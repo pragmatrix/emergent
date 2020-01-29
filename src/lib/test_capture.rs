@@ -16,7 +16,7 @@ impl TestCapture {
                 let name = name.to_string();
                 let view = Self::view_header(&name).in_area();
 
-                c.add_recognizer(view, || {
+                c.attach_recognizer(view, || {
                     TapRecognizer::new()
                         .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
                 })

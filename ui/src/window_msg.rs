@@ -13,8 +13,7 @@ pub use winit::event::{
     TouchPhase,
 };
 
-/// We need a custom window state that caches some ephemeral information,
-/// like the current modifiers and
+/// We need a custom window state that persists ephemeral information provided with certain events.
 #[derive(Clone, Debug, Default)]
 pub struct WindowState {
     focused: Option<bool>,
@@ -78,10 +77,13 @@ impl WindowEvent {
     */
 }
 
-/// The standardized set of messages a Window Application expects from a Windowing system.
+/// A set of events a window based application expects from a windowing system.
 ///
 /// This is modelled after the `WindowEvent` of winit version `0.19.3`.
-/// The original `WindowEvent` can not be used because it is not serializable.
+///
+/// The original `WindowEvent` can not be used because it is not serializable, and we need to support serialization to
+/// capture detailed snapshot of input event sequences.
+///
 /// Some of the variants like `KeyboardInput` do refer public winit types, but these may be ported in the
 /// long run.
 // TODO: Several of the variants are missing a device identifier because winit
@@ -125,10 +127,10 @@ pub enum WindowEvent {
 }
 
 impl WindowEvent {
-    /// Impport a winit event.
+    /// Import a winit event.
     ///
-    /// To create a WindowEvent, we also need some information that can be retrieved from the
-    /// Window only.
+    /// To create a `WindowEvent`, we also need some information that can be retrieved from the
+    /// `Window` only.
     /// TODO: handle DeviceEvent (for modifiers, etc.)
     pub fn from_winit(
         window: &winit::window::Window,
@@ -136,10 +138,7 @@ impl WindowEvent {
     ) -> Option<WindowEvent> {
         use winit::event::WindowEvent::*;
 
-        // update state
-
-        // Convert event with the goal that by processing the resulting events,
-        // the WindowState can be derived from.
+        // The converted event should be generated so that by processing them `WindowState` can be derived from.
 
         match event {
             Resized(_) => Some(WindowEvent::Resized(window.frame_layout())),

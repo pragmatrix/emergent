@@ -8,7 +8,7 @@ use std::ops::Deref;
 pub type ScopedState = (ContextPath, Box<dyn Any>);
 pub type TypedStore = HashMap<TypeId, Box<dyn Any>>;
 
-/// The state of an call scope.
+/// All the states that were captured in context scope.
 ///
 /// TODO: can we flatten this somehow? This depends largely on the use cases of the context.
 #[derive(Debug)]
@@ -35,7 +35,7 @@ impl ScopedStore {
     }
 
     pub fn from_values(values: impl IntoIterator<Item = ScopedState>) -> Self {
-        // TODO: can we optimize this here by pre-sorting entries?
+        // TODO: can we optimize this by pre-sorting entries?
         values
             .into_iter()
             .fold(ScopedStore::new(), |mut s, (p, state)| {
@@ -102,16 +102,17 @@ impl ScopedStore {
             .map(|a| *(a.downcast::<S>().unwrap()))
     }
 
-    /// Merges two scoped states, overwrites the states on the left side.
+    /// Returns a store that is the merged result between `self` and another store.
+    /// This overwrites the states on the left side.
     pub fn merged(mut self, other: Self) -> Self {
         self.states.extend(other.states);
         Self {
             states: self.states,
-            nested: Self::merge_nested(self.nested, other.nested),
+            nested: Self::merged_nested(self.nested, other.nested),
         }
     }
 
-    fn merge_nested(
+    fn merged_nested(
         mut left: HashMap<ContextScope, ScopedStore>,
         right: HashMap<ContextScope, ScopedStore>,
     ) -> HashMap<ContextScope, ScopedStore> {

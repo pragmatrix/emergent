@@ -341,7 +341,7 @@ impl<W: Window> RenderContext<W> {
             swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
 
         if suboptimal {
-            debug!("acquired a suboptimial swapchain image");
+            debug!("acquired a suboptimal swapchain image");
         }
 
         // drop(previous.join(acquire_future));

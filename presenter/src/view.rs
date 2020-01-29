@@ -25,7 +25,7 @@ pub struct View<Msg> {
     /// The recognizers that are active.
     recognizers: Vec<RecognizerRecord<Msg>>,
 
-    /// The collected states of the function call scopes.
+    /// The captured states of all the context scopes.
     /// TODO: may put them into ScopedStates?
     states: Vec<(ContextPath, Box<dyn Any>)>,
 }
@@ -70,7 +70,6 @@ impl<Msg> View<Msg> {
         }
     }
 
-    /// Attach a recognizer to this view.
     pub(crate) fn record_recognizer(mut self, recognizer: RecognizerRecord<Msg>) -> Self {
         self.recognizers.push(recognizer);
         self

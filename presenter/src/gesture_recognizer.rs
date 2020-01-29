@@ -10,9 +10,8 @@ use std::mem;
 ///
 /// Gesture recognizers are persisting and are updated with
 /// each WindowMessage.
-///
-/// TODO: use &mut InputState.
 pub trait GestureRecognizer {
+    /// The resulting event of the gesture recognizer.
     type Event;
 
     fn dispatch(&mut self, context: &mut InputState, message: WindowMessage)
@@ -45,6 +44,7 @@ pub trait GestureRecognizer {
         }
     }
 
+    /// Optionally activates a transaction in response to an event.
     fn activate<S, I, U, Out>(self, initiator: I) -> Activate<Self, S, I, U, Out>
     where
         I: Fn(Self::Event, &mut S) -> transaction::InitialResponse<U, Out>,
