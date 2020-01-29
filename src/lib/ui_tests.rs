@@ -95,7 +95,7 @@ mod tests {
 
         let mut stacked = Drawing::BackToFront(simple_layout::stacked(vec![d1, d2], &measure, v));
         let stacked_bounds: Rect = (*stacked.fast_bounds(&measure).as_bounds().unwrap()).into();
-        dbg!(&stacked_bounds);
+        debug!("{:?}", stacked_bounds);
         stacked.draw(stacked_bounds, stroke_paint_green);
         stacked.render()
     }
