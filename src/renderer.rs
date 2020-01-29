@@ -41,7 +41,7 @@ pub struct FrameState<W: Window> {
 
 pub trait DrawingSurface {}
 
-const PREFERRED_SWAPCHAIN_IMAGES: usize = 2;
+const PREFERRED_SWAPCHAIN_IMAGES: usize = 1;
 const PREFERRED_PRESENT_MODE: [PresentMode; 4] = [
     // note that AMD drivers don't seem to support Mailbox on Windows.
     PresentMode::Mailbox,
