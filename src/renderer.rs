@@ -136,6 +136,7 @@ pub fn create_context_and_frame_state<W: Window>(
         CpuAccessibleBuffer::from_iter(
             device.clone(),
             BufferUsage::all(),
+            true, // host_cached?
             [
                 Vertex {
                     position: [-0.5, -0.25],
@@ -336,8 +337,12 @@ impl<W: Window> RenderContext<W> {
     }
 
     pub fn acquire_next_fb(&self, frame: &mut FrameState<W>) -> usize {
-        let (image_num, acquire_future) =
+        let (image_num, suboptimal, acquire_future) =
             swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
+
+        if suboptimal {
+            debug!("acquired a suboptimial swapchain image");
+        }
 
         // drop(previous.join(acquire_future));
         drop(acquire_future);
