@@ -63,15 +63,15 @@ impl<Msg> RecognizerRecord<Msg> {
 
 impl<Msg> GestureRecognizer for RecognizerRecord<Msg> {
     type Event = Msg;
-    fn update_with_input_state(
+    fn dispatch(
         &mut self,
-        context: InputState,
+        context: &mut InputState,
         message: WindowMessage,
-    ) -> (InputState, Option<Self::Event>) {
+    ) -> Option<Self::Event> {
         let recognizer = &mut self.recognizer;
         let resolver = &self.resolver;
 
         let recognizer = resolver(recognizer);
-        recognizer.update_with_input_state(context, message)
+        recognizer.dispatch(context, message)
     }
 }

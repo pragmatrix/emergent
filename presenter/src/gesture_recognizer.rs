@@ -11,22 +11,12 @@ use std::mem;
 /// Gesture recognizers are persisting and are updated with
 /// each WindowMessage.
 ///
-/// TODO: remove update() function
 /// TODO: use &mut InputState.
 pub trait GestureRecognizer {
     type Event;
 
-    fn update_with_input_state(
-        &mut self,
-        context: InputState,
-        message: WindowMessage,
-    ) -> (InputState, Option<Self::Event>) {
-        (context, self.update(message))
-    }
-
-    fn update(&mut self, _message: WindowMessage) -> Option<Self::Event> {
-        None
-    }
+    fn dispatch(&mut self, context: &mut InputState, message: WindowMessage)
+        -> Option<Self::Event>;
 
     /// Map the resulting event to another.
     ///
@@ -80,13 +70,13 @@ where
 {
     type Event = To;
 
-    fn update_with_input_state(
+    fn dispatch(
         &mut self,
-        context: InputState,
+        input_state: &mut InputState,
         message: WindowMessage,
-    ) -> (InputState, Option<Self::Event>) {
-        let (context, event) = self.recognizer.update_with_input_state(context, message);
-        (context, event.and_then(&self.map_event))
+    ) -> Option<Self::Event> {
+        let event = self.recognizer.dispatch(input_state, message);
+        event.and_then(&self.map_event)
     }
 }
 
@@ -103,14 +93,12 @@ where
 {
     type Event = To;
 
-    fn update_with_input_state(
+    fn dispatch(
         &mut self,
-        input_state: InputState,
+        input_state: &mut InputState,
         message: WindowMessage,
-    ) -> (InputState, Option<Self::Event>) {
-        let (mut input_state, e) = self
-            .recognizer
-            .update_with_input_state(input_state, message);
+    ) -> Option<Self::Event> {
+        let e = self.recognizer.dispatch(input_state, message);
 
         if let Some(e) = e {
             let mut to_r = None;
@@ -121,10 +109,10 @@ where
                     s
                 })
             });
-            return (input_state, to_r);
+            return to_r;
         }
 
-        (input_state, None)
+        None
     }
 }
 
@@ -147,16 +135,14 @@ where
 {
     type Event = Out;
 
-    fn update_with_input_state(
+    fn dispatch(
         &mut self,
-        input_state: InputState,
+        input_state: &mut InputState,
         message: WindowMessage,
-    ) -> (InputState, Option<Self::Event>) {
+    ) -> Option<Self::Event> {
         use transaction::{InitialAction::*, UpdateAction::*};
 
-        let (mut input_state, e) = self
-            .recognizer
-            .update_with_input_state(input_state, message);
+        let e = self.recognizer.dispatch(input_state, message);
 
         if e.is_none() {
             if self.transaction.is_some() && input_state.get_mut::<S>().is_none() {
@@ -165,7 +151,7 @@ where
                     type_name::<S>(),
                 )
             }
-            return (input_state, None);
+            return None;
         }
         let e = e.unwrap();
 
@@ -178,7 +164,7 @@ where
                 type_name::<R::Event>()
             );
             self.transaction = None;
-            return (input_state, None);
+            return None;
         }
         let state = state.unwrap();
 
@@ -191,7 +177,7 @@ where
                         self.transaction = Some((state.clone(), u));
                     }
                 }
-                (input_state, response.event)
+                response.event
             }
             Some((rollback_state, u)) => {
                 let response = u(e, state);
@@ -206,7 +192,7 @@ where
                     }
                 }
 
-                (input_state, response.event)
+                response.event
             }
         }
     }

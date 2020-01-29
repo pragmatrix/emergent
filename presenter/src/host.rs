@@ -95,8 +95,8 @@ impl<Msg> Host<Msg> {
                 .map(|s| s.deref().type_id())
                 .collect::<Vec<TypeId>>()
         );
-        let input_state = InputState::new(c.clone(), states);
-        let (input_state, msg) = r.update_with_input_state(input_state, msg);
+        let mut input_state = InputState::new(c.clone(), states);
+        let msg = r.dispatch(&mut input_state, msg);
         let new_states = input_state.into_states();
         self.store.extend_states_at(&c, new_states);
 

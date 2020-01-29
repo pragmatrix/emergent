@@ -1,6 +1,5 @@
 use crate::{ContextPath, ContextScope};
 use emergent_drawing::ReplaceWith;
-use std::any;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;

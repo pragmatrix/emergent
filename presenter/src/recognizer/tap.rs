@@ -1,4 +1,4 @@
-use crate::GestureRecognizer;
+use crate::{GestureRecognizer, InputState};
 use emergent_drawing::Point;
 use emergent_ui::WindowMessage;
 
@@ -16,7 +16,7 @@ impl TapRecognizer {
 
 impl GestureRecognizer for TapRecognizer {
     type Event = Event;
-    fn update(&mut self, msg: WindowMessage) -> Option<Event> {
+    fn dispatch(&mut self, _: &mut InputState, msg: WindowMessage) -> Option<Event> {
         if msg.event.left_button_pressed() {
             let position = msg.state.cursor_position().unwrap();
             Some(Event::Tapped(position))
