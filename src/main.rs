@@ -201,7 +201,7 @@ fn _shaper_perf() {
     let font = &text.font;
     let typeface =
         Typeface::from_name(&font.name, font.style.to_skia()).expect("failed to resolve typeface");
-    let font = skia_safe::Font::from_typeface(&typeface, *font.size as f32);
+    let _font = skia_safe::Font::from_typeface(&typeface, *font.size as f32);
 
     for _i in 0..20000 {
         measure.measure_text(&text);
