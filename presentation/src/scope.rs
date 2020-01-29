@@ -1,18 +1,27 @@
-use crate::Scoped;
 use std::borrow::Cow;
 use std::fmt;
 use std::marker::PhantomData;
 
+/// A scope path contains a sequence of scopes that together describes a branch path  
+/// inside a nested data structure.
+///
+/// The type argument `T` is used to discriminate different types of scope paths.
+///
+/// # Notes
+///
+/// - Even though `VecDeque` would probably be a better type, we have uses in which we prefer to
+///   access parts of paths through slices.
+
 pub type ScopePath<T> = Vec<Scope<T>>;
 
-impl<T> Scoped<T> for Vec<Scope<T>> {
-    fn scoped(mut self, scope: impl Into<Scope<T>>) -> Self {
-        // TODO: rather unfortunate that we need to prepend here. May use another data type.
-        self.insert(0, scope.into());
-        self
-    }
+/// A trait that can be implemented by types that can be extended with / put into a scope.
+pub trait Scoped<T> {
+    fn scoped(self, scope: impl Into<Scope<T>>) -> Self;
 }
 
+/// A scope is defined to be either by a `Name` or an `Index`.
+///
+/// The type argument `T` is used to discriminate different types of scopes.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum Scope<T> {
     Name(Cow<'static, str>, PhantomData<*const T>),
@@ -50,5 +59,12 @@ impl<T> From<&String> for Scope<T> {
 impl<T> From<usize> for Scope<T> {
     fn from(i: usize) -> Self {
         Scope::Index(i)
+    }
+}
+
+impl<M> Scoped<M> for Vec<Scope<M>> {
+    fn scoped(mut self, scope: impl Into<Scope<M>>) -> Self {
+        self.insert(0, scope.into());
+        self
     }
 }
