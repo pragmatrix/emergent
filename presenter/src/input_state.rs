@@ -59,17 +59,7 @@ impl InputState {
 
         states
             .iter_mut()
-            .find(|s| s.deref().type_id() == type_id)
+            .find(|s| s.deref().deref().type_id() == type_id)
             .map(|s| s.downcast_mut::<S>().unwrap())
-
-        /*
-        for i in 0..states.len() {
-            if states[i].deref().type_id() == type_id {
-                return Some(states[i].downcast_mut::<S>().unwrap());
-            }
-        }
-
-        None
-        */
     }
 }

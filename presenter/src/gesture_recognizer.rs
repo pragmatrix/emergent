@@ -1,8 +1,8 @@
 use crate::transaction;
-use crate::{InputState, Transaction};
+use crate::InputState;
 use emergent_drawing::ReplaceWith;
 use emergent_ui::WindowMessage;
-use std::any::type_name;
+use std::any::{type_name, TypeId};
 use std::marker::PhantomData;
 use std::mem;
 
@@ -10,6 +10,9 @@ use std::mem;
 ///
 /// Gesture recognizers are persisting and are updated with
 /// each WindowMessage.
+///
+/// TODO: remove update() function
+/// TODO: use &mut InputState.
 pub trait GestureRecognizer {
     type Event;
 
@@ -52,10 +55,9 @@ pub trait GestureRecognizer {
         }
     }
 
-    /// Activates an input transaction in response to an event.
-    fn activate<F, T>(self, initiator: F) -> Activate<Self, F, T>
+    fn activate<S, I, U, Out>(self, initiator: I) -> Activate<Self, S, I, U, Out>
     where
-        T: Transaction,
+        I: Fn(Self::Event, &mut S) -> transaction::InitialResponse<U, Out>,
         Self: Sized,
     {
         Activate {
@@ -126,23 +128,24 @@ where
     }
 }
 
-pub struct Activate<R, F, T>
-where
-    T: Transaction,
-{
-    recognizer: R,
-    initiator: F,
-    transaction: Option<(T::ViewState, T)>,
-}
-
-impl<R, F, T> GestureRecognizer for Activate<R, F, T>
+pub struct Activate<R, S, I, U, Out>
 where
     R: GestureRecognizer,
-    T: Transaction<InputEvent = R::Event>,
-    F: Fn(T::InputEvent, &mut T::ViewState) -> transaction::InitialResponse<T>,
-    T::ViewState: 'static + Clone, // Clone to support rollback
+    I: Fn(R::Event, &mut S) -> transaction::InitialResponse<U, Out>,
 {
-    type Event = T::OutputEvent;
+    recognizer: R,
+    initiator: I,
+    transaction: Option<(S, U)>,
+}
+
+impl<R, S, I, U, Out> GestureRecognizer for Activate<R, S, I, U, Out>
+where
+    R: GestureRecognizer,
+    S: 'static + Clone, // Clone to support rollback
+    I: Fn(R::Event, &mut S) -> transaction::InitialResponse<U, Out>,
+    U: FnMut(R::Event, &mut S) -> transaction::UpdateResponse<Out>,
+{
+    type Event = Out;
 
     fn update_with_input_state(
         &mut self,
@@ -154,12 +157,12 @@ where
         let (mut input_state, e) = self
             .recognizer
             .update_with_input_state(input_state, message);
+
         if e.is_none() {
-            if self.transaction.is_some() && input_state.get_mut::<T::ViewState>().is_none() {
+            if self.transaction.is_some() && input_state.get_mut::<S>().is_none() {
                 warn!(
-                    "view state {} vanished, but may reappear before {} continues",
-                    type_name::<T::ViewState>(),
-                    type_name::<T>()
+                    "view state {} vanished, but may reappear before the transaction continues",
+                    type_name::<S>(),
                 )
             }
             return (input_state, None);
@@ -169,9 +172,9 @@ where
         let state = input_state.get_mut();
         if state.is_none() {
             info!(
-                "view state {} for {} vanished, cleaning up, {} got ignored",
-                type_name::<T::ViewState>(),
-                type_name::<T>(),
+                "view state {} {:?} vanished, cleaning up, {} got ignored",
+                type_name::<S>(),
+                TypeId::of::<S>(),
                 type_name::<R::Event>()
             );
             self.transaction = None;
@@ -184,15 +187,14 @@ where
                 let response = (self.initiator)(e, state);
                 match response.action {
                     Neglect => {}
-                    Begin(t) => {
-                        self.transaction = Some((state.clone(), t));
+                    Begin(u) => {
+                        self.transaction = Some((state.clone(), u));
                     }
                 }
                 (input_state, response.event)
             }
-            Some(t) => {
-                let (rollback_state, t) = t;
-                let response = t.update(e, state);
+            Some((rollback_state, u)) => {
+                let response = u(e, state);
                 match response.action {
                     Sustain => {}
                     Commit => {

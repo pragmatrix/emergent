@@ -15,7 +15,7 @@ pub use winit::event::{
 
 /// We need a custom window state that caches some ephemeral information,
 /// like the current modifiers and
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct WindowState {
     focused: Option<bool>,
     /// Cursor entered?
@@ -192,8 +192,20 @@ impl WindowEvent {
             _ => false,
         }
     }
+
+    pub fn left_button_released(&self) -> bool {
+        match self {
+            WindowEvent::MouseInput { state, button, .. }
+                if *button == MouseButton::Left && *state == ElementState::Released =>
+            {
+                true
+            }
+            _ => false,
+        }
+    }
 }
 
+#[derive(Clone, Debug)]
 pub struct WindowMessage {
     pub state: WindowState,
     pub event: WindowEvent,

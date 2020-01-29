@@ -130,7 +130,7 @@ impl Context {
     fn recycle_state<S: 'static>(&mut self) -> Option<S> {
         match self.previous.remove_state() {
             None => {
-                info!("failed to recycle state: {:?}", any::type_name::<S>());
+                trace!("failed to recycle state: {:?}", any::type_name::<S>());
                 None
             }
             Some(r) => Some(r),

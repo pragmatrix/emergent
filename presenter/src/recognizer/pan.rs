@@ -6,13 +6,14 @@ pub struct PanRecognizer {
     state: State,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 enum State {
     Waiting,
     Pressed(Point),
     Moved(Point, Vector),
 }
 
+#[derive(Clone, PartialEq, Debug)]
 pub enum Event {
     Pressed(Point),
     Moved(Point, Vector),
@@ -44,6 +45,12 @@ impl GestureRecognizer for PanRecognizer {
                 State::Moved(p, current - p),
                 Some(Event::Moved(p, current - p)),
             ),
+            (State::Pressed(p), event) if event.left_button_released() => {
+                (State::Waiting, Some(Event::Released(p, Vector::default())))
+            }
+            (State::Moved(p, v), event) if event.left_button_released() => {
+                (State::Waiting, Some(Event::Released(p, v)))
+            }
             (state, _) => (state, None),
         };
         self.state = state;

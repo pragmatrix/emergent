@@ -1,35 +1,32 @@
 //! Input transactions.
 
-pub fn begin<T>(transaction: T) -> InitialResponse<T>
+pub fn begin<In, S, U, Out>(u: U) -> InitialResponse<U, Out>
 where
-    T: Transaction,
+    U: FnMut(In, &mut S) -> UpdateResponse<Out>,
 {
     InitialResponse {
-        action: InitialAction::Begin(transaction),
+        action: InitialAction::Begin(u),
         event: None,
     }
 }
 
-pub fn neglect<T>() -> InitialResponse<T>
-where
-    T: Transaction,
-{
+pub fn neglect<U, Out>() -> InitialResponse<U, Out> {
     InitialResponse {
         action: InitialAction::Neglect,
         event: None,
     }
 }
 
-pub fn sustain<OE>() -> UpdateResponse<OE> {
-    UpdateResponse::sustain()
+pub fn sustain<Out>() -> UpdateResponse<Out> {
+    UpdateResponse::from_action(UpdateAction::Sustain)
 }
 
-pub fn commit<OE>() -> UpdateResponse<OE> {
-    UpdateResponse::commit()
+pub fn commit<Out>() -> UpdateResponse<Out> {
+    UpdateResponse::from_action(UpdateAction::Commit)
 }
 
 pub fn rollback<OE>() -> UpdateResponse<OE> {
-    UpdateResponse::rollback()
+    UpdateResponse::from_action(UpdateAction::Rollback)
 }
 
 pub enum InitialAction<T> {
@@ -37,19 +34,13 @@ pub enum InitialAction<T> {
     Neglect,
 }
 
-pub struct InitialResponse<T>
-where
-    T: Transaction,
-{
-    pub action: InitialAction<T>,
-    pub event: Option<T::OutputEvent>,
+pub struct InitialResponse<U, Out> {
+    pub action: InitialAction<U>,
+    pub event: Option<Out>,
 }
 
-impl<T> InitialResponse<T>
-where
-    T: Transaction,
-{
-    pub fn with_event(mut self, e: T::OutputEvent) -> Self {
+impl<U, Out> InitialResponse<U, Out> {
+    pub fn with_event(mut self, e: Out) -> Self {
         if let Some(ref _e) = self.event {
             debug_assert!(false, "would overwrite transaction event");
         }
@@ -65,9 +56,9 @@ pub enum UpdateAction {
     Rollback,
 }
 
-pub struct UpdateResponse<OutputEvent> {
+pub struct UpdateResponse<Out> {
     pub action: UpdateAction,
-    pub event: Option<OutputEvent>,
+    pub event: Option<Out>,
 }
 
 impl<OutputEvent> UpdateResponse<OutputEvent> {
@@ -86,35 +77,4 @@ impl<OutputEvent> UpdateResponse<OutputEvent> {
             event: None,
         }
     }
-
-    fn sustain() -> Self {
-        Self::from_action(UpdateAction::Sustain)
-    }
-
-    fn commit() -> Self {
-        Self::from_action(UpdateAction::Commit)
-    }
-
-    fn rollback() -> Self {
-        Self::from_action(UpdateAction::Rollback)
-    }
-}
-
-/// Implement the trait when an input processors needs to:
-///
-/// - activate in response to an input event.
-/// - access and modify external state.
-/// - be seen as a transaction regarding to the external state,
-///   i.e. supporting a rollback function that undos it.
-/// - may optionally return an event at any time.
-pub trait Transaction {
-    type InputEvent;
-    type ViewState;
-    type OutputEvent;
-
-    fn update(
-        &mut self,
-        event: Self::InputEvent,
-        state: &mut Self::ViewState,
-    ) -> UpdateResponse<Self::OutputEvent>;
 }

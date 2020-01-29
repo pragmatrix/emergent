@@ -1,8 +1,8 @@
-use crate::recognizer::pan;
-use crate::recognizer::PanRecognizer;
-use crate::{Context, GestureRecognizer, View};
+use crate::recognizer::MoverRecognizer;
+use crate::{Context, View};
 use emergent_drawing::{Transformed, Vector};
 
+#[derive(Clone)]
 struct State {
     /// The transformation vector of the content.
     content_transform: Vector,
@@ -19,7 +19,7 @@ pub fn view<Msg: 'static>(
             || {
                 info!("scrollview: resetting state");
                 State {
-                    content_transform: Vector::new(100.0, 100.0),
+                    content_transform: Vector::new(0.0, 0.0),
                 }
             },
             |ctx, s| {
@@ -31,20 +31,6 @@ pub fn view<Msg: 'static>(
 
     context.add_recognizer(view, || {
         info!("creating new recognizer");
-        PanRecognizer::new().apply(|mut s: State, e| {
-            match e {
-                pan::Event::Pressed(_) => {
-                    info!("scrollview: pressed");
-                    s.content_transform += Vector::new(10.0, 10.0);
-                }
-                pan::Event::Moved(_, v) => {
-                    info!("scrollview: moved: {:?}", v);
-                    s.content_transform += Vector::new(1.0, 1.0);
-                }
-                pan::Event::Released(_, _) => {}
-            };
-
-            (s, None)
-        })
+        MoverRecognizer::new(|state: &mut State| &mut state.content_transform)
     })
 }

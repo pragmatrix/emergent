@@ -5,6 +5,7 @@ use crate::{
 use emergent_drawing::Point;
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
+use std::any::TypeId;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -42,7 +43,7 @@ impl<Msg> Host<Msg> {
         // TODO: find a better way to transport them as Box<Any>.
         let recognizer_store =
             ScopedStore::from_values(self.recognizers.drain(..).map(|r| r.into_scoped_state()));
-        info!("top recognizers: {:?}", recognizer_store.states);
+        info!("recognizers at []: {:?}", recognizer_store.states);
         let store = store.merged(recognizer_store);
 
         let context = Context::new(self.support.clone(), boundary, store);
@@ -71,6 +72,8 @@ impl<Msg> Host<Msg> {
         Msg: 'static,
     {
         debug!("hit at presentation: {:?}", presentation_path);
+        debug!("event: {:?}", msg.event);
+        debug!("msg state: {:?}", msg.state);
 
         // TODO: what about multiple hits?
 
@@ -83,7 +86,15 @@ impl<Msg> Host<Msg> {
 
         debug!("recognizer for hit at context: {:?}", c);
         let states = self.store.remove_states_at(&c);
-        debug!("states at {:?}: {}", c, states.len());
+        debug!(
+            "states at {:?}: {} {:?}",
+            c,
+            states.len(),
+            states
+                .iter()
+                .map(|s| s.deref().type_id())
+                .collect::<Vec<TypeId>>()
+        );
         let input_state = InputState::new(c.clone(), states);
         let (input_state, msg) = r.update_with_input_state(input_state, msg);
         let new_states = input_state.into_states();

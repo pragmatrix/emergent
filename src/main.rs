@@ -120,7 +120,7 @@ fn main() {
             }
 
             let frame_layout = render_surface.window().frame_layout();
-            info!("window frame layout: {:?}", frame_layout);
+            trace!("window frame layout: {:?}", frame_layout);
             if frame.layout == frame_layout {
                 let _future = context.render(future, frame_state, drawing_backend, &frame);
             } else {
