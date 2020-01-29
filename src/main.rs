@@ -125,7 +125,8 @@ fn main() {
             let frame_layout = render_surface.window().frame_layout();
             trace!("window frame layout: {:?}", frame_layout);
             if frame.layout == frame_layout {
-                let _future = context.render(future, frame_state, drawing_backend, &frame);
+                previous_frame_end =
+                    context.render(previous_frame_end, frame_state, drawing_backend, &frame);
             } else {
                 warn!(
                     "skipping frame, wrong layout, expected {:?}, window: {:?}",

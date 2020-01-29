@@ -5,6 +5,7 @@ authors = ["Armin Sander <armin@replicator.org>"]
 edition = "2018"
 
 [dependencies]
+log = "0.4.8"
 emergent-drawing = { path = "../drawing" }
 serde = { version = "1.0.100", features = ["derive"] }
 winit = { version = "0.20.0", features = ["serde"] }
