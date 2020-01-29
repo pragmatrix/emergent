@@ -190,7 +190,7 @@ impl DrawingSurface for skia_safe::Surface {}
 struct CanvasDrawingTarget<'a> {
     canvas: &'a mut Canvas,
     // shaper: &'a shaper::Shaper,
-    dpi: DPI,
+    _dpi: DPI,
     paint: PaintSync,
     font: FontSync,
 }
@@ -372,12 +372,12 @@ impl<'a> CanvasDrawingTarget<'a> {
         &mut self.canvas
     }
 
-    fn from_canvas(canvas: &'a mut Canvas, dpi: DPI, shaper: &'a Shaper) -> Self {
+    fn from_canvas(canvas: &'a mut Canvas, dpi: DPI, _shaper: &'a Shaper) -> Self {
         let drawing_paint = drawing::Paint::default();
 
         Self {
             canvas,
-            dpi,
+            _dpi: dpi,
             // shaper,
             paint: PaintSync::from_paint(drawing_paint),
             // TODO: clarify if we need a notion of a default font.

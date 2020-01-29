@@ -1,9 +1,9 @@
 use crate::{FrameLayout, Window};
-use emergent_drawing::{scalar, Point};
+use emergent_drawing::Point;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 pub use winit::event::{
-    // winit reexports:
+    // winit re-exports:
     AxisId,
     ElementState,
     KeyboardInput,
@@ -13,16 +13,83 @@ pub use winit::event::{
     TouchPhase,
 };
 
-/// The standardized set of messages a Window Application expects from a Windowing system.
+/// We need a custom window state that persists ephemeral information provided with certain events.
+#[derive(Clone, Debug, Default)]
+pub struct WindowState {
+    focused: Option<bool>,
+    /// Cursor entered?
+    cursor_entered: Option<bool>,
+    /// Cursor position, None if not yet set.
+    cursor_position: Option<Point>,
+    // TODO: add modifiers, cursor_entered, etc.
+}
+
+impl WindowState {
+    pub fn new(_window: &winit::window::Window) -> WindowState {
+        Default::default()
+    }
+
+    pub fn update(&mut self, event: WindowEvent) {
+        use WindowEvent::*;
+        match event {
+            Focused(focused) => {
+                self.focused = focused.into();
+            }
+            CursorMoved(position) => {
+                self.cursor_position = position.into();
+            }
+            CursorEntered { .. } => {
+                self.cursor_entered = true.into();
+            }
+            CursorLeft { .. } => {
+                self.cursor_entered = false.into();
+            }
+            _ => (),
+        }
+    }
+
+    pub fn focused(&self) -> Option<bool> {
+        self.focused
+    }
+
+    pub fn cursor_position(&self) -> Option<Point> {
+        self.cursor_position
+    }
+
+    pub fn cursor_entered(&self) -> Option<bool> {
+        self.cursor_entered
+    }
+}
+
+impl WindowEvent {
+    /*
+    /// Returns the keyboard modifiers if specified in the Msg, None if not.
+    pub fn modifiers(&self) -> Option<ModifiersState> {
+        use WindowMsg::*;
+        match self {
+            KeyboardInput(winit::KeyboardInput { modifiers, .. })
+            | CursorMoved { modifiers, .. }
+            | MouseWheel { modifiers, .. }
+            | MouseInput { modifiers, .. } => Some(*modifiers),
+            _ => None,
+        }
+    }
+    */
+}
+
+/// A set of events a window based application expects from a windowing system.
 ///
 /// This is modelled after the `WindowEvent` of winit version `0.19.3`.
-/// The original `WindowEvent` can not be used because it is not serializable.
+///
+/// The original `WindowEvent` can not be used because it is not serializable, and we need to support serialization to
+/// capture detailed snapshot of input event sequences.
+///
 /// Some of the variants like `KeyboardInput` do refer public winit types, but these may be ported in the
 /// long run.
 // TODO: Several of the variants are missing a device identifier because winit
 // represents it with a platform dependent type.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum WindowMsg {
+pub enum WindowEvent {
     Resized(FrameLayout),
     Moved(Point),
     CloseRequested,
@@ -32,9 +99,7 @@ pub enum WindowMsg {
     ReceivedCharacter(char),
     Focused(bool),
     KeyboardInput(KeyboardInput),
-    CursorMoved {
-        position: Point,
-    },
+    CursorMoved(Point),
     CursorEntered,
     CursorLeft,
     MouseWheel {
@@ -61,70 +126,92 @@ pub enum WindowMsg {
     ScaleFactorChanged(FrameLayout),
 }
 
-impl WindowMsg {
-    /// To create a WindowMsg, we also need some information that can be retrieved from the
-    /// Window only.
-    pub fn from_window_and_event(
+impl WindowEvent {
+    /// Import a winit event.
+    ///
+    /// To create a `WindowEvent`, we also need some information that can be retrieved from the
+    /// `Window` only.
+    /// TODO: handle DeviceEvent (for modifiers, etc.)
+    pub fn from_winit(
         window: &winit::window::Window,
         event: winit::event::WindowEvent,
-    ) -> Option<WindowMsg> {
+    ) -> Option<WindowEvent> {
         use winit::event::WindowEvent::*;
 
-        let to_point = |lp: winit::dpi::LogicalPosition<scalar>| {
-            let pp = lp.to_physical(window.scale_factor());
-            Point::new(pp.x, pp.y)
-        };
+        // The converted event should be generated so that by processing them `WindowState` can be derived from.
 
         match event {
-            Resized(_) => Some(WindowMsg::Resized(window.frame_layout())),
-            Moved(lp) => Some(WindowMsg::Moved(Point::new(lp.x as _, lp.y as _))),
-            CloseRequested => Some(WindowMsg::CloseRequested),
+            Resized(_) => Some(WindowEvent::Resized(window.frame_layout())),
+            Moved(lp) => Some(WindowEvent::Moved(Point::new(lp.x as _, lp.y as _))),
+            CloseRequested => Some(WindowEvent::CloseRequested),
             Destroyed => None,
-            DroppedFile(path) => Some(WindowMsg::DroppedFile(path)),
-            HoveredFile(path) => Some(WindowMsg::HoveredFile(path)),
-            HoveredFileCancelled => Some(WindowMsg::HoveredFileCancelled),
-            ReceivedCharacter(c) => Some(WindowMsg::ReceivedCharacter(c)),
-            Focused(focused) => Some(WindowMsg::Focused(focused)),
-            KeyboardInput { input, .. } => Some(WindowMsg::KeyboardInput(input)),
-            CursorMoved { position, .. } => WindowMsg::CursorMoved {
-                position: Point::new(position.x as _, position.y as _),
+            DroppedFile(path) => Some(WindowEvent::DroppedFile(path)),
+            HoveredFile(path) => Some(WindowEvent::HoveredFile(path)),
+            HoveredFileCancelled => Some(WindowEvent::HoveredFileCancelled),
+            ReceivedCharacter(c) => Some(WindowEvent::ReceivedCharacter(c)),
+            Focused(focused) => WindowEvent::Focused(focused).into(),
+            KeyboardInput { input, .. } => Some(WindowEvent::KeyboardInput(input)),
+            CursorMoved { position, .. } => {
+                let point = Point::new(position.x as _, position.y as _);
+                WindowEvent::CursorMoved(point).into()
             }
-            .into(),
-            CursorEntered { device_id: _ } => WindowMsg::CursorEntered.into(),
-            CursorLeft { device_id: _ } => WindowMsg::CursorLeft.into(),
-            MouseWheel { delta, phase, .. } => WindowMsg::MouseWheel { delta, phase }.into(),
-            MouseInput { state, button, .. } => Some(WindowMsg::MouseInput { state, button }),
+            CursorEntered { device_id: _ } => WindowEvent::CursorEntered.into(),
+            CursorLeft { device_id: _ } => WindowEvent::CursorLeft.into(),
+            MouseWheel { delta, phase, .. } => WindowEvent::MouseWheel { delta, phase }.into(),
+            MouseInput { state, button, .. } => Some(WindowEvent::MouseInput { state, button }),
             TouchpadPressure {
                 pressure, stage, ..
-            } => Some(WindowMsg::TouchpadPressure { pressure, stage }),
-            AxisMotion { axis, value, .. } => Some(WindowMsg::AxisMotion { axis, value }),
+            } => Some(WindowEvent::TouchpadPressure { pressure, stage }),
+            AxisMotion { axis, value, .. } => Some(WindowEvent::AxisMotion { axis, value }),
             // TODO: use the force
             Touch(winit::event::Touch {
                 phase,
                 location,
                 id,
                 ..
-            }) => Some(WindowMsg::Touch {
+            }) => Some(WindowEvent::Touch {
                 phase,
                 location: Point::new(location.x as _, location.y as _),
                 finger_id: id,
             }),
-            ScaleFactorChanged { .. } => Some(WindowMsg::ScaleFactorChanged(window.frame_layout())),
+            ScaleFactorChanged { .. } => {
+                Some(WindowEvent::ScaleFactorChanged(window.frame_layout()))
+            }
             ThemeChanged(_) => None,
         }
     }
 
-    /*
-    /// Returns the keyboard modifiers if specified in the Msg, None if not.
-    pub fn modifiers(&self) -> Option<ModifiersState> {
-        use WindowMsg::*;
+    pub fn left_button_pressed(&self) -> bool {
         match self {
-            KeyboardInput(winit::KeyboardInput { modifiers, .. })
-            | CursorMoved { modifiers, .. }
-            | MouseWheel { modifiers, .. }
-            | MouseInput { modifiers, .. } => Some(*modifiers),
-            _ => None,
+            WindowEvent::MouseInput { state, button, .. }
+                if *button == MouseButton::Left && *state == ElementState::Pressed =>
+            {
+                true
+            }
+            _ => false,
         }
     }
-    */
+
+    pub fn left_button_released(&self) -> bool {
+        match self {
+            WindowEvent::MouseInput { state, button, .. }
+                if *button == MouseButton::Left && *state == ElementState::Released =>
+            {
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WindowMessage {
+    pub state: WindowState,
+    pub event: WindowEvent,
+}
+
+impl WindowMessage {
+    pub fn new(state: WindowState, event: WindowEvent) -> Self {
+        Self { state, event }
+    }
 }

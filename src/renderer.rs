@@ -75,7 +75,7 @@ pub fn create_context_and_frame_state<W: Window>(
     // TODO: select a proper physical device, the first one might not be suitable for
     //       rendering on the screen.
     let physical_device = PhysicalDevice::enumerate(&instance).next().unwrap();
-    println!(
+    info!(
         "Using device: {} (type: {:?})",
         physical_device.name(),
         physical_device.ty()
@@ -136,6 +136,7 @@ pub fn create_context_and_frame_state<W: Window>(
         CpuAccessibleBuffer::from_iter(
             device.clone(),
             BufferUsage::all(),
+            true, // host_cached?
             [
                 Vertex {
                     position: [-0.5, -0.25],
@@ -305,7 +306,7 @@ impl<W: Window> RenderContext<W> {
                     continue;
                 }
                 Err(e) => {
-                    println!("{:?}", e);
+                    error!("{:?}", e);
                     return Box::new(sync::now(self.device.clone()));
                 }
             }
@@ -336,8 +337,12 @@ impl<W: Window> RenderContext<W> {
     }
 
     pub fn acquire_next_fb(&self, frame: &mut FrameState<W>) -> usize {
-        let (image_num, acquire_future) =
+        let (image_num, suboptimal, acquire_future) =
             swapchain::acquire_next_image(frame.swapchain.clone(), None).unwrap();
+
+        if suboptimal {
+            debug!("acquired a suboptimal swapchain image");
+        }
 
         // drop(previous.join(acquire_future));
         drop(acquire_future);
@@ -384,7 +389,7 @@ impl<W: Window> RenderContext<W> {
             // This error tends to happen when the user is manually resizing the window.
             // Simply restarting the loop is the easiest way to fix this issue.
             Err(SwapchainCreationError::UnsupportedDimensions) => {
-                println!(
+                warn!(
                     "unsupported dimensions {:?}, recreating swapchain",
                     dimensions
                 );

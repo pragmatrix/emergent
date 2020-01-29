@@ -27,7 +27,7 @@
 use emergent_drawing::Point;
 use emergent_presentation::Presentation;
 use emergent_presenter::{AreaHitTest, Host, Support, ViewRenderer};
-use emergent_ui::{FrameLayout, ModifiersState, WindowMsg, DPI};
+use emergent_ui::{FrameLayout, ModifiersState, WindowEvent, WindowMessage, WindowState, DPI};
 use std::cell::RefCell;
 use tears::{Cmd, Model};
 
@@ -48,8 +48,8 @@ where
     /// TODO: RefCell because we want to use it in tandem with the Model.
     host: RefCell<Host<Msg>>,
 
-    /// State related to input.
-    input: InputState,
+    /// State related to the window.
+    window_state: WindowState,
 
     // TODO: do we need a veto-system? Yes, probably, optionally saving state?
     close_requested: bool,
@@ -61,7 +61,7 @@ where
 /// A message sent to the window application can be either a `WindowMsg` or
 /// an application message.
 pub enum WindowApplicationMsg<Msg> {
-    Window(WindowMsg),
+    Window(WindowEvent),
     Application(Msg),
 }
 
@@ -95,7 +95,7 @@ where
             model,
             support_builder: Box::new(support_builder),
             host: Host::new(support).into(),
-            input: Default::default(),
+            window_state: Default::default(),
             close_requested: false,
             dpi_msg: dpi_msg.map(|f| Box::new(f) as Box<dyn Fn(DPI) -> Msg + 'static>),
         }
@@ -105,25 +105,13 @@ where
         self.close_requested
     }
 
-    fn update_window(&mut self, msg: WindowMsg) -> Cmd<WindowApplicationMsg<Msg>> {
-        match msg {
-            WindowMsg::Resized(_) => {}
-            WindowMsg::Moved(_) => {}
-            WindowMsg::CloseRequested => self.close_requested = true,
-            WindowMsg::DroppedFile(_) => {}
-            WindowMsg::HoveredFile(_) => {}
-            WindowMsg::HoveredFileCancelled => {}
-            WindowMsg::ReceivedCharacter(_) => {}
-            WindowMsg::Focused(_) => {}
-            WindowMsg::KeyboardInput(_) => {}
-            WindowMsg::CursorMoved { position, .. } => {
-                self.input.cursor = Some(position);
-            }
-            WindowMsg::CursorEntered => self.input.cursor_entered = true,
-            WindowMsg::CursorLeft => self.input.cursor_entered = false,
-            WindowMsg::MouseWheel { .. } => {}
-            WindowMsg::MouseInput { .. } => {
-                if let Some(position) = self.input.cursor {
+    fn update_window(&mut self, event: WindowEvent) -> Cmd<WindowApplicationMsg<Msg>> {
+        self.window_state.update(event.clone());
+
+        match event {
+            WindowEvent::CloseRequested => self.close_requested = true,
+            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. } => {
+                if let Some(position) = self.window_state.cursor_position() {
                     debug!("position for hit testing {:?}", position);
 
                     let mut hits = {
@@ -136,16 +124,16 @@ where
 
                     if !hits.is_empty() {
                         let hit = hits.swap_remove(0);
-                        let msg = self.host.borrow_mut().dispatch_mouse_input(hit, msg);
+                        let msg = self.host.borrow_mut().dispatch_mouse_input(
+                            (hit.0.into(), hit.1),
+                            WindowMessage::new(self.window_state.clone(), event),
+                        );
                         return msg.map(|msg| self.update_model(msg)).unwrap_or(Cmd::None);
                     }
                 }
             }
 
-            WindowMsg::TouchpadPressure { .. } => {}
-            WindowMsg::AxisMotion { .. } => {}
-            WindowMsg::Touch { .. } => {}
-            WindowMsg::ScaleFactorChanged(frame_layout) => {
+            WindowEvent::ScaleFactorChanged(frame_layout) => {
                 debug!("DPI change: regenerating host");
                 let dpi = frame_layout.dpi;
                 self.host = Host::new((self.support_builder)(dpi)).into();
@@ -155,6 +143,7 @@ where
                     return self.update_model(msg);
                 }
             }
+            _ => {}
         }
         Cmd::None
     }

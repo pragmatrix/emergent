@@ -63,7 +63,7 @@ mod test {
 
         let mut canvas = Drawing::new();
         let paint = paint().color(0xff0000f0);
-        canvas.draw(r, &paint);
+        canvas.draw(r, paint);
         canvas.render();
     }
 }

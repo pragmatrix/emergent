@@ -1,27 +1,40 @@
-//! The presenter provides functionality to create presentations.
+//! The `Context` type provides functionality to create views.
 //!
 //! These are:
-//! - Scoping
-//! - Event registration.
+//! - Scoping nested views.
+//! - Recognizer registration.
+//! - Function local view state.
 //! And planned are:
 //! - Simple per-frame key / value caching
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::{ScopeState, Support, View};
+use crate::{GestureRecognizer, RecognizerRecord, ScopedStore, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Text, Vector};
-use emergent_presentation::Scope;
+use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
+use std::any;
+use std::any::Any;
 use std::rc::Rc;
 
-/// The context is an ephemeral instance that is used to present something inside a space that
+// Can't use `Context` here for marking scopes, because it does not support certain trait which Scope / ScopePath needs
+// to.
+pub type ContextScope = Scope<ContextMarker>;
+pub type ContextPath = ScopePath<ContextMarker>;
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Default)]
+pub struct ContextMarker;
+
+/// An ephemeral type that is used to present views inside a space that
 /// is defined by a named or indexed scope.
+///
+/// TODO: may rename to ViewState or (View)Builder?
 pub struct Context {
     support: Rc<Support>,
     /// Boundaries of the presentation.
     boundary: FrameLayout,
     /// The state tree from the previous view rendering process.
-    previous: ScopeState,
+    previous: ScopedStore,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -44,7 +57,7 @@ impl Direction {
 }
 
 impl Context {
-    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopeState) -> Self {
+    pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopedStore) -> Self {
         Self {
             support,
             boundary,
@@ -52,57 +65,80 @@ impl Context {
         }
     }
 
-    /// Produce a view inside the given scoped context.
+    /// Produce a view inside the scoped context.
     ///
-    /// A scope is meant to be a hierarchical structuring identity that resembles the function call hierarchy is not
-    /// necessarily related to the resulting view graph.
-    ///
-    /// A scope is either a string or an index.
+    /// A `ContextScope` is meant to be resemble the function call hierarchy and is not necessarily related to the
+    /// resulting view graph.
     ///
     /// The return value _is_ the view that was produced inside the scoped context.
-    ///
-    /// TODO: we can probably just move the context here into the function `f` or even just return a nested context for
-    ///       consumption.
     pub fn scoped<Msg>(
         &mut self,
-        scope: impl Into<Scope>,
-        view: impl FnOnce(&mut Context) -> View<Msg>,
+        scope: impl Into<ContextScope>,
+        view: impl FnOnce(Context) -> View<Msg>,
     ) -> View<Msg> {
         let scope = scope.into();
         let previous = self
             .previous
-            .nested
-            .remove(&scope)
-            .unwrap_or_else(ScopeState::new);
+            .remove_scope(scope.clone())
+            .unwrap_or_else(ScopedStore::new);
 
-        let mut nested_context = Context::new(self.support.clone(), self.boundary, previous);
-        view(&mut nested_context)
+        let nested_context = Context::new(self.support.clone(), self.boundary, previous);
+        view(nested_context).context_scoped(scope)
     }
 
-    /*
-    /// Stick or reuse a typed component in the current scope.
-    pub fn resolve<C: 'static>(&mut self, construct: impl FnOnce() -> C) -> &mut C {
-        let type_id = any::TypeId::of::<C>();
-        // TODO: prevent this clone!
-        let v = match self.previous.components.remove(&type_id) {
-            Some(reusable) => reusable,
-            // TODO: why downcast later when we directly create the concrete instance here.
-            None => Box::new(construct()),
-        };
-
-        // TODO: find a one-step process for inserting and getting a mutable reference to value
-        // (using entry)?.
-        self.current.components.insert(type_id, v);
-        self.current
-            .components
-            .get_mut(&type_id)
-            .unwrap()
-            .deref_mut()
-            .downcast_mut::<C>()
-            .unwrap()
+    /// Calls a function that maintains uses view state and generates a view.
+    ///
+    /// If there is no state available at the current context scope, `construct` is called to generate a new one.
+    /// If there is a state available, the previous state is recycled and passed to the `with_state` function.
+    pub fn with_state<S: 'static, Msg>(
+        &mut self,
+        construct: impl FnOnce() -> S,
+        with_state: impl FnOnce(Context, &S) -> View<Msg>,
+    ) -> View<Msg> {
+        let state = self.recycle_state().unwrap_or_else(construct);
+        let scope: ContextScope = any::type_name::<S>().into();
+        let view = self.scoped(scope, |ctx| with_state(ctx, &state));
+        view.store_state(state)
     }
 
-    */
+    /// Attaches a recognizer to a view.
+    ///
+    /// This function reuses a recognizer with the same type from the current context.
+    pub fn attach_recognizer<Msg, R>(
+        &mut self,
+        view: View<Msg>,
+        construct: impl FnOnce() -> R,
+    ) -> View<Msg>
+    where
+        Msg: 'static,
+        R: GestureRecognizer<Event = Msg> + 'static,
+    {
+        let r = self.recycle_state::<R>();
+        let r = r.unwrap_or_else(construct);
+
+        // need to store a function alongside the recognizer that converts it from an `Any` to its
+        // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
+        let record = RecognizerRecord::new(
+            Box::new(r),
+            Box::new(|b: &mut Box<dyn Any>| b.downcast_mut::<R>().unwrap()),
+        );
+        view.record_recognizer(record)
+    }
+
+    /// Tries to recycle a typed state from the current context. If successful, the typed state is removed.
+    fn recycle_state<S: 'static>(&mut self) -> Option<S> {
+        match self.previous.remove_state() {
+            None => {
+                trace!("failed to recycle state: {:?}", any::type_name::<S>());
+                None
+            }
+            Some(r) => Some(r),
+        }
+    }
+
+    pub fn support(&self) -> Rc<Support> {
+        self.support.clone()
+    }
 }
 
 // TODO: this is a good candidate for a per frame cache.

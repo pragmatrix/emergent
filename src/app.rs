@@ -4,7 +4,9 @@ use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use emergent::test_watcher::{Notification, TestWatcher};
 use emergent::WindowModel;
 use emergent::{test_watcher, Msg};
-use emergent_presenter::{Context, Data, Direction, IndexMappable, Reducible, View, ViewRenderer};
+use emergent_presenter::{
+    scroll, Context, Data, Direction, IndexMappable, Reducible, View, ViewRenderer,
+};
 use std::collections::HashSet;
 use tears::Cmd;
 
@@ -95,8 +97,8 @@ impl App {
 }
 
 impl ViewRenderer<Msg> for App {
-    fn render_view(&self, ctx: &mut Context) -> View<Msg> {
-        match &self.test_run_result {
+    fn render_view(&self, ctx: Context) -> View<Msg> {
+        let content = |ctx: Context| match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
                 Data::new(compiler_messages)
                     .map(|_, cm| cm.to_drawing().into())
@@ -131,7 +133,9 @@ impl ViewRenderer<Msg> for App {
                 // TODO: no result yet (should we display some notification... running test, etc?)
                 View::new()
             }
-        }
+        };
+
+        scroll::view(ctx, content)
     }
 }
 
@@ -152,7 +156,7 @@ pub mod tests {
             .capture_tests(TestEnvironment::from_test_environment())
             .unwrap()
         {
-            println!("captures:\n{:?}", captures);
+            info!("captures:\n{:?}", captures);
 
             let captures = captures.0;
 

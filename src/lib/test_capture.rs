@@ -5,18 +5,21 @@ use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presenter::recognizer::TapRecognizer;
-use emergent_presenter::{Context, Direction, IndexMappable, Item, Reducible, View};
+use emergent_presenter::{
+    Context, Direction, GestureRecognizer, IndexMappable, Item, Reducible, View,
+};
 
 impl TestCapture {
-    pub fn present(&self, c: &mut Context, show_contents: bool) -> View<Msg> {
+    pub fn present(&self, mut c: Context, show_contents: bool) -> View<Msg> {
         c.scoped(&self.name, |c| {
-            let header = Item::new(&self.name).map(|_, name| {
+            let header = Item::new(&self.name).map(|mut c, name| {
                 let name = name.to_string();
-                Self::view_header(&name)
-                    .in_area()
-                    .with_recognizer(TapRecognizer::new(move || Msg::ToggleTestcase {
-                        name: name.clone(),
-                    }))
+                let view = Self::view_header(&name).in_area();
+
+                c.attach_recognizer(view, || {
+                    TapRecognizer::new()
+                        .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
+                })
             });
 
             if !show_contents {
@@ -73,7 +76,12 @@ mod tests {
             output,
         };
 
-        let view = capture.present(&mut context, true);
-        view.into_presentation().visualize(&context).render();
+        // TODO: a more direct way to visualize views would be nice, it's a bit confusing to have to clone
+        //       support from context before it is consumed.
+
+        let support = context.support();
+        let view = capture.present(context, true);
+        // TODO: this &* is counter-intuitive too (comes from the Rc wrapper).
+        view.into_presentation().visualize(&*support).render();
     }
 }

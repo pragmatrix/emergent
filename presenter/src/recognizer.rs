@@ -1,5 +1,8 @@
-mod pan;
-pub use pan::*;
+pub mod pan;
+pub use pan::PanRecognizer;
 
-mod tap;
-pub use tap::*;
+pub mod tap;
+pub use tap::TapRecognizer;
+
+pub mod mover;
+pub use mover::MoverRecognizer;

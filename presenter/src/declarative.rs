@@ -2,7 +2,6 @@
 
 use crate::{Context, Direction, View};
 use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
-use emergent_presentation::Scoped;
 
 // TODO: View<Msg> and Context<Msg> could be made into a generic V and C?
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
@@ -18,10 +17,7 @@ impl<'a, I> Item<'a, I> {
 }
 
 impl<'a, I> Item<'a, I> {
-    pub fn map<Msg>(
-        self,
-        map_f: impl Fn(&mut Context, &I) -> View<Msg> + 'a,
-    ) -> ItemMap<'a, Msg, I> {
+    pub fn map<Msg>(self, map_f: impl Fn(Context, &I) -> View<Msg> + 'a) -> ItemMap<'a, Msg, I> {
         ItemMap {
             item: self,
             map_f: Box::new(map_f),
@@ -31,7 +27,7 @@ impl<'a, I> Item<'a, I> {
 
 pub struct ItemMap<'a, Msg, I> {
     item: Item<'a, I>,
-    map_f: Box<dyn Fn(&mut Context, &I) -> View<Msg> + 'a>,
+    map_f: Box<dyn Fn(Context, &I) -> View<Msg> + 'a>,
 }
 
 pub struct Data<'a, E> {
@@ -45,10 +41,7 @@ impl<'a, E> Data<'a, E> {
 }
 
 impl<'a, E> Data<'a, E> {
-    pub fn map<Msg>(
-        self,
-        map_f: impl Fn(&mut Context, &E) -> View<Msg> + 'a,
-    ) -> DataMap<'a, Msg, E> {
+    pub fn map<Msg>(self, map_f: impl Fn(Context, &E) -> View<Msg> + 'a) -> DataMap<'a, Msg, E> {
         DataMap {
             data: self,
             map_f: Box::new(map_f),
@@ -58,12 +51,12 @@ impl<'a, E> Data<'a, E> {
 
 pub struct DataMap<'a, Msg, E> {
     data: Data<'a, E>,
-    map_f: Box<dyn Fn(&mut Context, &E) -> View<Msg> + 'a>,
+    map_f: Box<dyn Fn(Context, &E) -> View<Msg> + 'a>,
 }
 
 pub trait IndexMappable<Msg> {
     fn len(&self) -> usize;
-    fn map_i(&self, context: &mut Context, i: usize) -> View<Msg>;
+    fn map_i(&self, context: Context, i: usize) -> View<Msg>;
 
     fn extend<'a>(&'a self, other: &'a dyn IndexMappable<Msg>) -> ExtendedIndexMappable<'a, Msg>
     where
@@ -86,7 +79,7 @@ impl<'a, Msg> IndexMappable<Msg> for ExtendedIndexMappable<'a, Msg> {
         self.left.len() + self.right.len()
     }
 
-    fn map_i(&self, context: &mut Context, i: usize) -> View<Msg> {
+    fn map_i(&self, context: Context, i: usize) -> View<Msg> {
         let ll = self.left.len();
         if i < ll {
             self.left.map_i(context, i)
@@ -101,7 +94,7 @@ impl<'a, Msg, I> IndexMappable<Msg> for ItemMap<'a, Msg, I> {
         1
     }
 
-    fn map_i(&self, context: &mut Context, i: usize) -> View<Msg> {
+    fn map_i(&self, context: Context, i: usize) -> View<Msg> {
         debug_assert_eq!(i, 0);
         let map_f = &self.map_f;
         let item = &self.item.item;
@@ -114,7 +107,7 @@ impl<'a, Msg, E> IndexMappable<Msg> for DataMap<'a, Msg, E> {
         self.data.data.len()
     }
 
-    fn map_i(&self, context: &mut Context, i: usize) -> View<Msg> {
+    fn map_i(&self, context: Context, i: usize) -> View<Msg> {
         let map_f = &self.map_f;
         let data = &self.data.data[i];
 
@@ -123,7 +116,7 @@ impl<'a, Msg, E> IndexMappable<Msg> for DataMap<'a, Msg, E> {
 }
 
 pub trait Reducible<Msg> {
-    fn reduce(self, context: &mut Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg>;
+    fn reduce(self, context: Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg>;
 }
 
 impl<Msg, T> Reducible<Msg> for T
@@ -131,7 +124,7 @@ where
     T: IndexMappable<Msg>,
 {
     // TODO: this is not the whole story here, how can we reduce incrementally?
-    fn reduce(self, context: &mut Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg> {
+    fn reduce(self, mut context: Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg> {
         let len = self.len();
 
         let views: Vec<View<Msg>> = (0..len)
@@ -146,23 +139,23 @@ where
 //       view elements lazily (probably by index?).
 //       If so, this interface may be replacible by IndexMappable?
 pub trait ViewReducer<Msg> {
-    fn reduce(&self, context: &mut Context, views: Vec<View<Msg>>) -> View<Msg>;
+    fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg>;
 }
 
 /// TODO: find a better type for the identity reducer.
 
 impl<Msg> ViewReducer<Msg> for () {
-    fn reduce(&self, _context: &mut Context, views: Vec<View<Msg>>) -> View<Msg> {
+    fn reduce(&self, _context: Context, views: Vec<View<Msg>>) -> View<Msg> {
         let views = views
             .into_iter()
             .enumerate()
-            .map(|(i, view)| view.scoped(i));
+            .map(|(i, view)| view.presentation_scoped(i));
         View::new_combined(views)
     }
 }
 
 impl<Msg> ViewReducer<Msg> for Direction {
-    fn reduce(&self, context: &mut Context, views: Vec<View<Msg>>) -> View<Msg> {
+    fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg> {
         // TODO: recycle container?
         // TODO: only display elements that are visible.
         // TODO: Use a generic layout manager here.
@@ -170,8 +163,8 @@ impl<Msg> ViewReducer<Msg> for Direction {
         let direction = self.to_vector();
 
         let views = views.into_iter().enumerate().map(|(i, view)| {
-            let view = view.scoped(i);
-            let drawing_bounds = view.fast_bounds(context);
+            let view = view.presentation_scoped(i);
+            let drawing_bounds = view.fast_bounds(&context);
             if let Some(bounds) = drawing_bounds.as_bounds() {
                 let align = -bounds.point.to_vector();
                 let nested = view.transformed((p + align).to_vector());

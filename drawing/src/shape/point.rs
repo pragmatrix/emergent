@@ -31,7 +31,7 @@ impl Point {
 impl Sub<Point> for Point {
     type Output = Vector;
     fn sub(self, rhs: Point) -> Vector {
-        Vector::from((rhs.x - self.x, rhs.y - self.x))
+        Vector::from((self.x - rhs.x, self.y - rhs.y))
     }
 }
 
