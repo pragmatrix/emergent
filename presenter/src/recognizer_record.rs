@@ -12,7 +12,7 @@ type RecognizerResolver<Msg> =
 pub struct RecognizerRecord<Msg> {
     // used to map areas to the recognizer.
     presentation_path: PresentationPath,
-    // used to know to which context belongs created,
+    // used to know where the recognizer was created,
     context_path: ContextPath,
     // The recognizer needs to be stored as Any, because we want to recycle it later. If
     // we would store it as a GestureRecognizer trait, we could never resolve the
