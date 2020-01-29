@@ -14,21 +14,18 @@ impl MoverRecognizer {
         PanRecognizer::new().activate(move |e, state| match e {
             pan::Event::Pressed(_p) => {
                 let initial_pos = *pos_from(state);
-                let pos_of = pos_from.clone();
+                let pos_from = pos_from.clone();
 
-                transaction::begin(move |e, state| {
-                    info!("event: {:?}", e);
-                    match e {
-                        pan::Event::Moved(_p, d) => {
-                            *pos_of(state) = initial_pos + d;
-                            transaction::sustain()
-                        }
-                        pan::Event::Released(_p, d) => {
-                            *pos_of(state) = initial_pos + d;
-                            transaction::commit()
-                        }
-                        _ => transaction::rollback(),
+                transaction::begin(move |e, state| match e {
+                    pan::Event::Moved(_p, d) => {
+                        *pos_from(state) = initial_pos + d;
+                        transaction::sustain()
                     }
+                    pan::Event::Released(_p, d) => {
+                        *pos_from(state) = initial_pos + d;
+                        transaction::commit()
+                    }
+                    _ => transaction::rollback(),
                 })
             }
             _ => transaction::neglect(),
