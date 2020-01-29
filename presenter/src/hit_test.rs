@@ -15,16 +15,15 @@ pub trait HitTest {
 }
 
 pub trait AreaHitTest {
-    /// Hit tests at `p` and returns hits from back to front being the
-    /// last record to describe the frontmost positive test.
+    /// Hit tests at `p` and returns hits from back to front.
     ///
-    /// Returns a tuple `Vec<Scope>` & `Point`, where `Vec<Scope>` describes the scope path
+    /// For each hit, returns a tuple `PresentationPath` & `Point`, where the path describes
     /// where the hit took place and `Point` describes the hit point relative to the coordinate
     /// system the area was placed.
     ///
     /// TODO: The `Point` returned is relative to the area it hit. But it should be relative
     ///       to the scope that surrounds the area it hit? And also the Scope's area should probably
-    ///       bet returned.
+    ///       by returned.
     fn area_hit_test(
         &self,
         p: Point,
@@ -43,7 +42,7 @@ impl AreaHitTest for Presentation {
         match self {
             Presentation::Empty => Vec::new(),
             Presentation::Scoped(s, nested) => {
-                // TODO: avoid the clone here? Can't we generate these scope paths a bit more genly?
+                // TODO: avoid the clone here? Can't we generate these scope paths a bit more gently?
                 scope.push(s.clone());
                 nested.area_hit_test(p, scope, support)
             }
