@@ -147,7 +147,7 @@ fn main() {
                 WindowEvent::Resized(_) => {
                     let event =
                         ui::WindowEvent::from_winit(window_surface.window(), event).unwrap();
-                    mailbox.post(WindowApplicationMsg::Window(event));
+                    mailbox.post(WindowApplicationMsg::WindowEvent(event));
                     // TODO: handle window placement changes in a unified way
                     // (isn't this the application's job?)
                     if window_placement.update(window_surface.window()) {
@@ -157,7 +157,7 @@ fn main() {
                 WindowEvent::Moved(_) => {
                     let event =
                         ui::WindowEvent::from_winit(window_surface.window(), event).unwrap();
-                    mailbox.post(WindowApplicationMsg::Window(event));
+                    mailbox.post(WindowApplicationMsg::WindowEvent(event));
                     if window_placement.update(window_surface.window()) {
                         window_placement.store()
                     }
@@ -166,7 +166,7 @@ fn main() {
                     // also forward this to the application, which is expected to shut down in response.
                     let event =
                         ui::WindowEvent::from_winit(window_surface.window(), event).unwrap();
-                    mailbox.post(WindowApplicationMsg::Window(event));
+                    mailbox.post(WindowApplicationMsg::WindowEvent(event));
 
                     info!("close requested");
                     *control_flow = ControlFlow::Exit
@@ -174,7 +174,7 @@ fn main() {
                 event => {
                     if let Some(event) = ui::WindowEvent::from_winit(window_surface.window(), event)
                     {
-                        mailbox.post(WindowApplicationMsg::Window(event));
+                        mailbox.post(WindowApplicationMsg::WindowEvent(event));
                     }
                 }
             },

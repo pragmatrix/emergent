@@ -1,7 +1,7 @@
 use crate::recognizer::Recognizer;
 use crate::{
-    Context, GestureRecognizer, InputState, PresentationPath, RecognizerRecord, ScopedStore,
-    Support, View,
+    AreaHitTest, Context, GestureRecognizer, InputState, PresentationPath, RecognizerRecord,
+    ScopedStore, Support, View,
 };
 use emergent_drawing::Point;
 use emergent_presentation::Presentation;
@@ -61,8 +61,27 @@ impl<Msg> Host<Msg> {
         &self.presentation
     }
 
+    pub fn dispatch_window_message(&mut self, msg: WindowMessage) -> Vec<Msg>
+    where
+        Msg: 'static,
+    {
+        let position = msg.state.cursor_position().unwrap();
+        debug!("position for hit testing {:?}", position);
+
+        let hits = {
+            let presentation = self.presentation();
+            presentation.area_hit_test(position, Vec::new(), self.support())
+        };
+        debug!("hits: {:?}", hits);
+
+        hits.into_iter()
+            .map(|hit| self.dispatch_mouse_input((hit.0.into(), hit.1), msg.clone()))
+            .flatten()
+            .collect()
+    }
+
     /// Dispatches mouse input to a gesture recognizer and return a Msg if it produces one.
-    pub fn dispatch_mouse_input(
+    fn dispatch_mouse_input(
         &mut self,
         (presentation_path, _point): (PresentationPath, Point),
         msg: WindowMessage,

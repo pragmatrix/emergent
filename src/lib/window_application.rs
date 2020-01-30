@@ -61,7 +61,7 @@ where
 /// A message sent to the window application can be either a `WindowMsg` or
 /// an application message.
 pub enum WindowApplicationMsg<Msg> {
-    Window(WindowEvent),
+    WindowEvent(WindowEvent),
     Application(Msg),
 }
 
@@ -73,7 +73,7 @@ where
     fn update(&mut self, msg: WindowApplicationMsg<Msg>) -> Cmd<WindowApplicationMsg<Msg>> {
         use WindowApplicationMsg::*;
         match msg {
-            Window(msg) => self.update_window(msg),
+            WindowEvent(msg) => self.dispatch_event(msg),
             Application(msg) => self.update_model(msg),
         }
     }
@@ -105,37 +105,19 @@ where
         self.close_requested
     }
 
-    fn update_window(&mut self, event: WindowEvent) -> Cmd<WindowApplicationMsg<Msg>> {
+    fn dispatch_event(&mut self, event: WindowEvent) -> Cmd<WindowApplicationMsg<Msg>> {
         self.window_state.update(event.clone());
 
         match event {
             WindowEvent::CloseRequested => self.close_requested = true,
-            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. } => {
-                if let Some(position) = self.window_state.cursor_position() {
-                    debug!("position for hit testing {:?}", position);
+            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. }
+                // TODO: try to make the cursor position available, always.
+                if self.window_state.cursor_position().is_some() =>
+            {
+                let msg = WindowMessage::new(self.window_state.clone(), event);
 
-                    let hits = {
-                        let host = self.host.borrow();
-                        let presentation = host.presentation();
-                        presentation.area_hit_test(position, Vec::new(), host.support())
-                    };
-
-                    debug!("hits: {:?}", hits);
-                    let msg = WindowMessage::new(self.window_state.clone(), event);
-
-                    let cmds: Cmd<WindowApplicationMsg<Msg>> = hits
-                        .into_iter()
-                        .map(|hit| {
-                            let msg = self
-                                .host
-                                .borrow_mut()
-                                .dispatch_mouse_input((hit.0.into(), hit.1), msg.clone());
-                            msg.map(|msg| self.update_model(msg)).unwrap_or(Cmd::None)
-                        })
-                        .collect();
-
-                    return cmds;
-                }
+                let msgs = self.host.borrow_mut().dispatch_window_message(msg);
+                return msgs.into_iter().map(|msg| self.update_model(msg)).collect();
             }
 
             WindowEvent::ScaleFactorChanged(frame_layout) => {
