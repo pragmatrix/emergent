@@ -1,9 +1,6 @@
 use crate::recognizer::{Recognizer, RecognizerWithSubscription, Subscription};
-use crate::{
-    recognizer, ContextPath, ContextScope, GestureRecognizer, InputState, PresentationPath,
-    PresentationScope, ScopedState,
-};
-use emergent_presentation::Scoped;
+use crate::{recognizer, ContextPath, ContextScope, GestureRecognizer, InputState, ScopedState};
+use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::collections::hash_map::RandomState;

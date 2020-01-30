@@ -15,7 +15,6 @@ use emergent_drawing::{Bounds, MeasureText, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
 use std::any;
-use std::any::Any;
 use std::rc::Rc;
 
 // Can't use `Context` here for marking scopes, because it does not support certain trait which Scope / ScopePath needs

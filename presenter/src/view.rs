@@ -1,8 +1,8 @@
-use crate::{Context, ContextPath, ContextScope, PresentationScope, RecognizerRecord, ScopedState};
+use crate::{Context, ContextPath, ContextScope, RecognizerRecord, ScopedState};
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
-use emergent_presentation::{Presentation, Scoped};
+use emergent_presentation::{Presentation, PresentationScope, Scoped};
 use std::any::Any;
 use std::cell::RefCell;
 

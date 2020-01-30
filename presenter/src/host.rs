@@ -1,12 +1,12 @@
 use crate::recognizer::Recognizer;
 use crate::{
-    AreaHitTest, Context, GestureRecognizer, InputState, PresentationPath, RecognizerRecord,
-    ScopedStore, Support, View,
+    AreaHitTest, Context, GestureRecognizer, InputState, RecognizerRecord, ScopedStore, Support,
+    View,
 };
-use emergent_drawing::Point;
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
 use std::any::TypeId;
+use std::collections::HashSet;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -74,52 +74,43 @@ impl<Msg> Host<Msg> {
         };
         debug!("hits: {:?}", hits);
 
-        hits.into_iter()
-            .map(|hit| self.dispatch_mouse_input((hit.0.into(), hit.1), msg.clone()))
+        let presentation_scope_hits: HashSet<_> = hits.into_iter().map(|(s, _p)| s).collect();
+
+        debug!(
+            "hit at presentations: {:?}, event: {:?}, state: {:?}",
+            presentation_scope_hits, msg.event, msg.state
+        );
+
+        // TODO: what to do about the relative hit positions?
+
+        let store = &mut self.store;
+        self.recognizers
+            .iter_mut()
+            .filter(|r| presentation_scope_hits.contains(r.presentation_path()))
+            .map(|recognizer| {
+                let c = recognizer.context_path().clone();
+
+                debug!("recognizer for hit at context: {:?}", c);
+                let states = store.remove_states_at(&c);
+                debug!(
+                    "states at {:?}: {} {:?}",
+                    c,
+                    states.len(),
+                    states
+                        .iter()
+                        .map(|s| s.deref().type_id())
+                        .collect::<Vec<TypeId>>()
+                );
+                let mut input_state =
+                    InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
+                let msg = recognizer.dispatch(&mut input_state, msg.clone());
+                let (new_subscriptions, new_context_states) = input_state.into_states();
+                *recognizer.subscriptions() = new_subscriptions;
+                store.extend_states_at(&c, new_context_states);
+
+                msg
+            })
             .flatten()
             .collect()
-    }
-
-    /// Dispatches mouse input to a gesture recognizer and return a Msg if it produces one.
-    fn dispatch_mouse_input(
-        &mut self,
-        (presentation_path, _point): (PresentationPath, Point),
-        msg: WindowMessage,
-    ) -> Option<Msg>
-    where
-        Msg: 'static,
-    {
-        debug!("hit at presentation: {:?}", presentation_path);
-        debug!("event: {:?}", msg.event);
-        debug!("msg state: {:?}", msg.state);
-
-        // TODO: what about multiple hits?
-
-        let recognizer = self
-            .recognizers
-            .iter_mut()
-            .find(|r| *r.presentation_path() == presentation_path)?;
-
-        let c = recognizer.context_path().clone();
-
-        debug!("recognizer for hit at context: {:?}", c);
-        let states = self.store.remove_states_at(&c);
-        debug!(
-            "states at {:?}: {} {:?}",
-            c,
-            states.len(),
-            states
-                .iter()
-                .map(|s| s.deref().type_id())
-                .collect::<Vec<TypeId>>()
-        );
-        let mut input_state =
-            InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
-        let msg = recognizer.dispatch(&mut input_state, msg);
-        let (new_subscriptions, new_context_states) = input_state.into_states();
-        *recognizer.subscriptions() = new_subscriptions;
-        self.store.extend_states_at(&c, new_context_states);
-
-        msg
     }
 }

@@ -26,7 +26,7 @@
 
 use emergent_drawing::Point;
 use emergent_presentation::Presentation;
-use emergent_presenter::{AreaHitTest, Host, Support, ViewRenderer};
+use emergent_presenter::{Host, Support, ViewRenderer};
 use emergent_ui::{FrameLayout, ModifiersState, WindowEvent, WindowMessage, WindowState, DPI};
 use std::cell::RefCell;
 use tears::{Cmd, Model};
