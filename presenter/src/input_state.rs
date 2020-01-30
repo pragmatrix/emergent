@@ -1,12 +1,17 @@
+use crate::recognizer;
+use crate::recognizer::{Subscription, Subscriptions};
 use crate::ContextPath;
 use std::any;
 use std::any::{Any, TypeId};
 use std::ops::Deref;
 
-/// Represents all the state that is modified while input is being processed.
+/// The `InputState` maintains all the state that may be accessed and modified while input is being processed by one
+/// single gesture recognizer.
 pub struct InputState {
-    /// The recognizer's path. This is used for resolving states.
+    /// The recognizer's context. This is used for resolving states.
     recognizer_context: ContextPath,
+    /// The subscriptions of the recognizer.
+    subscriptions: recognizer::Subscriptions,
     /// The states available to be modified by the gesture recognizer.
     /// There should be a very limited amount of states per context path, so a vector is fine for doing
     /// lookups.
@@ -16,17 +21,39 @@ pub struct InputState {
 impl InputState {
     pub fn new(
         recognizer_context: ContextPath,
+        subscriptions: recognizer::Subscriptions,
         states: impl IntoIterator<Item = Box<dyn Any>>,
     ) -> Self {
         Self {
             recognizer_context,
+            subscriptions,
             states: states.into_iter().collect(),
         }
     }
 
-    pub fn into_states(self) -> Vec<Box<dyn Any>> {
-        self.states
+    pub fn into_states(self) -> (Subscriptions, Vec<Box<dyn Any>>) {
+        (self.subscriptions, self.states)
     }
+
+    //
+    // subscription
+    //
+
+    pub fn subscribe(&mut self, subscription: Subscription) -> bool {
+        self.subscriptions.insert(subscription)
+    }
+
+    pub fn unsubscribe(&mut self, subscription: Subscription) -> bool {
+        self.subscriptions.remove(&subscription)
+    }
+
+    pub fn is_subscribed(&self, subscription: Subscription) -> bool {
+        self.subscriptions.contains(&subscription)
+    }
+
+    //
+    // context associated state
+    //
 
     /// Modify a typed state record.
     pub fn modify<S: 'static>(&mut self, f: impl FnOnce(&mut S)) {

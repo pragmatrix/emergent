@@ -1,3 +1,4 @@
+use crate::recognizer::Recognizer;
 use crate::{
     Context, GestureRecognizer, InputState, PresentationPath, RecognizerRecord, ScopedStore,
     Support, View,
@@ -75,12 +76,12 @@ impl<Msg> Host<Msg> {
 
         // TODO: what about multiple hits?
 
-        let r = self
+        let recognizer = self
             .recognizers
             .iter_mut()
             .find(|r| *r.presentation_path() == presentation_path)?;
 
-        let c = r.context_path().clone();
+        let c = recognizer.context_path().clone();
 
         debug!("recognizer for hit at context: {:?}", c);
         let states = self.store.remove_states_at(&c);
@@ -93,10 +94,12 @@ impl<Msg> Host<Msg> {
                 .map(|s| s.deref().type_id())
                 .collect::<Vec<TypeId>>()
         );
-        let mut input_state = InputState::new(c.clone(), states);
-        let msg = r.dispatch(&mut input_state, msg);
-        let new_states = input_state.into_states();
-        self.store.extend_states_at(&c, new_states);
+        let mut input_state =
+            InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
+        let msg = recognizer.dispatch(&mut input_state, msg);
+        let (new_subscriptions, new_context_states) = input_state.into_states();
+        *recognizer.subscriptions() = new_subscriptions;
+        self.store.extend_states_at(&c, new_context_states);
 
         msg
     }

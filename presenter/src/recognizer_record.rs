@@ -1,15 +1,18 @@
+use crate::recognizer::{Recognizer, RecognizerWithSubscription, Subscription};
 use crate::{
-    ContextPath, ContextScope, GestureRecognizer, InputState, PresentationPath, PresentationScope,
-    ScopedState,
+    recognizer, ContextPath, ContextScope, GestureRecognizer, InputState, PresentationPath,
+    PresentationScope, ScopedState,
 };
 use emergent_presentation::Scoped;
 use emergent_ui::WindowMessage;
 use std::any::Any;
+use std::collections::hash_map::RandomState;
+use std::collections::HashSet;
 
-type RecognizerResolver<Msg> =
-    Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn GestureRecognizer<Event = Msg>>;
+type RecognizerResolver<Event> =
+    Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn recognizer::Recognizer<Event>>;
 
-pub struct RecognizerRecord<Msg> {
+pub(crate) struct RecognizerRecord<Event> {
     // used to map areas to the recognizer.
     presentation_path: PresentationPath,
     // used to know where the recognizer was created,
@@ -19,15 +22,22 @@ pub struct RecognizerRecord<Msg> {
     // original type and can't use it as a state record.
     recognizer: Box<dyn Any>,
     // A function that converts the Box<Any> to a GestureRecognizer reference.
-    resolver: RecognizerResolver<Msg>,
+    resolver: RecognizerResolver<Event>,
 }
 
-impl<Msg> RecognizerRecord<Msg> {
-    pub fn new(recognizer: Box<dyn Any>, resolver: RecognizerResolver<Msg>) -> Self {
+impl<Event> RecognizerRecord<Event> {
+    pub(crate) fn new<R>(recognizer: RecognizerWithSubscription<R>) -> Self
+    where
+        R: GestureRecognizer<Event = Event> + 'static,
+    {
+        let resolver: RecognizerResolver<Event> = Box::new(|r: &mut Box<dyn Any>| {
+            r.downcast_mut::<RecognizerWithSubscription<R>>().unwrap()
+        });
+
         Self {
             presentation_path: Default::default(),
             context_path: Default::default(),
-            recognizer,
+            recognizer: Box::new(recognizer),
             resolver,
         }
     }
@@ -61,8 +71,8 @@ impl<Msg> RecognizerRecord<Msg> {
     }
 }
 
-impl<Msg> GestureRecognizer for RecognizerRecord<Msg> {
-    type Event = Msg;
+impl<Event> GestureRecognizer for RecognizerRecord<Event> {
+    type Event = Event;
     fn dispatch(
         &mut self,
         context: &mut InputState,
@@ -73,5 +83,15 @@ impl<Msg> GestureRecognizer for RecognizerRecord<Msg> {
 
         let recognizer = resolver(recognizer);
         recognizer.dispatch(context, message)
+    }
+}
+
+impl<Event> Recognizer<Event> for RecognizerRecord<Event> {
+    fn subscriptions(&mut self) -> &mut HashSet<Subscription, RandomState> {
+        let recognizer = &mut self.recognizer;
+        let resolver = &self.resolver;
+
+        let recognizer = resolver(recognizer);
+        recognizer.subscriptions()
     }
 }

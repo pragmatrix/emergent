@@ -79,7 +79,9 @@ impl<Msg> View<Msg> {
         &self.presentation
     }
 
-    pub fn destructure(self) -> (Presentation, Vec<RecognizerRecord<Msg>>, Vec<ScopedState>) {
+    pub(crate) fn destructure(
+        self,
+    ) -> (Presentation, Vec<RecognizerRecord<Msg>>, Vec<ScopedState>) {
         (self.presentation, self.recognizers, self.states)
     }
 
