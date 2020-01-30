@@ -1,10 +1,10 @@
-use crate::recognizer::Recognizer;
+use crate::recognizer::{Recognizer, Subscription, Subscriptions};
 use crate::{
     AreaHitTest, Context, GestureRecognizer, InputState, RecognizerRecord, ScopedStore, Support,
     View,
 };
 use emergent_presentation::Presentation;
-use emergent_ui::{FrameLayout, WindowMessage};
+use emergent_ui::{ElementState, FrameLayout, WindowEvent, WindowMessage};
 use std::any::TypeId;
 use std::collections::HashSet;
 use std::mem;
@@ -86,7 +86,16 @@ impl<Msg> Host<Msg> {
         let store = &mut self.store;
         self.recognizers
             .iter_mut()
-            .filter(|r| presentation_scope_hits.contains(r.presentation_path()))
+            // filter_map because we need mutable access.
+            .filter_map(|r| {
+                if wants_event(r.subscriptions(), &msg.event)
+                    || presentation_scope_hits.contains(r.presentation_path())
+                {
+                    Some(r)
+                } else {
+                    None
+                }
+            })
             .map(|recognizer| {
                 let c = recognizer.context_path().clone();
 
@@ -101,6 +110,7 @@ impl<Msg> Host<Msg> {
                         .map(|s| s.deref().type_id())
                         .collect::<Vec<TypeId>>()
                 );
+
                 let mut input_state =
                     InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
                 let msg = recognizer.dispatch(&mut input_state, msg.clone());
@@ -113,4 +123,25 @@ impl<Msg> Host<Msg> {
             .flatten()
             .collect()
     }
+}
+
+impl Subscription {
+    pub fn wants(&self, event: &WindowEvent) -> bool {
+        match self {
+            Subscription::ButtonContinuity(b) => match event {
+                WindowEvent::CursorMoved(_) => true,
+                WindowEvent::MouseInput { state, button }
+                    if *state == ElementState::Released && *button == *b =>
+                {
+                    true
+                }
+                _ => false,
+            },
+            Subscription::Ticks => false,
+        }
+    }
+}
+
+fn wants_event(subscriptions: &Subscriptions, event: &WindowEvent) -> bool {
+    subscriptions.iter().any(|s| s.wants(event))
 }
