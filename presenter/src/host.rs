@@ -1,10 +1,10 @@
-use crate::recognizer::{Recognizer, Subscription, Subscriptions};
+use crate::recognizer::Recognizer;
 use crate::{
     AreaHitTest, Context, GestureRecognizer, InputState, RecognizerRecord, ScopedStore, Support,
     View,
 };
 use emergent_presentation::Presentation;
-use emergent_ui::{ElementState, FrameLayout, WindowEvent, WindowMessage};
+use emergent_ui::{FrameLayout, WindowMessage};
 use std::any::TypeId;
 use std::collections::HashSet;
 use std::mem;
@@ -88,7 +88,7 @@ impl<Msg> Host<Msg> {
             .iter_mut()
             // filter_map because we need mutable access.
             .filter_map(|r| {
-                if wants_event(r.subscriptions(), &msg.event)
+                if r.subscriptions().wants_event(&msg.event)
                     || presentation_scope_hits.contains(r.presentation_path())
                 {
                     Some(r)
@@ -123,25 +123,4 @@ impl<Msg> Host<Msg> {
             .flatten()
             .collect()
     }
-}
-
-impl Subscription {
-    pub fn wants(&self, event: &WindowEvent) -> bool {
-        match self {
-            Subscription::ButtonContinuity(b) => match event {
-                WindowEvent::CursorMoved(_) => true,
-                WindowEvent::MouseInput { state, button }
-                    if *state == ElementState::Released && *button == *b =>
-                {
-                    true
-                }
-                _ => false,
-            },
-            Subscription::Ticks => false,
-        }
-    }
-}
-
-fn wants_event(subscriptions: &Subscriptions, event: &WindowEvent) -> bool {
-    subscriptions.iter().any(|s| s.wants(event))
 }

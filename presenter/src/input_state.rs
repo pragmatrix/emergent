@@ -1,5 +1,4 @@
 use crate::recognizer;
-use crate::recognizer::{Subscription, Subscriptions};
 use crate::ContextPath;
 use std::any;
 use std::any::{Any, TypeId};
@@ -31,7 +30,7 @@ impl InputState {
         }
     }
 
-    pub fn into_states(self) -> (Subscriptions, Vec<Box<dyn Any>>) {
+    pub fn into_states(self) -> (recognizer::Subscriptions, Vec<Box<dyn Any>>) {
         (self.subscriptions, self.states)
     }
 
@@ -39,16 +38,16 @@ impl InputState {
     // subscription
     //
 
-    pub fn subscribe(&mut self, subscription: Subscription) -> bool {
-        self.subscriptions.insert(subscription)
+    pub fn subscribe(&mut self, subscription: recognizer::Subscription) -> bool {
+        self.subscriptions.subscribe(subscription)
     }
 
-    pub fn unsubscribe(&mut self, subscription: Subscription) -> bool {
-        self.subscriptions.remove(&subscription)
+    pub fn unsubscribe(&mut self, subscription: &recognizer::Subscription) -> bool {
+        self.subscriptions.unsubscribe(&subscription)
     }
 
-    pub fn is_subscribed(&self, subscription: Subscription) -> bool {
-        self.subscriptions.contains(&subscription)
+    pub fn is_subscribed(&self, subscription: &recognizer::Subscription) -> bool {
+        self.subscriptions.is_subscribed(subscription)
     }
 
     //

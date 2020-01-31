@@ -1,10 +1,8 @@
-use crate::recognizer::{Recognizer, RecognizerWithSubscription, Subscription};
+use crate::recognizer::{Recognizer, RecognizerWithSubscription, Subscriptions};
 use crate::{recognizer, ContextPath, ContextScope, GestureRecognizer, InputState, ScopedState};
 use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
-use std::collections::hash_map::RandomState;
-use std::collections::HashSet;
 
 type RecognizerResolver<Event> =
     Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn recognizer::Recognizer<Event>>;
@@ -84,7 +82,7 @@ impl<Event> GestureRecognizer for RecognizerRecord<Event> {
 }
 
 impl<Event> Recognizer<Event> for RecognizerRecord<Event> {
-    fn subscriptions(&mut self) -> &mut HashSet<Subscription, RandomState> {
+    fn subscriptions(&mut self) -> &mut Subscriptions {
         let recognizer = &mut self.recognizer;
         let resolver = &self.resolver;
 
