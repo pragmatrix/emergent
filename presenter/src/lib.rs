@@ -22,7 +22,7 @@ pub use context::*;
 pub mod recognizer;
 
 mod recognizer_record;
-pub use recognizer_record::*;
+pub(crate) use recognizer_record::*;
 
 mod scoped_store;
 pub use scoped_store::*;

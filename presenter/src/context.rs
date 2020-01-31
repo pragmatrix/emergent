@@ -9,12 +9,12 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
+use crate::recognizer::RecognizerWithSubscription;
 use crate::{GestureRecognizer, RecognizerRecord, ScopedStore, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
 use std::any;
-use std::any::Any;
 use std::rc::Rc;
 
 // Can't use `Context` here for marking scopes, because it does not support certain trait which Scope / ScopePath needs
@@ -113,15 +113,12 @@ impl Context {
         Msg: 'static,
         R: GestureRecognizer<Event = Msg> + 'static,
     {
-        let r = self.recycle_state::<R>();
-        let r = r.unwrap_or_else(construct);
+        let r = self.recycle_state::<RecognizerWithSubscription<R>>();
+        let r = r.unwrap_or_else(|| construct().into());
 
         // need to store a function alongside the recognizer that converts it from an `Any` to its
         // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
-        let record = RecognizerRecord::new(
-            Box::new(r),
-            Box::new(|b: &mut Box<dyn Any>| b.downcast_mut::<R>().unwrap()),
-        );
+        let record = RecognizerRecord::new(r);
         view.record_recognizer(record)
     }
 

@@ -1,11 +1,12 @@
+use crate::recognizer::{AutoSubscribe, Recognizer};
 use crate::{
-    Context, GestureRecognizer, InputState, PresentationPath, RecognizerRecord, ScopedStore,
-    Support, View,
+    AreaHitTest, Context, GestureRecognizer, InputState, RecognizerRecord, ScopedStore, Support,
+    View,
 };
-use emergent_drawing::Point;
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
 use std::any::TypeId;
+use std::collections::HashSet;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -60,44 +61,71 @@ impl<Msg> Host<Msg> {
         &self.presentation
     }
 
-    /// Dispatches mouse input to a gesture recognizer and return a Msg if it produces one.
-    pub fn dispatch_mouse_input(
-        &mut self,
-        (presentation_path, _point): (PresentationPath, Point),
-        msg: WindowMessage,
-    ) -> Option<Msg>
+    pub fn dispatch_window_message(&mut self, msg: WindowMessage) -> Vec<Msg>
     where
         Msg: 'static,
     {
-        debug!("hit at presentation: {:?}", presentation_path);
-        debug!("event: {:?}", msg.event);
-        debug!("msg state: {:?}", msg.state);
+        let position = msg.state.cursor_position().unwrap();
+        debug!("position for hit testing {:?}", position);
 
-        // TODO: what about multiple hits?
+        let hits = {
+            let presentation = self.presentation();
+            presentation.area_hit_test(position, Vec::new(), self.support())
+        };
+        debug!("hits: {:?}", hits);
 
-        let r = self
-            .recognizers
-            .iter_mut()
-            .find(|r| *r.presentation_path() == presentation_path)?;
+        let presentation_scope_hits: HashSet<_> = hits.into_iter().map(|(s, _p)| s).collect();
 
-        let c = r.context_path().clone();
-
-        debug!("recognizer for hit at context: {:?}", c);
-        let states = self.store.remove_states_at(&c);
         debug!(
-            "states at {:?}: {} {:?}",
-            c,
-            states.len(),
-            states
-                .iter()
-                .map(|s| s.deref().type_id())
-                .collect::<Vec<TypeId>>()
+            "hit at presentations: {:?}, event: {:?}, state: {:?}",
+            presentation_scope_hits, msg.event, msg.state
         );
-        let mut input_state = InputState::new(c.clone(), states);
-        let msg = r.dispatch(&mut input_state, msg);
-        let new_states = input_state.into_states();
-        self.store.extend_states_at(&c, new_states);
 
-        msg
+        // TODO: what to do about the relative hit positions?
+
+        let store = &mut self.store;
+        self.recognizers
+            .iter_mut()
+            // filter_map because we need mutable access.
+            .filter_map(|r| {
+                if r.subscriptions().wants_event(&msg.event)
+                    || presentation_scope_hits.contains(r.presentation_path())
+                {
+                    Some(r)
+                } else {
+                    None
+                }
+            })
+            .map(|recognizer| {
+                let c = recognizer.context_path().clone();
+
+                debug!("recognizer for hit at context: {:?}", c);
+                let states = store.remove_states_at(&c);
+                debug!(
+                    "states at {:?}: {} {:?}",
+                    c,
+                    states.len(),
+                    states
+                        .iter()
+                        .map(|s| s.deref().type_id())
+                        .collect::<Vec<TypeId>>()
+                );
+
+                // process automatic subscriptions _before_ dispatching the message into the recognizer, so that it
+                // can veto.
+
+                msg.event.auto_subscribe(recognizer.subscriptions());
+
+                let mut input_state =
+                    InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
+                let msg = recognizer.dispatch(&mut input_state, msg.clone());
+                let (new_subscriptions, new_context_states) = input_state.into_states();
+                *recognizer.subscriptions() = new_subscriptions;
+                store.extend_states_at(&c, new_context_states);
+
+                msg
+            })
+            .flatten()
+            .collect()
     }
 }

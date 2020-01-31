@@ -1,8 +1,14 @@
-use crate::{Scope, Scoped};
+use crate::{Scope, ScopePath, Scoped};
 use emergent_drawing::{
     BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
     MeasureText, Outset, Paint, ReplaceWith, Transform, Transformed, Visualize, RGB,
 };
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub struct PresentationMarker;
+
+pub type PresentationScope = Scope<PresentationMarker>;
+pub type PresentationPath = ScopePath<PresentationMarker>;
 
 /// A presentation is a composable hierarchy of drawing commands and scoped areas.
 ///
@@ -12,7 +18,7 @@ pub enum Presentation {
     Empty,
     /// Defines a presentation scope.
     /// This qualifies all nested names with the scope's name.
-    Scoped(Scope<Presentation>, Box<Presentation>),
+    Scoped(PresentationScope, Box<Presentation>),
     /// Defines a named area around the (fast) bounds of a presentation, including an Outset.
     Area(Outset, Box<Presentation>),
     /// Defines an area by providing a Clip at the current drawing position and scope.
@@ -33,8 +39,8 @@ impl Default for Presentation {
     }
 }
 
-impl Scoped<Presentation> for Presentation {
-    fn scoped(self, scope: impl Into<Scope<Presentation>>) -> Self {
+impl Scoped<PresentationMarker> for Presentation {
+    fn scoped(self, scope: impl Into<PresentationScope>) -> Self {
         Self::Scoped(scope.into(), self.into())
     }
 }
@@ -110,7 +116,7 @@ impl Presentation {
         Presentation::Area(outset.into(), self.into())
     }
 
-    pub fn scoped(self, scope: impl Into<Scope<Presentation>>) -> Self {
+    pub fn scoped(self, scope: impl Into<PresentationScope>) -> Self {
         Presentation::Scoped(scope.into(), self.into())
     }
 
