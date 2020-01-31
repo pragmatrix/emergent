@@ -1,7 +1,7 @@
 //! Single point presentation hit testing.
 
 use emergent_drawing::{Clip, Contains, DrawingFastBounds, MeasureText, Path, Point};
-use emergent_presentation::{Presentation, PresentationPath, Scope, ScopePath};
+use emergent_presentation::{Presentation, PresentationPath};
 
 pub trait PathContainsPoint {
     fn path_contains_point(&self, path: &Path, p: Point) -> bool;

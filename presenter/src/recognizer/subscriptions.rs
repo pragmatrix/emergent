@@ -48,3 +48,22 @@ impl Subscription {
         }
     }
 }
+
+pub(crate) trait AutoSubscribe {
+    /// the set of subscriptions to add or to remove in response to an event.
+    fn auto_subscribe(&self, subscriptions: &mut Subscriptions);
+}
+
+impl AutoSubscribe for WindowEvent {
+    fn auto_subscribe(&self, subscriptions: &mut Subscriptions) {
+        match self {
+            WindowEvent::MouseInput { state, button } if *state == ElementState::Pressed => {
+                subscriptions.subscribe(Subscription::ButtonContinuity(*button));
+            }
+            WindowEvent::MouseInput { state, button } if *state == ElementState::Released => {
+                subscriptions.unsubscribe(&Subscription::ButtonContinuity(*button));
+            }
+            _ => {}
+        }
+    }
+}

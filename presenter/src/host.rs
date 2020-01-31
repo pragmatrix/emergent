@@ -1,4 +1,4 @@
-use crate::recognizer::Recognizer;
+use crate::recognizer::{AutoSubscribe, Recognizer};
 use crate::{
     AreaHitTest, Context, GestureRecognizer, InputState, RecognizerRecord, ScopedStore, Support,
     View,
@@ -110,6 +110,11 @@ impl<Msg> Host<Msg> {
                         .map(|s| s.deref().type_id())
                         .collect::<Vec<TypeId>>()
                 );
+
+                // process automatic subscriptions _before_ dispatching the message into the recognizer, so that it
+                // can veto.
+
+                msg.event.auto_subscribe(recognizer.subscriptions());
 
                 let mut input_state =
                     InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
