@@ -39,7 +39,7 @@ choco install ninja
 and then compile & run emergent with
 
 ```bash
-cargo run
+FORCE_SKIA_BINARIES_DOWNLOAD=1 cargo run
 ```
 
 This should - with LLVM installed, and a decent Vulkan driver, and a bit of luck - compile everything, power up the testrunner, and visualize some early results of some of the emergent library test cases.
