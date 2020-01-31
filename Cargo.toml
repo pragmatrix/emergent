@@ -37,7 +37,7 @@ emergent-view = { path = "view" }
 crossbeam-channel = "0.4"
 
 # skia
-skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "shaper"] }
+skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "textlayout"] }
 
 # window & rendering
 winit = { version = "0.20", features = ["serde"] }
