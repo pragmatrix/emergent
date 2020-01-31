@@ -30,12 +30,6 @@ Clone the repository, cd into it, and then check out the submodules with
 git submodule update --init
 ```
 
-change to Rust beta (needed for ANSI message formatting)
-
-```bash
-rustup default beta
-```
-
 **on Windows** [Ninja](https://github.com/ninja-build/ninja) is needed to compile [shaderc-sys](https://crates.io/crates/shaderc-sys)
 
 ```bash
@@ -52,9 +46,9 @@ This should - with LLVM installed, and a decent Vulkan driver, and a bit of luck
 
 It does that by starting the testrunner, which starts `cargo watch` internally, which in turn runs `cargo test` on the emergent library, captures its results, and visualizes them. From now on, changes are detected and the visualizations are updated automatically.
 
-## Strategy
+## Plan
 
-My strategy is to ...
+My plan is to ...
 
 - make a **graphics library** with a GPU backend and high quality perspective anti-aliasing available to the Rust ecosystem. A first attempt is to [interface with Google's Skia library](https://github.com/rust-skia/rust-skia). Later, if mature, [Pathfinder](https://github.com/servo/pathfinder) and [Skribo](https://github.com/linebender/skribo) may be used as a replacement.
 - create a decent abstraction library for **drawings** and **layout**. While there are modern attempts like [Piet](https://github.com/linebender/piet), [Stretch](https://github.com/vislyhq/stretch), and [Druid](https://github.com/xi-editor/druid). I feel that the focus of these projects don't fit: Piet is focused on a per platform implementations, which I would like to see unified, Stretch puts all layout under the 2D Flexbox doctrine, which seems rather un-flexible, and Druid combines UI widgets and hierarchy with layout, which makes the layout engine unusable for vector drawings.
@@ -91,7 +85,7 @@ Of course all that is a rather idealistic goal, but I think that we can learn a 
 
 ## Copyright & License 
 
-(c) 2019 Armin Sander
+(c) 2020 Armin Sander
 
 MIT
 
