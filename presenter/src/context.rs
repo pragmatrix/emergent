@@ -11,7 +11,7 @@
 
 use crate::recognizer::RecognizerWithSubscription;
 use crate::{GestureRecognizer, RecognizerRecord, ScopedStore, Support, View};
-use emergent_drawing::{Bounds, MeasureText, Text, Vector};
+use emergent_drawing::{Bounds, MeasureText, Point, Rect, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
 use std::any;
@@ -31,8 +31,11 @@ pub struct ContextMarker;
 /// TODO: may rename to ViewState or (View)Builder?
 pub struct Context {
     support: Rc<Support>,
-    /// Boundaries of the presentation.
+    /// Physical boundaries of the presentation.
+    /// TODO: do we need that here?
     boundary: FrameLayout,
+    /// Logical boundaries of the presentation.
+    view_bounds: Rect,
     /// The state tree from the previous view rendering process.
     previous: ScopedStore,
 }
@@ -58,9 +61,14 @@ impl Direction {
 
 impl Context {
     pub fn new(support: Rc<Support>, boundary: FrameLayout, previous: ScopedStore) -> Self {
+        let (width, height) = boundary.dimensions;
         Self {
             support,
             boundary,
+            view_bounds: Rect::from((
+                Point::from((0, 0)),
+                Vector::from((width as isize, height as isize)),
+            )),
             previous,
         }
     }
@@ -135,6 +143,10 @@ impl Context {
 
     pub fn support(&self) -> Rc<Support> {
         self.support.clone()
+    }
+
+    pub fn view_bounds(&self) -> Rect {
+        self.view_bounds.clone()
     }
 }
 
