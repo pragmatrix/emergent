@@ -60,7 +60,7 @@ impl FromStr for Rgb {
                 if chars.next() != Some('x') {
                     return Err(());
                 }
-            },
+            }
             Some('#') => (),
             _ => return Err(()),
         }
@@ -138,7 +138,7 @@ impl List {
                 self[ansi::NamedColor::DimMagenta] = dim.magenta;
                 self[ansi::NamedColor::DimCyan] = dim.cyan;
                 self[ansi::NamedColor::DimWhite] = dim.white;
-            },
+            }
             None => {
                 self[ansi::NamedColor::DimBlack] = colors.normal().black * 0.66;
                 self[ansi::NamedColor::DimRed] = colors.normal().red * 0.66;
@@ -148,7 +148,7 @@ impl List {
                 self[ansi::NamedColor::DimMagenta] = colors.normal().magenta * 0.66;
                 self[ansi::NamedColor::DimCyan] = colors.normal().cyan * 0.66;
                 self[ansi::NamedColor::DimWhite] = colors.normal().white * 0.66;
-            },
+            }
         }
     }
 

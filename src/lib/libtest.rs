@@ -250,7 +250,9 @@ fn parse_run_start() {
 #[test]
 fn parse_run_finished() {
     assert_eq!(
-        to_event(r#"{ "type": "suite", "event": "failed", "passed": 2, "failed": 1, "allowed_fail": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }"#),
+        to_event(
+            r#"{ "type": "suite", "event": "failed", "passed": 2, "failed": 1, "allowed_fail": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }"#
+        ),
         Event::SuiteFinish {
             result: OkOrFailed::Failed,
             passed: 2,
