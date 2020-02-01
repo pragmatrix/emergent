@@ -167,7 +167,7 @@ pub mod tests {
             }));
 
             assert!(captures.contains(&TestCapture {
-                name: "mod_test::test_in_mod_capture".into(),
+                name: "tests::test_in_mod_capture".into(),
                 result: TestResult::Ok(),
                 output: "CAPTURE_ME_IN_MOD\n".into()
             }));

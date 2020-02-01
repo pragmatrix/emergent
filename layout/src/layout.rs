@@ -86,16 +86,16 @@ trait RectHelper {
 impl RectHelper for Rect {
     fn set_begin(&mut self, axis: usize, pos: finite) {
         match axis {
-            0 => self.point1_mut().x = *pos,
-            1 => self.point1_mut().y = *pos,
+            0 => self.left = *pos,
+            1 => self.top = *pos,
             _ => panic!("invalid axis"),
         }
     }
 
     fn set_length(&mut self, axis: usize, length: length) {
         match axis {
-            0 => self.point1_mut().x = self.left() + *length,
-            1 => self.point1_mut().y = self.top() + *length,
+            0 => self.right = self.left + *length,
+            1 => self.bottom = self.top + *length,
             _ => {}
         }
     }
