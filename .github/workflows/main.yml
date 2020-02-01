@@ -1,6 +1,9 @@
 name: Rust
 on: [push]
 
+env:
+    FORCE_SKIA_BINARIES_DOWNLOAD: 1
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -37,12 +40,12 @@ jobs:
         ninja --version
       if: runner.os == 'Windows'
 
-    - name: Setup Python 2 (Windows only)
-      uses: actions/setup-python@v1
-      with:
-        python-version: '2.x'
-        architecture: 'x64'
-      if: runner.os == 'Windows'
+#    - name: Setup Python 2 (Windows only)
+#      uses: actions/setup-python@v1
+#      with:
+#        python-version: '2.x'
+#        architecture: 'x64'
+#      if: runner.os == 'Windows'
 
     - name: Build
       run: cargo build -vv --release
