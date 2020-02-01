@@ -160,6 +160,37 @@ impl Sub<Outset> for Rect {
     }
 }
 
+impl AddAssign<Vector> for Rect {
+    fn add_assign(&mut self, rhs: Vector) {
+        self.left += rhs.x;
+        self.top += rhs.y;
+        self.right += rhs.x;
+        self.bottom += rhs.y;
+    }
+}
+
+impl SubAssign<Vector> for Rect {
+    fn sub_assign(&mut self, rhs: Vector) {
+        *self += -rhs;
+    }
+}
+
+impl Add<Vector> for Rect {
+    type Output = Self;
+    fn add(mut self, rhs: Vector) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl Sub<Vector> for Rect {
+    type Output = Self;
+    fn sub(mut self, rhs: Vector) -> Self::Output {
+        self -= rhs;
+        self
+    }
+}
+
 impl From<Bounds> for Rect {
     fn from(b: Bounds) -> Self {
         Rect::from((b.left_top(), b.extent.into()))
