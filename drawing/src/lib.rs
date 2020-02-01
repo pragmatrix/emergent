@@ -70,9 +70,9 @@ impl Render for Drawing {
 
         let rendered = serde_json::to_string(self).unwrap();
         let mut stdout = io::stdout();
-        stdout.write(b"> ").unwrap();
+        stdout.write_all(b"> ").unwrap();
         stdout.write_all(rendered.as_bytes()).unwrap();
-        stdout.write(b"\n").unwrap();
+        stdout.write_all(b"\n").unwrap();
     }
 }
 

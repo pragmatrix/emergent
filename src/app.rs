@@ -22,12 +22,11 @@ pub struct App {
 impl App {
     pub fn new(req: TestRunRequest, test_environment: TestEnvironment) -> (Self, Cmd<Msg>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
-        let watcher =
-            TestWatcher::begin_watching(req.clone(), test_environment.clone(), sender).unwrap();
+        let watcher = TestWatcher::begin_watching(req, test_environment, sender).unwrap();
 
         let emergent = App {
             watcher,
-            notification_receiver: receiver.clone(),
+            notification_receiver: receiver,
             test_run_result: None,
             latest_test_error: None,
             // TODO: this is part of the persistent state.
@@ -121,13 +120,11 @@ impl ViewRenderer<Msg> for App {
 
                 let captures = Data::new(&captures.0).map(|c, capture| {
                     let show_contents = !self.collapsed_tests.contains(&capture.name);
-                    let inner_view = capture.present(c, show_contents);
-                    inner_view
+                    capture.present(c, show_contents)
                 });
 
                 let elements = compiler_messages.extend(&captures);
-                let view = elements.reduce(ctx, Direction::Column);
-                view
+                elements.reduce(ctx, Direction::Column)
             }
             _ => {
                 // TODO: no result yet (should we display some notification... running test, etc?)
@@ -178,7 +175,7 @@ pub mod tests {
                 output: "CAPTURE_ME_LINE1\nCAPTURE_ME_LINE2\n".into()
             }));
         } else {
-            assert!(false);
+            panic!("no test results");
         }
     }
 }

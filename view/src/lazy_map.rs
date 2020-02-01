@@ -16,9 +16,9 @@ impl<E, R> LazyMap<E, R> {
     }
 
     fn iter_at(&mut self, start: usize) -> impl Iterator<Item = &R> {
-        let ref elements = self.elements;
-        let ref generator = self.generator;
-        let ref mut generated = self.generated;
+        let elements = &self.elements;
+        let generator = &self.generator;
+        let generated = &mut self.generated;
 
         generated[start..]
             .iter_mut()
@@ -51,7 +51,7 @@ impl<E, R> IndexedTarget<E> for LazyMap<E, R> {
     {
         let cs = self.elements.apply(elements);
         let len = cs.len_applied();
-        let ref mut generated = self.generated;
+        let generated = &mut self.generated;
         generated.resize_with(len, || None);
         cs.updated_indices().for_each(|i| generated[i] = None);
         cs

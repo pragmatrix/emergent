@@ -26,6 +26,7 @@ impl Rect {
         }
     }
 
+    #[allow(clippy::float_cmp)]
     pub fn is_empty(&self) -> bool {
         self.left == self.right && self.top == self.bottom
     }
@@ -111,6 +112,7 @@ impl Rect {
 }
 
 impl AddAssign<Outset> for Rect {
+    #[allow(clippy::suspicious_op_assign_impl)]
     fn add_assign(&mut self, rhs: Outset) {
         // Outset is applied edge-relative to the rect, meaning
         // that when the size in one dimension is negative, the same edge is

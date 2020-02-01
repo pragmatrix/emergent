@@ -194,8 +194,8 @@ impl DrawingFastBounds for Drawing {
 impl DrawingBounds {
     pub fn map_bounded(&self, mut f: impl FnMut(&Bounds) -> Bounds) -> Self {
         match self {
-            DrawingBounds::Empty => self.clone(),
-            DrawingBounds::Unbounded => self.clone(),
+            DrawingBounds::Empty => *self,
+            DrawingBounds::Unbounded => *self,
             DrawingBounds::Bounded(b) => DrawingBounds::Bounded(f(b)),
         }
     }
@@ -215,8 +215,8 @@ impl DrawingBounds {
         match (a, b) {
             (DrawingBounds::Empty, _) => DrawingBounds::Empty,
             (_, DrawingBounds::Empty) => DrawingBounds::Empty,
-            (DrawingBounds::Unbounded, b) => b.clone(),
-            (a, DrawingBounds::Unbounded) => a.clone(),
+            (DrawingBounds::Unbounded, b) => *b,
+            (a, DrawingBounds::Unbounded) => *a,
             (DrawingBounds::Bounded(a), DrawingBounds::Bounded(b)) => {
                 match Bounds::intersect(&a, &b) {
                     Some(intersection) => DrawingBounds::Bounded(intersection),
@@ -235,8 +235,8 @@ impl DrawingBounds {
 impl Union for DrawingBounds {
     fn union(a: Self, b: Self) -> Self {
         match (a, b) {
-            (DrawingBounds::Empty, b) => b.clone(),
-            (a, DrawingBounds::Empty) => a.clone(),
+            (DrawingBounds::Empty, b) => b,
+            (a, DrawingBounds::Empty) => a,
             (DrawingBounds::Unbounded, _) => DrawingBounds::Unbounded,
             (_, DrawingBounds::Unbounded) => DrawingBounds::Unbounded,
             (DrawingBounds::Bounded(a), DrawingBounds::Bounded(b)) => {

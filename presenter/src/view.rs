@@ -30,6 +30,12 @@ pub struct View<Msg> {
     states: Vec<(ContextPath, Box<dyn Any>)>,
 }
 
+impl<Msg> Default for View<Msg> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Msg> View<Msg> {
     pub fn new() -> Self {
         Self {

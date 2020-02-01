@@ -38,14 +38,11 @@ where
     let mut p = Point::default();
     let mut r = Vec::new();
     for thing in things {
-        match thing.fast_bounds(measure) {
-            DrawingBounds::Bounded(b) => {
-                let align = -b.point.to_vector();
-                let transform = Transform::Translate((p + align).to_vector());
-                r.push(thing.transformed(transform));
-                p += Vector::from(b.extent) * d
-            }
-            _ => {}
+        if let DrawingBounds::Bounded(b) = thing.fast_bounds(measure) {
+            let align = -b.point.to_vector();
+            let transform = Transform::Translate((p + align).to_vector());
+            r.push(thing.transformed(transform));
+            p += Vector::from(b.extent) * d
         }
     }
     r

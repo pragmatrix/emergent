@@ -40,7 +40,7 @@ impl<W: Window> RenderContext<W> {
                         get_instance_proc(instance, get_device_proc_addr_str.as_ptr()).unwrap(),
                     )
                 };
-                unsafe { mem::transmute(get_device_proc(device, name)) }
+                get_device_proc(device, name)
             }
         }
     }
@@ -70,7 +70,7 @@ fn new_backend_context<'lt, W: Window, GP: vk::GetProc>(
     let device = render_context.device.internal_object() as _;
     let queue = render_context.queue.clone();
     let (queue, queue_index) = (
-        queue.internal_object_guard().clone() as _,
+        *queue.internal_object_guard() as _,
         queue.id_within_family() as _,
     );
 

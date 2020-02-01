@@ -186,6 +186,8 @@ pub mod serialization_helper {
     use crate::paint::{Cap, Join, Style};
     use crate::{scalar, BlendMode, Color, Paint};
 
+    #[allow(clippy::float_cmp)]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     impl Paint {
         pub(crate) fn is_style_default(style: &Style) -> bool {
             *style == Self::DEFAULT.style

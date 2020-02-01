@@ -14,7 +14,10 @@ impl SnapToZero for scalar {
     }
 }
 
-pub trait NearlyZero {
+pub trait NearlyZero
+where
+    Self: Copy,
+{
     const NEARLY_ZERO: Self;
     fn nearly_zero(&self, tolerance: scalar) -> bool;
 }

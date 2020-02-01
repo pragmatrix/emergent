@@ -8,6 +8,12 @@ pub enum Event {
     Tapped(Point),
 }
 
+impl Default for TapRecognizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TapRecognizer {
     pub fn new() -> Self {
         Self {}
