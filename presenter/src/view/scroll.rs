@@ -44,7 +44,6 @@ pub fn view<Msg: 'static>(
 
                 let constrained_bounds = constrain_in_container(&preferred_bounds, &view_bounds);
                 trace!("perfect_place: {:?}", constrained_bounds);
-                // TODO: this does not take view bounds that aren't placed at 0,0 into account.
 
                 let resistance = (preferred_bounds.center().to_vector()
                     - constrained_bounds.center().to_vector())

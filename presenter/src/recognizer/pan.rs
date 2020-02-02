@@ -1,4 +1,4 @@
-use crate::{GestureRecognizer, InputState};
+use crate::{InputProcessor, InputState};
 use emergent_drawing::{Point, Vector};
 use emergent_ui::{WindowEvent, WindowMessage};
 
@@ -34,10 +34,11 @@ impl PanRecognizer {
     }
 }
 
-impl GestureRecognizer for PanRecognizer {
-    type Event = Event;
+impl InputProcessor for PanRecognizer {
+    type In = WindowMessage;
+    type Out = Event;
 
-    fn dispatch(&mut self, _: &mut InputState, msg: WindowMessage) -> Option<Self::Event> {
+    fn dispatch(&mut self, _: &mut InputState, msg: WindowMessage) -> Option<Self::Out> {
         let (state, event) = match (self.state.clone(), msg.event) {
             (State::Waiting, event) if event.left_button_pressed() => {
                 let position = msg.state.cursor_position().unwrap();

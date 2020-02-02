@@ -1,7 +1,7 @@
 //! State based animation.
 
 use super::subscriptions::Subscription;
-use crate::{GestureRecognizer, InputState};
+use crate::{InputProcessor, InputState};
 use emergent_drawing::scalar;
 use emergent_ui::{WindowEvent, WindowMessage};
 use std::marker::PhantomData;
@@ -16,7 +16,7 @@ pub trait StateAnimation<M> {
 }
 
 struct Animator<S, M> {
-    // TODO: animations must e simulatable.
+    // TODO: animations must be simulatable.
     start_time: Instant,
     duration: Duration,
     easing: fn(scalar) -> scalar,
@@ -41,17 +41,14 @@ impl<S, M> Animator<S, M> {
     }
 }
 
-impl<S, M> GestureRecognizer for Animator<S, M>
+impl<S, M> InputProcessor for Animator<S, M>
 where
     S: StateAnimation<M> + 'static,
 {
-    type Event = ();
+    type In = WindowMessage;
+    type Out = ();
 
-    fn dispatch(
-        &mut self,
-        context: &mut InputState,
-        message: WindowMessage,
-    ) -> Option<Self::Event> {
+    fn dispatch(&mut self, context: &mut InputState, message: WindowMessage) -> Option<Self::Out> {
         let state: &mut S = match context.get_mut() {
             None => {
                 warn!("state gone, but animator survived (this could be an internal error)");

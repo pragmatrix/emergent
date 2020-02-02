@@ -5,13 +5,13 @@ use std::any::{Any, TypeId};
 use std::ops::Deref;
 
 /// The `InputState` maintains all the state that may be accessed and modified while input is being processed by one
-/// single gesture recognizer.
+/// single input processor.
 pub struct InputState {
     /// The recognizer's context. This is used for resolving states.
     recognizer_context: ContextPath,
     /// The subscriptions of the recognizer.
     subscriptions: recognizer::Subscriptions,
-    /// The states available to be modified by the gesture recognizer.
+    /// The states available to be modified by the input processor.
     /// There should be a very limited amount of states per context path, so a vector is fine for doing
     /// lookups.
     states: Vec<Box<dyn Any>>,

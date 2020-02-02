@@ -1,4 +1,4 @@
-use crate::{GestureRecognizer, InputState};
+use crate::{InputProcessor, InputState};
 use emergent_ui::WindowMessage;
 
 mod animator;
@@ -16,17 +16,17 @@ pub use subscriptions::*;
 pub mod tap;
 pub use tap::TapRecognizer;
 
-// Below follows a rather convoluted way of transporting a gesture recognizer including its subscription
+// Below follows a rather convoluted way of transporting a input processor including its subscription
 // state through a `Box<Any>`.
 // TODO: find a simpler way.
 
-pub(crate) trait Recognizer<Event>: GestureRecognizer<Event = Event> {
+pub(crate) trait Recognizer<Out>: InputProcessor<In = WindowMessage, Out = Out> {
     fn subscriptions(&mut self) -> &mut Subscriptions;
 }
 
 pub(crate) struct RecognizerWithSubscription<R>
 where
-    R: GestureRecognizer,
+    R: InputProcessor,
 {
     pub recognizer: R,
     pub subscriptions: Subscriptions,
@@ -34,7 +34,7 @@ where
 
 impl<R> From<R> for RecognizerWithSubscription<R>
 where
-    R: GestureRecognizer,
+    R: InputProcessor,
 {
     fn from(r: R) -> Self {
         Self {
@@ -44,26 +44,23 @@ where
     }
 }
 
-impl<R> Recognizer<R::Event> for RecognizerWithSubscription<R>
+impl<R> Recognizer<R::Out> for RecognizerWithSubscription<R>
 where
-    R: GestureRecognizer,
+    R: InputProcessor<In = WindowMessage>,
 {
     fn subscriptions(&mut self) -> &mut Subscriptions {
         &mut self.subscriptions
     }
 }
 
-impl<R> GestureRecognizer for RecognizerWithSubscription<R>
+impl<R> InputProcessor for RecognizerWithSubscription<R>
 where
-    R: GestureRecognizer,
+    R: InputProcessor,
 {
-    type Event = R::Event;
+    type In = R::In;
+    type Out = R::Out;
 
-    fn dispatch(
-        &mut self,
-        context: &mut InputState,
-        message: WindowMessage,
-    ) -> Option<Self::Event> {
+    fn dispatch(&mut self, context: &mut InputState, message: Self::In) -> Option<Self::Out> {
         self.recognizer.dispatch(context, message)
     }
 }

@@ -1,11 +1,11 @@
 use crate::recognizer::{Recognizer, RecognizerWithSubscription, Subscriptions};
-use crate::{recognizer, ContextPath, ContextScope, GestureRecognizer, InputState, ScopedState};
+use crate::{recognizer, ContextPath, ContextScope, InputProcessor, InputState, ScopedState};
 use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 
-type RecognizerResolver<Event> =
-    Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn recognizer::Recognizer<Event>>;
+type RecognizerResolver<Out> =
+    Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn recognizer::Recognizer<Out>>;
 
 pub(crate) struct RecognizerRecord<Event> {
     // used to map areas to the recognizer.
@@ -13,17 +13,17 @@ pub(crate) struct RecognizerRecord<Event> {
     // used to know where the recognizer was created,
     context_path: ContextPath,
     // The recognizer needs to be stored as Any, because we want to recycle it later. If
-    // we would store it as a GestureRecognizer trait, we could never resolve the
+    // we would store it as a InputProcessor trait, we could never resolve the
     // original type and can't use it as a state record.
     recognizer: Box<dyn Any>,
-    // A function that converts the Box<Any> to a GestureRecognizer reference.
+    // A function that converts the Box<Any> to a InputProcessor reference.
     resolver: RecognizerResolver<Event>,
 }
 
 impl<Event> RecognizerRecord<Event> {
     pub(crate) fn new<R>(recognizer: RecognizerWithSubscription<R>) -> Self
     where
-        R: GestureRecognizer<Event = Event> + 'static,
+        R: InputProcessor<In = WindowMessage, Out = Event> + 'static,
     {
         let resolver: RecognizerResolver<Event> = Box::new(|r: &mut Box<dyn Any>| {
             r.downcast_mut::<RecognizerWithSubscription<R>>().unwrap()
@@ -66,13 +66,10 @@ impl<Event> RecognizerRecord<Event> {
     }
 }
 
-impl<Event> GestureRecognizer for RecognizerRecord<Event> {
-    type Event = Event;
-    fn dispatch(
-        &mut self,
-        context: &mut InputState,
-        message: WindowMessage,
-    ) -> Option<Self::Event> {
+impl<Event> InputProcessor for RecognizerRecord<Event> {
+    type In = WindowMessage;
+    type Out = Event;
+    fn dispatch(&mut self, context: &mut InputState, message: WindowMessage) -> Option<Event> {
         let recognizer = &mut self.recognizer;
         let resolver = &self.resolver;
 

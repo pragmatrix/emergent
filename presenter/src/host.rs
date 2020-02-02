@@ -1,7 +1,6 @@
 use crate::recognizer::{AutoSubscribe, Recognizer};
 use crate::{
-    AreaHitTest, Context, GestureRecognizer, InputState, RecognizerRecord, ScopedStore, Support,
-    View,
+    AreaHitTest, Context, InputProcessor, InputState, RecognizerRecord, ScopedStore, Support, View,
 };
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};

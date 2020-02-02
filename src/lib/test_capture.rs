@@ -6,7 +6,7 @@ use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
 use emergent_presenter::recognizer::TapRecognizer;
 use emergent_presenter::{
-    Context, Direction, GestureRecognizer, IndexMappable, Item, Reducible, View,
+    Context, Direction, IndexMappable, InputProcessor, Item, Reducible, View,
 };
 
 impl TestCapture {

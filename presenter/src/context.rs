@@ -10,10 +10,10 @@
 //! - LOD sensitive recursive presentation.
 
 use crate::recognizer::RecognizerWithSubscription;
-use crate::{GestureRecognizer, RecognizerRecord, ScopedStore, Support, View};
+use crate::{InputProcessor, RecognizerRecord, ScopedStore, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Point, Rect, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
-use emergent_ui::FrameLayout;
+use emergent_ui::{FrameLayout, WindowMessage};
 use std::any;
 use std::rc::Rc;
 
@@ -119,7 +119,7 @@ impl Context {
     ) -> View<Msg>
     where
         Msg: 'static,
-        R: GestureRecognizer<Event = Msg> + 'static,
+        R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
     {
         let r = self.recycle_state::<RecognizerWithSubscription<R>>();
         let r = r.unwrap_or_else(|| construct().into());
