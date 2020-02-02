@@ -9,12 +9,12 @@ impl Subscriptions {
         self.0.insert(subscription)
     }
 
-    pub fn unsubscribe(&mut self, subscription: &Subscription) -> bool {
-        self.0.remove(subscription)
+    pub fn unsubscribe(&mut self, subscription: Subscription) -> bool {
+        self.0.remove(&subscription)
     }
 
-    pub fn is_subscribed(&self, subscription: &Subscription) -> bool {
-        self.0.contains(subscription)
+    pub fn is_subscribed(&self, subscription: Subscription) -> bool {
+        self.0.contains(&subscription)
     }
 
     pub fn wants_event(&self, event: &WindowEvent) -> bool {
@@ -33,12 +33,12 @@ pub enum Subscription {
 }
 
 impl Subscription {
-    pub fn wants_event(&self, event: &WindowEvent) -> bool {
+    pub fn wants_event(self, event: &WindowEvent) -> bool {
         match self {
             Subscription::ButtonContinuity(b) => match event {
                 WindowEvent::CursorMoved(_) => true,
                 WindowEvent::MouseInput { state, button }
-                    if *state == ElementState::Released && *button == *b =>
+                    if *state == ElementState::Released && *button == b =>
                 {
                     true
                 }
@@ -61,7 +61,7 @@ impl AutoSubscribe for WindowEvent {
                 subscriptions.subscribe(Subscription::ButtonContinuity(*button));
             }
             WindowEvent::MouseInput { state, button } if *state == ElementState::Released => {
-                subscriptions.unsubscribe(&Subscription::ButtonContinuity(*button));
+                subscriptions.unsubscribe(Subscription::ButtonContinuity(*button));
             }
             _ => {}
         }

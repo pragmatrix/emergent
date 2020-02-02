@@ -42,11 +42,11 @@ impl InputState {
         self.subscriptions.subscribe(subscription)
     }
 
-    pub fn unsubscribe(&mut self, subscription: &recognizer::Subscription) -> bool {
-        self.subscriptions.unsubscribe(&subscription)
+    pub fn unsubscribe(&mut self, subscription: recognizer::Subscription) -> bool {
+        self.subscriptions.unsubscribe(subscription)
     }
 
-    pub fn is_subscribed(&self, subscription: &recognizer::Subscription) -> bool {
+    pub fn is_subscribed(&self, subscription: recognizer::Subscription) -> bool {
         self.subscriptions.is_subscribed(subscription)
     }
 

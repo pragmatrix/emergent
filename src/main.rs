@@ -46,9 +46,9 @@ fn main() {
     icu::init();
 
     let project_path = {
-        let provided = matches.value_of("PATH").map(|p| path::PathBuf::from(p));
+        let provided = matches.value_of("PATH").map(path::PathBuf::from);
 
-        let current_path = path::PathBuf::from(env::current_dir().unwrap());
+        let current_path = env::current_dir().unwrap();
         provided
             .map(|p| current_path.join(p))
             .unwrap_or(current_path)

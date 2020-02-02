@@ -9,7 +9,7 @@ name = "emergent"
 path = "src/lib/lib.rs"
 
 [workspace]
-exclude = ["rust-skia", "vulkano"]
+exclude = ["rust-skia", "vulkano", "watchexec"]
 members = [
   "config",
   "drawing",

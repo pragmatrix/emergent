@@ -154,7 +154,7 @@ fn measure_text_run(
         Text(text, _properties) => {
             let (text_blob, end_point) =
                 // TODO: support max width, right to left / bidi text..
-                shaper.shape_text_blob(text, font, true, 100000.0, origin).unwrap();
+                shaper.shape_text_blob(text, font, true, 100_000.0, origin).unwrap();
             // TODO: handle empty bounds returned from Skia here?
             trace!("text: {}", text);
             trace!("origin: {:?}", origin);

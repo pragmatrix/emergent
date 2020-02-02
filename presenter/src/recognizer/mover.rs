@@ -5,6 +5,7 @@ use emergent_drawing::Vector;
 pub enum MoverRecognizer {}
 
 impl MoverRecognizer {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new<S, GP, Msg>(pos_from: GP) -> impl GestureRecognizer<Event = Msg>
     where
         GP: Fn(&mut S) -> &mut Vector,

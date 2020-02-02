@@ -20,6 +20,12 @@ pub enum Event {
     Released(Point, Vector),
 }
 
+impl Default for PanRecognizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PanRecognizer {
     pub fn new() -> Self {
         Self {

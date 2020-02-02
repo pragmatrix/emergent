@@ -476,8 +476,8 @@ mod tests {
                 let spacing = 8.0;
                 let mode_str = format!("{} -> {}, {:?}", bound, *span.length(), mode);
                 let pos = (left + *span.end() + spacing, bottom);
-                let text = text(pos, mode_str, &font);
-                canvas.draw(text, &black);
+                let text = text(mode_str, &font, Some(pos.into()));
+                canvas.draw(text, black);
             }
 
             // draw the top and bottom lines
@@ -486,8 +486,8 @@ mod tests {
                 let range = (left + *span.begin(), left + *span.end());
                 let top_line = line_h(top, range);
                 let bottom_line = line_h(bottom, range);
-                canvas.draw(top_line, &grey);
-                canvas.draw(bottom_line, &grey);
+                canvas.draw(top_line, grey);
+                canvas.draw(bottom_line, grey);
             }
 
             let positions: Vec<finite> = crate::spans::positions(&spans).collect();
@@ -502,7 +502,7 @@ mod tests {
                         (left + **pos, previous_top),
                         (left + *current_position, top),
                     );
-                    canvas.draw(line, &light_grey);
+                    canvas.draw(line, light_grey);
                 }
             };
 
@@ -511,7 +511,7 @@ mod tests {
                 for position in &positions {
                     let left = left + **position;
                     let line = line_v(left, (top, bottom));
-                    canvas.draw(line, &grey);
+                    canvas.draw(line, grey);
                 }
             }
 
@@ -529,20 +529,20 @@ mod tests {
                 if length >= constraint.min {
                     let value = *constraint.min;
                     let marker = line_v(left + value, constraint_marker_vrange);
-                    canvas.draw(marker, &blue);
+                    canvas.draw(marker, blue);
                 }
 
                 if length >= constraint.preferred_effective() {
                     let value = *constraint.preferred_effective();
                     let marker = line_v(left + value, constraint_marker_vrange);
-                    canvas.draw(marker, &green);
+                    canvas.draw(marker, green);
                 }
 
                 if let Max::Length(max) = constraint.max_effective() {
                     if length >= max {
                         let value = *max;
                         let marker = line_v(left + value, constraint_marker_vrange);
-                        canvas.draw(marker, &red);
+                        canvas.draw(marker, red);
                     }
                 }
             }

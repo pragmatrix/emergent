@@ -1,3 +1,9 @@
+// TODO:
+#![allow(clippy::float_cmp)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::transmute_ptr_to_ptr)]
+#![allow(clippy::useless_let_if_seq)]
+
 use crate::functions::{point, vector};
 use crate::{
     scalar, Bounds, NearlyEqual, NearlyZero, Point, Radians, Radius, Rect, Scalar, Vector,
@@ -361,8 +367,8 @@ impl Matrix {
 
         let mask = self.type_mask();
         if (mask & !(TypeMask::SCALE | TypeMask::TRANSLATE)).is_empty() {
-            let mut invertible = true;
-            if mask.contains(TypeMask::SCALE) {
+            // let mut invertible = true;
+            return if mask.contains(TypeMask::SCALE) {
                 let mut inv_x = self.0[SCALE_X];
                 let mut inv_y = self.0[SCALE_Y];
                 if 0.0 == inv_x || 0.0 == inv_y {
@@ -389,11 +395,11 @@ impl Matrix {
 
                 // TODO: support that:
                 // inv->setTypeMask(mask | kRectStaysRect_Mask);
-                return Some(inv);
+                Some(inv)
             } else {
                 // translate only
-                return Some(Matrix::new_translate((-self.0[TRANS_X], -self.0[TRANS_Y])));
-            }
+                Some(Matrix::new_translate((-self.0[TRANS_X], -self.0[TRANS_Y])))
+            };
         }
 
         let is_persp = mask.contains(TypeMask::PERSPECTIVE);
@@ -411,7 +417,7 @@ impl Matrix {
 
         // tmp->setTypeMask(fTypeMask);
 
-        return Some(Matrix(inv));
+        Some(Matrix(inv))
     }
 }
 
@@ -536,12 +542,12 @@ fn compute_inv(src: &[scalar; 9], inv_det: f64, is_persp: bool) -> [scalar; 9] {
 
 fn scross_dscale(a: scalar, b: scalar, c: scalar, d: scalar, scale: f64) -> scalar {
     // Skia: 6d1c0d41
-    return scross(a, b, c, d) * scale;
+    scross(a, b, c, d) * scale
 }
 
 fn dcross_dscale(a: f64, b: f64, c: f64, d: f64, scale: f64) -> scalar {
     // Skia: 6d1c0d41
-    return dcross(a, b, c, d) * scale;
+    dcross(a, b, c, d) * scale
 }
 
 fn scross(a: scalar, b: scalar, c: scalar, d: scalar) -> scalar {

@@ -15,7 +15,7 @@ pub fn text_as_lines(text: &str) -> impl Iterator<Item = &str> {
 
     let f = move || {
         if let Some(current) = next {
-            match text[current..].find("\n") {
+            match text[current..].find('\n') {
                 Some(len) => {
                     let end = current + len;
                     let r = &text[current..end];

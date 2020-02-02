@@ -51,7 +51,7 @@ trait EventReader {
     }
 }
 
-fn parse_event(line: &String) -> Result<Event, failure::Error> {
+fn parse_event(line: &str) -> Result<Event, failure::Error> {
     let value = serde_json::from_str(line)?;
     Ok(Event::from_json(&value)?)
 }
@@ -116,7 +116,7 @@ impl TestCaptures {
         let num_tests = {
             match reader.read_line_as_event()? {
                 Event::SuiteStart { test_count } => test_count,
-                e => Err(TestResultsError::ExpectedSuiteStart(e))?,
+                e => return Err(TestResultsError::ExpectedSuiteStart(e).into()),
             }
         };
 
@@ -125,7 +125,7 @@ impl TestCaptures {
         for i in 0..num_tests {
             let test_name = match reader.read_line_as_event()? {
                 Event::TestStart { name } => name,
-                e => Err(TestResultsError::ExpectedTestStart { index: i, event: e })?,
+                e => return Err(TestResultsError::ExpectedTestStart { index: i, event: e }.into()),
             };
 
             let output = &mut Vec::new();
@@ -154,7 +154,7 @@ impl TestCaptures {
 
         match reader.read_line_as_event()? {
             Event::SuiteFinish { .. } => {}
-            e => Err(TestResultsError::ExpectedSuiteStart(e))?,
+            e => return Err(TestResultsError::ExpectedSuiteStart(e).into()),
         }
 
         Ok(TestCaptures(captures))
@@ -226,10 +226,12 @@ impl Event {
                 ("test", "ignored") => test_finish(TestResult::Ignored),
                 ("test", "allowed_fail") => test_finish(TestResult::AllowedFail),
                 ("test", "timeout") => test_finish(TestResult::Timeout),
-                (ty, event) => Err(EventError::UnsupportedTypeEvent(ty.into(), event.into()))?,
+                (ty, event) => {
+                    Err(EventError::UnsupportedTypeEvent(ty.into(), event.into()).into())
+                }
             }
         } else {
-            Err(EventError::ExpectedObject)?
+            Err(EventError::ExpectedObject.into())
         }
     }
 }
@@ -250,7 +252,9 @@ fn parse_run_start() {
 #[test]
 fn parse_run_finished() {
     assert_eq!(
-        to_event(r#"{ "type": "suite", "event": "failed", "passed": 2, "failed": 1, "allowed_fail": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }"#),
+        to_event(
+            r#"{ "type": "suite", "event": "failed", "passed": 2, "failed": 1, "allowed_fail": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }"#
+        ),
         Event::SuiteFinish {
             result: OkOrFailed::Failed,
             passed: 2,

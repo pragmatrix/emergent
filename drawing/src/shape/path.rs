@@ -23,7 +23,7 @@ pub enum FillType {
 }
 
 impl FillType {
-    pub fn is_inverse(&self) -> bool {
+    pub fn is_inverse(self) -> bool {
         use FillType::*;
         match self {
             Winding | EvenOdd => false,
@@ -273,7 +273,7 @@ impl Path {
         p2: impl Into<Point>,
         weight: scalar,
     ) -> &mut Self {
-        if !(weight > 0.0) {
+        if weight <= 0.0 {
             return self.line_to(p2);
         }
 

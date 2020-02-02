@@ -10,6 +10,9 @@ pub trait IndexedTarget<E> {
 
 /// An indexed sequence that can be read from.
 pub trait IndexedSource<E> {
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     /// The length of the indexed sequence.
     fn len(&self) -> usize;
     /// Creates an iterator to the indexed sequence beginning at the index `start`.
@@ -17,6 +20,10 @@ pub trait IndexedSource<E> {
 }
 
 impl<E> IndexedSource<E> for Vec<E> {
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
     fn len(&self) -> usize {
         self.len()
     }
@@ -35,7 +42,7 @@ impl<E> IndexedTarget<E> for Vec<E> {
             if elements.len() > self.len() {
                 let start = self.len();
                 self.extend_from_slice(&elements[start..]);
-                TailChange::Added(start, self[start..self.len()].iter().cloned().collect())
+                TailChange::Added(start, self[start..self.len()].to_vec())
             } else {
                 let start = elements.len();
                 let removed = self.split_off(start);

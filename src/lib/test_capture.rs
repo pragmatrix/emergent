@@ -26,15 +26,14 @@ impl TestCapture {
                 return header.reduce(c, ());
             }
 
-            let contents =
-                Item::new(&self.output).map(|_, output| Self::view_output(output).into());
+            let contents = Item::new(&self.output).map(|_, output| Self::view_output(output));
 
             header.extend(&contents).reduce(c, Direction::Column)
         })
     }
 
     fn view_header(title: &str) -> View<Msg> {
-        let ref header_font = Font::new("", font::Style::NORMAL, font::Size::new(20.0));
+        let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
         let text = text(title, header_font, None);
         drawing.draw_shape(&text.into(), paint());
@@ -62,11 +61,11 @@ mod tests {
 
     #[test]
     fn capture_presentations() {
-        let mut context = context::from_test_environment();
+        let context = context::from_test_environment();
 
         let output = {
             let mut drawing = Drawing::new();
-            drawing.draw(rect((0, 0), (64, 64)), Paint::stroke(0x235689.rgb()));
+            drawing.draw(rect((0, 0), (64, 64)), Paint::stroke(0x0023_5689.rgb()));
             format!("> {}", serde_json::to_string(&drawing).unwrap())
         };
 

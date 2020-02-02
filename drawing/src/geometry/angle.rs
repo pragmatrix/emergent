@@ -14,8 +14,8 @@ impl Angle {
         Angle(degrees)
     }
 
-    pub fn map(&self, f: impl FnOnce(scalar) -> scalar) -> Angle {
-        Angle(f(**self))
+    pub fn map(self, f: impl FnOnce(scalar) -> scalar) -> Angle {
+        Angle(f(*self))
     }
 }
 

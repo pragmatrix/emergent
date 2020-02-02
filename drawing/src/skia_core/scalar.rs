@@ -12,7 +12,10 @@ impl Zero for scalar {
 
 impl SignAsInt for scalar {}
 
-pub trait Zero {
+pub trait Zero
+where
+    Self: Copy,
+{
     const ZERO: Self;
 }
 
