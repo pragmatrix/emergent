@@ -51,12 +51,12 @@ jobs:
       run: cargo build -vv --release
       shell: bash
 
-    - name: Run Tests
-      run: cargo test -vv --release --all -- --test-threads 1
+    - name: Run Clippy
+      run: cargo clippy -vv --release --workspace
       shell: bash
 
-    - name: Run Clippy
-      run: cargo clippy -vv --release --all
+    - name: Run Tests
+      run: cargo test -vv --release --workspace -- --test-threads 1
       shell: bash
 
   rustfmt:
