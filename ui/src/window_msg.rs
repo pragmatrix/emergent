@@ -3,6 +3,7 @@ use emergent_drawing::Point;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use std::time::Instant;
 pub use winit::event::{
     // winit re-exports:
     AxisId,
@@ -89,7 +90,9 @@ impl WindowEvent {
 /// long run.
 // TODO: Several of the variants are missing a device identifier because winit
 // represents it with a platform dependent type.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+// TODO: make serialization possible again by making Instant serializable if that is even possible (otherwise rep.
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum WindowEvent {
     Resized(FrameLayout),
     Moved(Point),
@@ -125,6 +128,7 @@ pub enum WindowEvent {
         finger_id: u64,
     },
     ScaleFactorChanged(FrameLayout),
+    Tick(Instant),
 }
 
 impl WindowEvent {

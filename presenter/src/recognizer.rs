@@ -1,5 +1,10 @@
 use crate::{GestureRecognizer, InputState};
 use emergent_ui::WindowMessage;
+
+mod animator;
+pub use animator::*;
+
+pub mod mover;
 pub use mover::MoverRecognizer;
 
 pub mod pan;
@@ -10,8 +15,6 @@ pub use subscriptions::*;
 
 pub mod tap;
 pub use tap::TapRecognizer;
-
-pub mod mover;
 
 // Below follows a rather convoluted way of transporting a gesture recognizer including its subscription
 // state through a `Box<Any>`.
