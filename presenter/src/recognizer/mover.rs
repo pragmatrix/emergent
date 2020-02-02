@@ -1,35 +1,71 @@
-use crate::recognizer::{pan, PanRecognizer};
-use crate::{transaction, GestureRecognizer};
-use emergent_drawing::Vector;
+use crate::recognizer::pan::Event;
+use crate::recognizer::PanRecognizer;
+use crate::{GestureRecognizer, InputState};
+use emergent_drawing::{Point, Vector};
+use emergent_ui::WindowMessage;
+use std::marker::PhantomData;
 
-pub enum MoverRecognizer {}
+pub trait MoveTransaction<Msg> {
+    type State;
 
-impl MoverRecognizer {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new<S, GP, Msg>(pos_from: GP) -> impl GestureRecognizer<Event = Msg>
-    where
-        GP: Fn(&mut S) -> &mut Vector,
-        GP: Clone + 'static,
-        S: Clone + 'static,
-    {
-        PanRecognizer::new().activate(move |e, state| match e {
-            pan::Event::Pressed(_p) => {
-                let initial_pos = *pos_from(state);
-                let pos_from = pos_from.clone();
+    fn update(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg>;
+    fn commit(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg>;
+    fn rollback(&mut self, s: &mut Self::State) -> Option<Msg>;
+}
 
-                transaction::begin(move |e, state| match e {
-                    pan::Event::Moved(_p, d) => {
-                        *pos_from(state) = initial_pos + d;
-                        transaction::sustain()
-                    }
-                    pan::Event::Released(_p, d) => {
-                        *pos_from(state) = initial_pos + d;
-                        transaction::commit()
-                    }
-                    _ => transaction::rollback(),
-                })
+pub struct MoverRecognizer<Msg, IF, T>
+where
+    T: MoveTransaction<Msg>,
+{
+    pan: PanRecognizer,
+    init_f: IF,
+    transaction: Option<T>,
+    pd: PhantomData<*const Msg>,
+}
+
+impl<Msg, IF, T> MoverRecognizer<Msg, IF, T>
+where
+    IF: Fn(&T::State, Point) -> Option<T>,
+    T: MoveTransaction<Msg>,
+    T::State: 'static,
+{
+    pub fn new(init_f: IF) -> impl GestureRecognizer<Event = Msg> {
+        Self {
+            pan: PanRecognizer::new(),
+            init_f,
+            transaction: None,
+            pd: PhantomData,
+        }
+    }
+}
+
+impl<Msg, IF, T> GestureRecognizer for MoverRecognizer<Msg, IF, T>
+where
+    IF: Fn(&T::State, Point) -> Option<T>,
+    T: MoveTransaction<Msg>,
+    T::State: 'static,
+{
+    type Event = Msg;
+
+    fn dispatch(
+        &mut self,
+        input_state: &mut InputState,
+        message: WindowMessage,
+    ) -> Option<Self::Event> {
+        let e = self.pan.dispatch(input_state, message)?;
+        let state: &mut T::State = input_state.get_mut()?;
+        match e {
+            Event::Pressed(p) => {
+                assert!(self.transaction.is_none());
+                self.transaction = (self.init_f)(state, p);
+                None
             }
-            _ => transaction::neglect(),
-        })
+            Event::Moved(_, v) => self.transaction.as_mut().unwrap().update(v, state),
+            Event::Released(_, v) => {
+                let m = self.transaction.as_mut().unwrap().commit(v, state);
+                self.transaction = None;
+                m
+            }
+        }
     }
 }

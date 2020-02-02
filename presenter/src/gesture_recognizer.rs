@@ -14,8 +14,11 @@ pub trait GestureRecognizer {
     /// The resulting event of the gesture recognizer.
     type Event;
 
-    fn dispatch(&mut self, context: &mut InputState, message: WindowMessage)
-        -> Option<Self::Event>;
+    fn dispatch(
+        &mut self,
+        input_state: &mut InputState,
+        message: WindowMessage,
+    ) -> Option<Self::Event>;
 
     /// Map the resulting event to another.
     ///
@@ -38,6 +41,19 @@ pub trait GestureRecognizer {
         Self: Sized,
     {
         Apply {
+            recognizer: self,
+            apply: f,
+            pd: PhantomData,
+        }
+    }
+
+    /// Apply the resulting event to another function that can modify another view state and return another event.
+    fn apply_mut<To, F, S>(self, f: F) -> ApplyMut<Self, F, S>
+    where
+        F: Fn(&mut S, Self::Event) -> (S, Option<To>),
+        Self: Sized,
+    {
+        ApplyMut {
             recognizer: self,
             apply: f,
             pd: PhantomData,
@@ -113,6 +129,30 @@ where
         }
 
         None
+    }
+}
+
+pub struct ApplyMut<R, F, S> {
+    recognizer: R,
+    apply: F,
+    pd: PhantomData<*const S>,
+}
+
+impl<To, R, F, S: 'static> GestureRecognizer for ApplyMut<R, F, S>
+where
+    R: GestureRecognizer,
+    F: Fn(&mut S, R::Event) -> Option<To>,
+{
+    type Event = To;
+
+    fn dispatch(
+        &mut self,
+        input_state: &mut InputState,
+        message: WindowMessage,
+    ) -> Option<Self::Event> {
+        let e = self.recognizer.dispatch(input_state, message)?;
+        let state: &mut S = input_state.get_mut()?;
+        (self.apply)(state, e)
     }
 }
 

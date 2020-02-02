@@ -1,6 +1,7 @@
+use crate::recognizer::mover::MoveTransaction;
 use crate::recognizer::MoverRecognizer;
 use crate::{Context, View};
-use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
+use emergent_drawing::{scalar, DrawingFastBounds, Rect, Transformed, Vector};
 use std::ops::Deref;
 
 #[derive(Clone)]
@@ -15,7 +16,7 @@ pub fn view<Msg: 'static>(
     mut context: Context,
     build_content: impl FnOnce(Context) -> View<Msg>,
 ) -> View<Msg> {
-    let create_content = |mut context: Context, state: &State| {
+    let create_content = |context: Context, state: &State| {
         trace!("scrollview at: {:?}", state.content_transform);
         // TODO, we must consume the context, but then we need to get support and view_bounds out of it, this is ugly.
         let support = context.support();
@@ -72,8 +73,35 @@ pub fn view<Msg: 'static>(
 
     return context.attach_recognizer(view, || {
         info!("creating new recognizer");
-        MoverRecognizer::new(|state: &mut State| &mut state.content_transform)
+        MoverRecognizer::new(|state: &State, _| {
+            Some(Mover {
+                start: state.content_transform,
+            })
+        })
     });
+}
+
+struct Mover {
+    start: Vector,
+}
+
+impl<Msg> MoveTransaction<Msg> for Mover {
+    type State = State;
+
+    fn update(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg> {
+        s.content_transform = self.start + pos;
+        None
+    }
+
+    fn commit(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg> {
+        s.content_transform = self.start + pos;
+        None
+    }
+
+    fn rollback(&mut self, s: &mut Self::State) -> Option<Msg> {
+        s.content_transform = self.start;
+        None
+    }
 }
 
 fn align_in_container(to_center: &Rect, align: (Alignment, Alignment), container: &Rect) -> Rect {
