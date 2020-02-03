@@ -27,7 +27,7 @@ pub fn view<Msg: 'static>(
         let view = build_content(context);
 
         let content_bounds = view.fast_bounds(support.deref());
-        let (alignment_transform, transform) = match content_bounds.as_bounds() {
+        let (constrained_content_transform, transform) = match content_bounds.as_bounds() {
             Some(content_bounds) => {
                 let content_bounds = content_bounds.to_rect();
                 trace!("content_bounds: {:?}", content_bounds);
@@ -46,12 +46,15 @@ pub fn view<Msg: 'static>(
                 let constrained_bounds = constrain_in_container(&preferred_bounds, &view_bounds);
                 trace!("perfect_place: {:?}", constrained_bounds);
 
+                let constrained_content_transform = state.content_transform
+                    + (constrained_bounds.center() - preferred_bounds.center());
+
                 let resistance = (preferred_bounds.center().to_vector()
                     - constrained_bounds.center().to_vector())
                     / 2.0;
 
                 (
-                    alignment_transform,
+                    constrained_content_transform,
                     alignment_transform + state.content_transform - resistance,
                 )
             }
@@ -59,7 +62,7 @@ pub fn view<Msg: 'static>(
         };
         trace!("final_transform: {:?}", transform);
 
-        (alignment_transform, view.transformed(transform))
+        (constrained_content_transform, view.transformed(transform))
     };
 
     let (alignment_transform, view) = context.with_state_r(
