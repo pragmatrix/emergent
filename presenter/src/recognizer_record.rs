@@ -15,7 +15,7 @@ pub(crate) struct RecognizerRecord<Event> {
     // The recognizer needs to be stored as Any, because we want to recycle it later. If
     // we would store it as a InputProcessor trait, we could never resolve the
     // original type and can't use it as a state record.
-    recognizer: Box<dyn Any>,
+    pub(crate) recognizer: Box<dyn Any>,
     // A function that converts the Box<Any> to a InputProcessor reference.
     resolver: RecognizerResolver<Event>,
 }

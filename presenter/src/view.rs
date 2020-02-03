@@ -1,10 +1,14 @@
-use crate::{Context, ContextPath, ContextScope, RecognizerRecord, ScopedState};
+use crate::recognizer::RecognizerWithSubscription;
+use crate::{Context, ContextPath, ContextScope, InputProcessor, RecognizerRecord, ScopedState};
+use downcast_rs::Downcast;
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
 use emergent_presentation::{Presentation, PresentationScope, Scoped};
+use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::cell::RefCell;
+use std::ops::Deref;
 
 pub mod scroll;
 
@@ -76,9 +80,38 @@ impl<Msg> View<Msg> {
         }
     }
 
-    pub(crate) fn record_recognizer(mut self, recognizer: RecognizerRecord<Msg>) -> Self {
+    /// Attaches a recognizer to a view.
+    ///
+    /// This function reuses a recognizer with the same type from the current context.
+    pub fn attach_recognizer<R>(
+        &mut self,
+        context: &mut Context,
+        construct: impl FnOnce() -> R,
+    ) -> &R
+    where
+        R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
+    {
+        let r = context.recycle_state::<RecognizerWithSubscription<R>>();
+        let r = r.unwrap_or_else(|| construct().into());
+
+        // need to store a function alongside the recognizer that converts it from an `Any` to its
+        // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
+        let record = RecognizerRecord::new(r);
+        &self
+            .record_recognizer(record)
+            .recognizer
+            .deref()
+            .downcast_ref::<RecognizerWithSubscription<R>>()
+            .unwrap()
+            .recognizer
+    }
+
+    pub(crate) fn record_recognizer<'a>(
+        &mut self,
+        recognizer: RecognizerRecord<Msg>,
+    ) -> &RecognizerRecord<Msg> {
         self.recognizers.push(recognizer);
-        self
+        self.recognizers.last().unwrap()
     }
 
     pub fn presentation(&self) -> &Presentation {
@@ -127,6 +160,16 @@ impl<Msg> View<Msg> {
     pub fn with_state(mut self, state: impl Any + 'static) -> Self {
         self.states.push((ContextPath::new(), Box::new(state)));
         self
+    }
+
+    pub fn get_state<S: 'static>(&self) -> Option<&S> {
+        self.states.iter().find_map(|(c, s)| {
+            if c.is_empty() {
+                s.deref().downcast_ref::<S>()
+            } else {
+                None
+            }
+        })
     }
 }
 

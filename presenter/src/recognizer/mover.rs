@@ -35,13 +35,17 @@ where
     T: MoveTransaction<Msg>,
     T::State: 'static,
 {
-    pub fn new(init_f: IF) -> impl InputProcessor<In = WindowMessage, Out = Msg> {
+    pub fn new(init_f: IF) -> Self {
         Self {
             pan: PanRecognizer::new(),
             init_f,
             transaction: None,
             pd: PhantomData,
         }
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.transaction.is_some()
     }
 }
 
@@ -60,7 +64,7 @@ where
         message: WindowMessage,
     ) -> Option<Self::Out> {
         let e = self.pan.dispatch(input_state, message)?;
-        let state: &mut T::State = input_state.get_mut()?;
+        let state: &mut T::State = input_state.get_state()?;
         match e {
             pan::Event::Pressed(p) => {
                 assert!(self.transaction.is_none());

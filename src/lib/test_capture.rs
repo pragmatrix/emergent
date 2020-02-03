@@ -14,12 +14,13 @@ impl TestCapture {
         c.scoped(&self.name, |c| {
             let header = Item::new(&self.name).map(|mut c, name| {
                 let name = name.to_string();
-                let view = Self::view_header(&name).in_area();
+                let mut view = Self::view_header(&name).in_area();
 
-                c.attach_recognizer(view, || {
+                view.attach_recognizer(&mut c, || {
                     TapRecognizer::new()
                         .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
-                })
+                });
+                view
             });
 
             if !show_contents {

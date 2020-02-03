@@ -126,29 +126,8 @@ impl Context {
         (r, view.with_state(state))
     }
 
-    /// Attaches a recognizer to a view.
-    ///
-    /// This function reuses a recognizer with the same type from the current context.
-    pub fn attach_recognizer<Msg, R>(
-        &mut self,
-        view: View<Msg>,
-        construct: impl FnOnce() -> R,
-    ) -> View<Msg>
-    where
-        Msg: 'static,
-        R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
-    {
-        let r = self.recycle_state::<RecognizerWithSubscription<R>>();
-        let r = r.unwrap_or_else(|| construct().into());
-
-        // need to store a function alongside the recognizer that converts it from an `Any` to its
-        // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
-        let record = RecognizerRecord::new(r);
-        view.record_recognizer(record)
-    }
-
     /// Tries to recycle a typed state from the current context. If successful, the typed state is removed.
-    fn recycle_state<S: 'static>(&mut self) -> Option<S> {
+    pub(crate) fn recycle_state<S: 'static>(&mut self) -> Option<S> {
         match self.previous.remove_state() {
             None => {
                 trace!("failed to recycle state: {:?}", any::type_name::<S>());

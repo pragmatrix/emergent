@@ -48,7 +48,7 @@ pub trait InputProcessor {
     /// Apply the resulting event to another function that can modify another view state and return another event.
     fn apply_mut<To, F, S>(self, f: F) -> ApplyMut<Self, F, S>
     where
-        F: Fn(&mut S, Self::Out) -> (S, Option<To>),
+        F: Fn(Self::Out, &mut S) -> Option<To>,
         Self: Sized,
     {
         ApplyMut {
@@ -133,15 +133,15 @@ pub struct ApplyMut<R, F, S> {
 impl<To, R, F, S: 'static> InputProcessor for ApplyMut<R, F, S>
 where
     R: InputProcessor,
-    F: Fn(&mut S, R::Out) -> Option<To>,
+    F: Fn(R::Out, &mut S) -> Option<To>,
 {
     type In = R::In;
     type Out = To;
 
     fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
         let e = self.recognizer.dispatch(input_state, message)?;
-        let state: &mut S = input_state.get_mut()?;
-        (self.apply)(state, e)
+        let state: &mut S = input_state.get_state()?;
+        (self.apply)(e, state)
     }
 }
 
@@ -171,7 +171,7 @@ where
         let e = self.recognizer.dispatch(input_state, message);
 
         if e.is_none() {
-            if self.transaction.is_some() && input_state.get_mut::<S>().is_none() {
+            if self.transaction.is_some() && input_state.get_state::<S>().is_none() {
                 warn!(
                     "state {} vanished, but may reappear before the transaction continues",
                     type_name::<S>(),
@@ -181,7 +181,7 @@ where
         }
         let e = e.unwrap();
 
-        let state = input_state.get_mut();
+        let state = input_state.get_state();
         if state.is_none() {
             info!(
                 "state {} {:?} vanished, cleaning up, {} got ignored",

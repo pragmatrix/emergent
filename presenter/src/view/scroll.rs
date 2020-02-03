@@ -1,8 +1,9 @@
 use crate::recognizer::mover::MoveTransaction;
-use crate::recognizer::MoverRecognizer;
-use crate::{Context, View};
+use crate::recognizer::{animator, easing, Animator, MoverRecognizer};
+use crate::{Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Rect, Transformed, Vector};
 use std::ops::Deref;
+use std::time::Duration;
 
 #[derive(Clone)]
 struct State {
@@ -26,7 +27,7 @@ pub fn view<Msg: 'static>(
         let view = build_content(context);
 
         let content_bounds = view.fast_bounds(support.deref());
-        let transform = match content_bounds.as_bounds() {
+        let (alignment_transform, transform) = match content_bounds.as_bounds() {
             Some(content_bounds) => {
                 let content_bounds = content_bounds.to_rect();
                 trace!("content_bounds: {:?}", content_bounds);
@@ -49,28 +50,31 @@ pub fn view<Msg: 'static>(
                     - constrained_bounds.center().to_vector())
                     / 2.0;
 
-                alignment_transform + state.content_transform - resistance
+                (
+                    alignment_transform,
+                    alignment_transform + state.content_transform - resistance,
+                )
             }
-            None => Vector::default(),
+            None => Default::default(),
         };
         trace!("final_transform: {:?}", transform);
 
-        view.transformed(transform)
+        (alignment_transform, view.transformed(transform))
     };
 
-    let view = context
-        .with_state(
-            || {
-                info!("scrollview: resetting state");
-                State {
-                    content_transform: Vector::new(0.0, 0.0),
-                }
-            },
-            create_content,
-        )
-        .in_area();
+    let (alignment_transform, view) = context.with_state_r(
+        || {
+            info!("scrollview: resetting state");
 
-    return context.attach_recognizer(view, || {
+            State {
+                content_transform: Vector::new(0.0, 0.0),
+            }
+        },
+        create_content,
+    );
+
+    let mut view = view.in_area();
+    let mover = view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
         MoverRecognizer::new(|state: &State, _| {
             Some(Mover {
@@ -78,6 +82,23 @@ pub fn view<Msg: 'static>(
             })
         })
     });
+
+    if !mover.is_active() {
+        let state: &State = view.get_state().unwrap();
+        let initial = state.content_transform;
+        if state.content_transform != alignment_transform {
+            view.attach_recognizer(&mut context, || {
+                Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply_mut(
+                    move |e: animator::Event, s: &mut State| {
+                        s.content_transform = e.interpolate(&initial, &alignment_transform);
+                        None
+                    },
+                )
+            });
+        }
+    }
+
+    view
 }
 
 struct Mover {

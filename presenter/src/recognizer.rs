@@ -1,8 +1,10 @@
 use crate::{InputProcessor, InputState};
 use emergent_ui::WindowMessage;
 
-mod animator;
-pub use animator::*;
+pub mod animator;
+pub use animator::Animator;
+
+pub mod easing;
 
 pub mod mover;
 pub use mover::MoverRecognizer;

@@ -16,6 +16,9 @@ pub use input_processor::InputProcessor;
 mod input_state;
 pub use input_state::*;
 
+mod interpolated;
+pub use interpolated::Interpolated;
+
 mod context;
 pub use context::*;
 

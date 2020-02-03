@@ -79,7 +79,7 @@ impl InputState {
     }
 
     /// Return a mutable reference to a typed state record.
-    pub fn get_mut<S: 'static>(&mut self) -> Option<&mut S> {
+    pub fn get_state<S: 'static>(&mut self) -> Option<&mut S> {
         let type_id = TypeId::of::<S>();
         let states = &mut self.states;
 
