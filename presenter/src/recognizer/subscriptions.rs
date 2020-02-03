@@ -44,7 +44,10 @@ impl Subscription {
                 }
                 _ => false,
             },
-            Subscription::Ticks => false,
+            Subscription::Ticks => match event {
+                WindowEvent::Tick(_) => true,
+                _ => false,
+            },
         }
     }
 }

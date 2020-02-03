@@ -68,7 +68,6 @@ pub fn view<Msg: 'static>(
     let (alignment_transform, view) = context.with_state_r(
         || {
             info!("scrollview: resetting state");
-
             State {
                 content_transform: Vector::new(0.0, 0.0),
             }
