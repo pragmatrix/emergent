@@ -65,20 +65,6 @@ pub enum WindowApplicationMsg<Msg> {
     Application(Msg),
 }
 
-impl<M, Msg> Model<WindowApplicationMsg<Msg>> for WindowApplication<M, Msg>
-where
-    M: WindowModel<Msg>,
-    Msg: Send + 'static,
-{
-    fn update(&mut self, msg: WindowApplicationMsg<Msg>) -> Cmd<WindowApplicationMsg<Msg>> {
-        use WindowApplicationMsg::*;
-        match msg {
-            WindowEvent(msg) => self.dispatch_event(msg),
-            Application(msg) => self.update_model(msg),
-        }
-    }
-}
-
 impl<M, Msg> WindowApplication<M, Msg>
 where
     M: WindowModel<Msg>,
@@ -155,6 +141,25 @@ where
             });
 
         self.host.borrow().presentation().clone()
+    }
+
+    // TODO: don't use mutable here.
+    pub fn needs_ticks(&mut self) -> bool {
+        self.host.borrow_mut().needs_ticks()
+    }
+}
+
+impl<M, Msg> Model<WindowApplicationMsg<Msg>> for WindowApplication<M, Msg>
+where
+    M: WindowModel<Msg>,
+    Msg: Send + 'static,
+{
+    fn update(&mut self, msg: WindowApplicationMsg<Msg>) -> Cmd<WindowApplicationMsg<Msg>> {
+        use WindowApplicationMsg::*;
+        match msg {
+            WindowEvent(msg) => self.dispatch_event(msg),
+            Application(msg) => self.update_model(msg),
+        }
     }
 }
 

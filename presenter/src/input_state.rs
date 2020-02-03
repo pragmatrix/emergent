@@ -46,8 +46,8 @@ impl InputState {
         self.subscriptions.unsubscribe(subscription)
     }
 
-    pub fn is_subscribed(&self, subscription: recognizer::Subscription) -> bool {
-        self.subscriptions.is_subscribed(subscription)
+    pub fn contains(&self, subscription: recognizer::Subscription) -> bool {
+        self.subscriptions.contains(subscription)
     }
 
     //

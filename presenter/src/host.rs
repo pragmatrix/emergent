@@ -1,4 +1,4 @@
-use crate::recognizer::{AutoSubscribe, Recognizer};
+use crate::recognizer::{AutoSubscribe, Recognizer, Subscription};
 use crate::{
     AreaHitTest, Context, InputProcessor, InputState, RecognizerRecord, ScopedStore, Support, View,
 };
@@ -58,6 +58,13 @@ impl<Msg> Host<Msg> {
 
     pub fn presentation(&self) -> &Presentation {
         &self.presentation
+    }
+
+    // TODO: don't need mut self here.
+    pub fn needs_ticks(&mut self) -> bool {
+        self.recognizers
+            .iter_mut()
+            .any(|r| r.subscriptions().contains(Subscription::Ticks))
     }
 
     pub fn dispatch_window_message(&mut self, msg: WindowMessage) -> Vec<Msg>

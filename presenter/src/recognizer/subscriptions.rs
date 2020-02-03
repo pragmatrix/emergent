@@ -13,7 +13,7 @@ impl Subscriptions {
         self.0.remove(&subscription)
     }
 
-    pub fn is_subscribed(&self, subscription: Subscription) -> bool {
+    pub fn contains(&self, subscription: Subscription) -> bool {
         self.0.contains(&subscription)
     }
 
