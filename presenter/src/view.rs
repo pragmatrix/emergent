@@ -118,13 +118,13 @@ impl<Msg> View<Msg> {
         self
     }
 
-    pub fn store_states(mut self, states: impl IntoIterator<Item = Box<dyn Any>>) -> Self {
+    pub fn with_states(mut self, states: impl IntoIterator<Item = Box<dyn Any>>) -> Self {
         self.states
             .extend(states.into_iter().map(|s| (ContextPath::new(), s)));
         self
     }
 
-    pub fn store_state(mut self, state: impl Any + 'static) -> Self {
+    pub fn with_state(mut self, state: impl Any + 'static) -> Self {
         self.states.push((ContextPath::new(), Box::new(state)));
         self
     }

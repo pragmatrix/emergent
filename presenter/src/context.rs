@@ -73,17 +73,24 @@ impl Context {
         }
     }
 
+    pub fn scoped<Msg>(
+        &mut self,
+        scope: impl Into<ContextScope>,
+        create_content: impl FnOnce(Context) -> View<Msg>,
+    ) -> View<Msg> {
+        self.scoped_r(scope, |c| ((), create_content(c))).1
+    }
     /// Produce a view inside the scoped context.
     ///
     /// A `ContextScope` is meant to be resemble the function call hierarchy and is not necessarily related to the
     /// resulting view graph.
     ///
     /// The return value _is_ the view that was produced inside the scoped context.
-    pub fn scoped<Msg>(
+    pub fn scoped_r<Msg, R>(
         &mut self,
         scope: impl Into<ContextScope>,
-        view: impl FnOnce(Context) -> View<Msg>,
-    ) -> View<Msg> {
+        create_content: impl FnOnce(Context) -> (R, View<Msg>),
+    ) -> (R, View<Msg>) {
         let scope = scope.into();
         let previous = self
             .previous
@@ -91,22 +98,32 @@ impl Context {
             .unwrap_or_else(ScopedStore::new);
 
         let nested_context = Context::new(self.support.clone(), self.boundary, previous);
-        view(nested_context).context_scoped(scope)
+        let (r, view) = create_content(nested_context);
+        let view = view.context_scoped(scope);
+        (r, view)
     }
 
-    /// Calls a function that maintains uses view state and generates a view.
-    ///
-    /// If there is no state available at the current context scope, `construct` is called to generate a new one.
-    /// If there is a state available, the previous state is recycled and passed to the `with_state` function.
     pub fn with_state<S: 'static, Msg>(
         &mut self,
         construct: impl FnOnce() -> S,
         with_state: impl FnOnce(Context, &S) -> View<Msg>,
     ) -> View<Msg> {
+        self.with_state_r(construct, |c, s| ((), with_state(c, s)))
+            .1
+    }
+    /// Calls a function that maintains uses view state and generates a view.
+    ///
+    /// If there is no state available at the current context scope, `construct` is called to generate a new one.
+    /// If there is a state available, the previous state is recycled and passed to the `with_state` function.
+    pub fn with_state_r<S: 'static, Msg, R>(
+        &mut self,
+        construct: impl FnOnce() -> S,
+        with_state: impl FnOnce(Context, &S) -> (R, View<Msg>),
+    ) -> (R, View<Msg>) {
         let state = self.recycle_state().unwrap_or_else(construct);
         let scope: ContextScope = any::type_name::<S>().into();
-        let view = self.scoped(scope, |ctx| with_state(ctx, &state));
-        view.store_state(state)
+        let (r, view) = self.scoped_r(scope, |ctx| with_state(ctx, &state));
+        (r, view.with_state(state))
     }
 
     /// Attaches a recognizer to a view.
