@@ -1,5 +1,5 @@
 use crate::recognizer::mover::MoveTransaction;
-use crate::recognizer::{animator, easing, Animator, MoverRecognizer};
+use crate::recognizer::{animator, easing, Animator, MoverRecognizer, Subscription};
 use crate::{Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Rect, Transformed, Vector};
 use std::ops::Deref;
@@ -83,7 +83,8 @@ pub fn view<Msg: 'static>(
         })
     });
 
-    if !mover.is_active() {
+    // TODO: support Deref to be able to access `is_active()` on `mover`?
+    if !mover.recognizer.is_active() {
         let state: &State = view.get_state().unwrap();
         let initial = state.content_transform;
         if state.content_transform != alignment_transform {
@@ -94,7 +95,11 @@ pub fn view<Msg: 'static>(
                         None
                     },
                 )
-            });
+            })
+            // TODO: subscribe should be able to be applied directly on the return recognizer.
+            // TODO: subscription of ticks should be implicitly done by the recognizer.
+            .subscriptions
+            .subscribe(Subscription::Ticks);
         }
     }
 

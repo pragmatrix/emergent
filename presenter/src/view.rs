@@ -1,6 +1,5 @@
 use crate::recognizer::RecognizerWithSubscription;
 use crate::{Context, ContextPath, ContextScope, InputProcessor, RecognizerRecord, ScopedState};
-use downcast_rs::Downcast;
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
@@ -8,7 +7,7 @@ use emergent_presentation::{Presentation, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::cell::RefCell;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 pub mod scroll;
 
@@ -83,11 +82,12 @@ impl<Msg> View<Msg> {
     /// Attaches a recognizer to a view.
     ///
     /// This function reuses a recognizer with the same type from the current context.
+    /// TODO: this function should not leak the type RecognizerwithSubscription<R>
     pub fn attach_recognizer<R>(
         &mut self,
         context: &mut Context,
         construct: impl FnOnce() -> R,
-    ) -> &R
+    ) -> &mut RecognizerWithSubscription<R>
     where
         R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
     {
@@ -97,21 +97,19 @@ impl<Msg> View<Msg> {
         // need to store a function alongside the recognizer that converts it from an `Any` to its
         // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
         let record = RecognizerRecord::new(r);
-        &self
-            .record_recognizer(record)
+        self.record_recognizer(record)
             .recognizer
-            .deref()
-            .downcast_ref::<RecognizerWithSubscription<R>>()
+            .deref_mut()
+            .downcast_mut::<RecognizerWithSubscription<R>>()
             .unwrap()
-            .recognizer
     }
 
     pub(crate) fn record_recognizer<'a>(
         &mut self,
         recognizer: RecognizerRecord<Msg>,
-    ) -> &RecognizerRecord<Msg> {
+    ) -> &mut RecognizerRecord<Msg> {
         self.recognizers.push(recognizer);
-        self.recognizers.last().unwrap()
+        self.recognizers.last_mut().unwrap()
     }
 
     pub fn presentation(&self) -> &Presentation {

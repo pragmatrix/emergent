@@ -26,7 +26,7 @@ pub(crate) trait Recognizer<Out>: InputProcessor<In = WindowMessage, Out = Out> 
     fn subscriptions(&mut self) -> &mut Subscriptions;
 }
 
-pub(crate) struct RecognizerWithSubscription<R>
+pub struct RecognizerWithSubscription<R>
 where
     R: InputProcessor,
 {

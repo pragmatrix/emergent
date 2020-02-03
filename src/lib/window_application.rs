@@ -96,7 +96,7 @@ where
 
         match event {
             WindowEvent::CloseRequested => self.close_requested = true,
-            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. }
+            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. } | WindowEvent::Tick(_)
                 // TODO: try to make the cursor position available, always.
                 if self.window_state.cursor_position().is_some() =>
             {
