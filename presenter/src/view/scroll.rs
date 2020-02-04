@@ -65,7 +65,7 @@ pub fn view<Msg: 'static>(
         (constrained_content_transform, view.transformed(transform))
     };
 
-    let (alignment_transform, view) = context.with_state_r(
+    let (constrained_content_transform, view) = context.with_state_r(
         || {
             info!("scrollview: resetting state");
             State {
@@ -89,11 +89,12 @@ pub fn view<Msg: 'static>(
     if !mover.recognizer.is_active() {
         let state: &State = view.get_state().unwrap();
         let initial = state.content_transform;
-        if state.content_transform != alignment_transform {
+        if state.content_transform != constrained_content_transform {
             view.attach_recognizer(&mut context, || {
                 Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply_mut(
                     move |e: animator::Event, s: &mut State| {
-                        s.content_transform = e.interpolate(&initial, &alignment_transform);
+                        s.content_transform =
+                            e.interpolate(&initial, &constrained_content_transform);
                         None
                     },
                 )
