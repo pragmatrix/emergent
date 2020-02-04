@@ -30,6 +30,8 @@ pub(crate) use recognizer_record::*;
 mod scoped_store;
 pub use scoped_store::*;
 
+pub mod velocity;
+
 mod view;
 pub use view::*;
 
