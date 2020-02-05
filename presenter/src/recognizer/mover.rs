@@ -5,35 +5,48 @@ use emergent_drawing::{Point, Vector};
 use emergent_ui::WindowMessage;
 use std::marker::PhantomData;
 
-pub trait MoveTransaction<Msg> {
-    type State;
-
-    fn update(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg>;
-    fn commit(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg>;
-    fn rollback(&mut self, s: &mut Self::State) -> Option<Msg>;
+// ID is the initialization data of the move transaction.
+#[derive(Clone, Debug)]
+pub enum Event<ID> {
+    Begin(ID, Vector),
+    Update(ID, Vector),
+    Commit(ID, Vector),
+    Rollback(ID),
 }
 
-pub enum Event {
-    Update(Vector),
-    Commit(Vector),
-    Rollback,
+impl<ID> Event<ID> {
+    /// Returns the initialization data and the current moving vector.
+    pub fn state(&self) -> (ID, Vector)
+    where
+        ID: Clone,
+    {
+        match self {
+            Event::Begin(id, v) | Event::Update(id, v) | Event::Commit(id, v) => (id.clone(), *v),
+            Event::Rollback(id) => ((*id).clone(), Vector::default()),
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            Event::Begin(_, _) => true,
+            Event::Update(_, _) => true,
+            Event::Commit(_, _) => false,
+            Event::Rollback(_) => false,
+        }
+    }
 }
 
-pub struct MoverRecognizer<Msg, IF, T>
-where
-    T: MoveTransaction<Msg>,
-{
+pub struct MoverRecognizer<IF, State, ID> {
     pan: PanRecognizer,
     init_f: IF,
-    transaction: Option<T>,
-    pd: PhantomData<*const Msg>,
+    transaction: Option<ID>,
+    pd: PhantomData<*const State>,
 }
 
-impl<Msg, IF, T> MoverRecognizer<Msg, IF, T>
+impl<IF, State, ID> MoverRecognizer<IF, State, ID>
 where
-    IF: Fn(&T::State, Point) -> Option<T>,
-    T: MoveTransaction<Msg>,
-    T::State: 'static,
+    IF: Fn(&State, Point) -> Option<ID>,
+    State: 'static,
 {
     pub fn new(init_f: IF) -> Self {
         Self {
@@ -49,33 +62,39 @@ where
     }
 }
 
-impl<Msg, IF, T> InputProcessor for MoverRecognizer<Msg, IF, T>
+impl<IF, State, ID> InputProcessor for MoverRecognizer<IF, State, ID>
 where
-    IF: Fn(&T::State, Point) -> Option<T>,
-    T: MoveTransaction<Msg>,
-    T::State: 'static,
+    IF: Fn(&State, Point) -> Option<ID>,
+    State: 'static,
+    ID: Clone,
 {
     type In = WindowMessage;
-    type Out = Msg;
+    type Out = Event<ID>;
 
     fn dispatch(
         &mut self,
         input_state: &mut InputState,
         message: WindowMessage,
     ) -> Option<Self::Out> {
+        // TODO: implement rollback.
         let e = self.pan.dispatch(input_state, message)?;
-        let state: &mut T::State = input_state.get_state()?;
+        let state: &mut State = input_state.get_state()?;
         match e {
             pan::Event::Pressed(p) => {
                 assert!(self.transaction.is_none());
                 self.transaction = (self.init_f)(state, p);
-                None
+                self.transaction
+                    .clone()
+                    .map(|id| Event::Begin(id, Vector::default()))
             }
-            pan::Event::Moved(_, v) => self.transaction.as_mut().unwrap().update(v, state),
+            pan::Event::Moved(_, v) => {
+                let id = self.transaction.as_mut().unwrap();
+                Some(Event::Update(id.clone(), v))
+            }
             pan::Event::Released(_, v) => {
-                let m = self.transaction.as_mut().unwrap().commit(v, state);
+                let id = self.transaction.as_mut().unwrap().clone();
                 self.transaction = None;
-                m
+                Some(Event::Commit(id, v))
             }
         }
     }

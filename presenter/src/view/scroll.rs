@@ -1,4 +1,3 @@
-use crate::recognizer::mover::MoveTransaction;
 use crate::recognizer::{animator, easing, Animator, MoverRecognizer, Subscription};
 use crate::{Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Rect, Transformed, Vector};
@@ -9,6 +8,8 @@ use std::time::Duration;
 struct State {
     /// The transformation vector of the content.
     content_transform: Vector,
+    /// Current movement?
+    movement_active: bool,
 }
 
 // Experiment: create a scroll view around a content view.
@@ -70,28 +71,32 @@ pub fn view<Msg: 'static>(
             info!("scrollview: resetting state");
             State {
                 content_transform: Vector::new(0.0, 0.0),
+                movement_active: false,
             }
         },
         create_content,
     );
 
     let mut view = view.in_area();
-    let mover = view.attach_recognizer(&mut context, || {
+    view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
-        MoverRecognizer::new(|state: &State, _| {
-            Some(Mover {
-                start: state.content_transform,
-            })
-        })
+        MoverRecognizer::new(|state: &State, _| Some(state.content_transform)).apply(
+            |e, s: &mut State| {
+                let (start, v) = e.state();
+                s.content_transform = start + v;
+                s.movement_active = e.is_active();
+                None
+            },
+        )
     });
 
     // TODO: support Deref to be able to access `is_active()` on `mover`?
-    if !mover.recognizer.is_active() {
-        let state: &State = view.get_state().unwrap();
+    let state: &State = view.get_state().unwrap();
+    if !state.movement_active && state.content_transform != constrained_content_transform {
         let initial = state.content_transform;
         if state.content_transform != constrained_content_transform {
             view.attach_recognizer(&mut context, || {
-                Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply_mut(
+                Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply(
                     move |e: animator::Event, s: &mut State| {
                         s.content_transform =
                             e.interpolate(&initial, &constrained_content_transform);
@@ -107,29 +112,6 @@ pub fn view<Msg: 'static>(
     }
 
     view
-}
-
-struct Mover {
-    start: Vector,
-}
-
-impl<Msg> MoveTransaction<Msg> for Mover {
-    type State = State;
-
-    fn update(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg> {
-        s.content_transform = self.start + pos;
-        None
-    }
-
-    fn commit(&mut self, pos: Vector, s: &mut Self::State) -> Option<Msg> {
-        s.content_transform = self.start + pos;
-        None
-    }
-
-    fn rollback(&mut self, s: &mut Self::State) -> Option<Msg> {
-        s.content_transform = self.start;
-        None
-    }
 }
 
 fn align_in_container(to_center: &Rect, align: (Alignment, Alignment), container: &Rect) -> Rect {

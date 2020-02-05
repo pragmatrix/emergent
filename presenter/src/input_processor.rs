@@ -1,6 +1,5 @@
 use crate::transaction;
 use crate::InputState;
-use emergent_drawing::ReplaceWith;
 use std::any::{type_name, TypeId};
 use std::marker::PhantomData;
 use std::mem;
@@ -33,25 +32,12 @@ pub trait InputProcessor {
     }
 
     /// Apply the resulting event to another function that can modify another view state and return another event.
-    fn apply<To, F, S>(self, f: F) -> Apply<Self, F, S>
-    where
-        F: Fn(S, Self::Out) -> (S, Option<To>),
-        Self: Sized,
-    {
-        Apply {
-            recognizer: self,
-            apply: f,
-            pd: PhantomData,
-        }
-    }
-
-    /// Apply the resulting event to another function that can modify another view state and return another event.
-    fn apply_mut<To, F, S>(self, f: F) -> ApplyMut<Self, F, S>
+    fn apply<To, F, S>(self, f: F) -> Apply<Self, F, To, S>
     where
         F: Fn(Self::Out, &mut S) -> Option<To>,
         Self: Sized,
     {
-        ApplyMut {
+        Apply {
             recognizer: self,
             apply: f,
             pd: PhantomData,
@@ -91,46 +77,13 @@ where
     }
 }
 
-pub struct Apply<R, F, S> {
+pub struct Apply<R, F, To, S> {
     recognizer: R,
     apply: F,
-    pd: PhantomData<*const S>,
+    pd: PhantomData<(*const S, *const To)>,
 }
 
-impl<To, R, F, S: 'static> InputProcessor for Apply<R, F, S>
-where
-    R: InputProcessor,
-    F: Fn(S, R::Out) -> (S, Option<To>),
-{
-    type In = R::In;
-    type Out = To;
-
-    fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<To> {
-        let e = self.recognizer.dispatch(input_state, message);
-
-        if let Some(e) = e {
-            let mut to_r = None;
-            input_state.modify(|s: &mut S| {
-                s.replace_with(|s| {
-                    let (s, t) = (self.apply)(s, e);
-                    to_r = t;
-                    s
-                })
-            });
-            return to_r;
-        }
-
-        None
-    }
-}
-
-pub struct ApplyMut<R, F, S> {
-    recognizer: R,
-    apply: F,
-    pd: PhantomData<*const S>,
-}
-
-impl<To, R, F, S: 'static> InputProcessor for ApplyMut<R, F, S>
+impl<To, R, F, S: 'static> InputProcessor for Apply<R, F, To, S>
 where
     R: InputProcessor,
     F: Fn(R::Out, &mut S) -> Option<To>,
