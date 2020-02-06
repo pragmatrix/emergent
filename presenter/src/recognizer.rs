@@ -4,23 +4,36 @@ use emergent_ui::WindowMessage;
 pub mod animator;
 pub use animator::Animator;
 
+pub mod bounce_back;
+
+pub mod converge;
+
 pub mod easing;
 
+pub mod momentum;
+
 pub mod mover;
-pub use mover::MoverRecognizer;
+pub use mover::Mover;
 
 pub mod pan;
-pub use pan::PanRecognizer;
+pub use pan::Pan;
 
 mod subscriptions;
 pub use subscriptions::*;
 
 pub mod tap;
+use emergent_drawing::Vector;
 pub use tap::TapRecognizer;
 
 // Below follows a rather convoluted way of transporting a input processor including its subscription
 // state through a `Box<Any>`.
 // TODO: find a simpler way.
+
+pub trait Translate {
+    fn translate(self, v: Vector) -> Self
+    where
+        Self: Sized;
+}
 
 pub(crate) trait Recognizer<Out>: InputProcessor<In = WindowMessage, Out = Out> {
     fn subscriptions(&mut self) -> &mut Subscriptions;

@@ -29,6 +29,7 @@ use emergent_presentation::Presentation;
 use emergent_presenter::{Host, Support, ViewRenderer};
 use emergent_ui::{FrameLayout, ModifiersState, WindowEvent, WindowMessage, WindowState, DPI};
 use std::cell::RefCell;
+use std::time::Instant;
 use tears::{Cmd, Model};
 
 /// The generic Window Application Model.
@@ -100,7 +101,7 @@ where
                 // TODO: try to make the cursor position available, always.
                 if self.window_state.cursor_position().is_some() =>
             {
-                let msg = WindowMessage::new(self.window_state.clone(), event);
+                let msg = WindowMessage::new(event, Instant::now(), self.window_state.clone());
 
                 let msgs = self.host.borrow_mut().dispatch_window_message(msg);
                 return msgs.into_iter().map(|msg| self.update_model(msg)).collect();

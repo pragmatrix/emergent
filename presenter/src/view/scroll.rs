@@ -1,5 +1,6 @@
-use crate::recognizer::{animator, easing, Animator, MoverRecognizer, Subscription};
-use crate::{Context, InputProcessor, View};
+use crate::recognizer::mover::IntoMovement;
+use crate::recognizer::{easing, Animator, Mover, Subscription};
+use crate::{recognizer, Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Rect, Transformed, Vector};
 use std::ops::Deref;
 use std::time::Duration;
@@ -56,7 +57,7 @@ pub fn view<Msg: 'static>(
 
                 (
                     constrained_content_transform,
-                    alignment_transform + state.content_transform - resistance,
+                    alignment_transform + state.content_transform, /* - resistance*/
                 )
             }
             None => Default::default(),
@@ -80,16 +81,18 @@ pub fn view<Msg: 'static>(
     let mut view = view.in_area();
     view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
-        MoverRecognizer::new(|state: &State, _| Some(state.content_transform)).apply(
-            |e, s: &mut State| {
+        recognizer::Pan::new()
+            .preserve_momentum(100.0, easing::ease_out_cubic, Duration::from_secs(1))
+            .into_movement(|state: &State, _| Some(state.content_transform))
+            .apply(|e, s: &mut State| {
                 let (start, v) = e.state();
                 s.content_transform = start + v;
                 s.movement_active = e.is_active();
                 None
-            },
-        )
+            })
     });
 
+    /*
     // TODO: support Deref to be able to access `is_active()` on `mover`?
     let state: &State = view.get_state().unwrap();
     if !state.movement_active && state.content_transform != constrained_content_transform {
@@ -109,7 +112,7 @@ pub fn view<Msg: 'static>(
             .subscriptions
             .subscribe(Subscription::Ticks);
         }
-    }
+    }*/
 
     view
 }

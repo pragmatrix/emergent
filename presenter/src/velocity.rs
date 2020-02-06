@@ -1,6 +1,7 @@
 use emergent_drawing::{scalar, Point, Vector};
 use std::time::Instant;
 
+#[derive(Clone, Debug)]
 pub struct Tracker {
     current: Option<(Instant, Point, Vector)>,
     smoothing: scalar,
@@ -21,6 +22,7 @@ impl Tracker {
 
     /// Add a new measuring point and return the current velocity.
     pub fn measure(&mut self, t: Instant, p: Point) -> Vector {
+        debug!("measure: {:?} @ {:?}", p, t);
         match self.current {
             None => {
                 let v = Vector::ZERO;
@@ -37,9 +39,14 @@ impl Tracker {
                 let dt = dt.as_secs_f64();
                 let dp = dp / dt;
                 let v = pv * self.smoothing + dp * (1.0 - self.smoothing);
+                debug!("velocity: {:?}", v);
                 self.current = Some((t, p, v));
                 v
             }
         }
+    }
+
+    pub fn velocity(&self) -> Option<Vector> {
+        self.current.map(|(_, _, v)| v)
     }
 }

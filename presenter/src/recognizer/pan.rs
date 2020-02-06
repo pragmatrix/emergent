@@ -2,7 +2,7 @@ use crate::{InputProcessor, InputState};
 use emergent_drawing::{Point, Vector};
 use emergent_ui::{WindowEvent, WindowMessage};
 
-pub struct PanRecognizer {
+pub struct Pan {
     state: State,
 }
 
@@ -15,18 +15,18 @@ enum State {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Event {
-    Pressed(Point),
+    Begin(Point),
     Moved(Point, Vector),
-    Released(Point, Vector),
+    End(Point, Vector),
 }
 
-impl Default for PanRecognizer {
+impl Default for Pan {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl PanRecognizer {
+impl Pan {
     pub fn new() -> Self {
         Self {
             state: State::Waiting,
@@ -34,7 +34,7 @@ impl PanRecognizer {
     }
 }
 
-impl InputProcessor for PanRecognizer {
+impl InputProcessor for Pan {
     type In = WindowMessage;
     type Out = Event;
 
@@ -42,7 +42,7 @@ impl InputProcessor for PanRecognizer {
         let (state, event) = match (self.state.clone(), msg.event) {
             (State::Waiting, event) if event.left_button_pressed() => {
                 let position = msg.state.cursor_position().unwrap();
-                (State::Pressed(position), Some(Event::Pressed(position)))
+                (State::Pressed(position), Some(Event::Begin(position)))
             }
             (State::Pressed(p), WindowEvent::CursorMoved(current)) => (
                 State::Moved(p, current - p),
@@ -53,10 +53,10 @@ impl InputProcessor for PanRecognizer {
                 Some(Event::Moved(p, current - p)),
             ),
             (State::Pressed(p), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::Released(p, Vector::default())))
+                (State::Waiting, Some(Event::End(p, Vector::default())))
             }
             (State::Moved(p, v), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::Released(p, v)))
+                (State::Waiting, Some(Event::End(p, v)))
             }
             (state, _) => (state, None),
         };
