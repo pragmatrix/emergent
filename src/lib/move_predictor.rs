@@ -37,7 +37,7 @@ impl MovePredictor {
             .iter()
             .copied()
             .map(|(v, w)| v * w)
-            .fold(Vector::default(), |a, b| a + b);
+            .fold(Vector::ZERO, |a, b| a + b);
 
         let cutoff = now - self.queue_range;
         while self.queue.back().is_some() && self.queue.back().unwrap().0 < cutoff {
@@ -55,7 +55,7 @@ impl MovePredictor {
             .queue
             .front()
             .copied()
-            .unwrap_or((now, p, Vector::default()));
+            .unwrap_or((now, p, Vector::ZERO));
         self.queue
             .push_front((now, p, p.to_vector() - pv.to_vector()));
     }

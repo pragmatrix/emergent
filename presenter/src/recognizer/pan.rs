@@ -49,7 +49,7 @@ impl InputProcessor for Pan {
                 Some(Event::Update(p, current - p)),
             ),
             (State::Pressed(p), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::Commit(p, Vector::default())))
+                (State::Waiting, Some(Event::Commit(p, Vector::ZERO)))
             }
             (State::Moved(p, v), event) if event.left_button_released() => {
                 (State::Waiting, Some(Event::Commit(p, v)))

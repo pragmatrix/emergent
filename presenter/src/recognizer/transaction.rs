@@ -26,10 +26,10 @@ impl<Data> Transaction<Data> {
 
     pub fn state(&self) -> (&Data, Vector) {
         match self {
-            Transaction::Begin(d) => (d, Vector::default()),
+            Transaction::Begin(d) => (d, Vector::ZERO),
             Transaction::Update(d, v) => (d, *v),
             Transaction::Commit(d, v) => (d, *v),
-            Transaction::Rollback(d) => (d, Vector::default()),
+            Transaction::Rollback(d) => (d, Vector::ZERO),
         }
     }
 
