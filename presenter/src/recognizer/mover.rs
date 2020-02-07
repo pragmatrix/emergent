@@ -1,39 +1,9 @@
 use crate::recognizer::pan;
+use crate::recognizer::transaction::Transaction;
 use crate::{InputProcessor, InputState};
-use emergent_drawing::{Point, Vector};
+use emergent_drawing::Point;
 use emergent_ui::WindowMessage;
 use std::marker::PhantomData;
-
-// ID is the initialization data of the move transaction.
-#[derive(Clone, Debug)]
-pub enum Event<ID> {
-    Begin(ID, Vector),
-    Update(ID, Vector),
-    Commit(ID, Vector),
-    Rollback(ID),
-}
-
-impl<ID> Event<ID> {
-    /// Returns the initialization data and the current moving vector.
-    pub fn state(&self) -> (ID, Vector)
-    where
-        ID: Clone,
-    {
-        match self {
-            Event::Begin(id, v) | Event::Update(id, v) | Event::Commit(id, v) => (id.clone(), *v),
-            Event::Rollback(id) => ((*id).clone(), Vector::default()),
-        }
-    }
-
-    pub fn is_active(&self) -> bool {
-        match self {
-            Event::Begin(_, _) => true,
-            Event::Update(_, _) => true,
-            Event::Commit(_, _) => false,
-            Event::Rollback(_) => false,
-        }
-    }
-}
 
 pub struct Mover<R, IF, State, ID> {
     pan: R,
@@ -86,31 +56,37 @@ where
     PE: Into<pan::Event>,
 {
     type In = WindowMessage;
-    type Out = Event<ID>;
+    type Out = Transaction<ID>;
 
     fn dispatch(
         &mut self,
         input_state: &mut InputState,
         message: WindowMessage,
     ) -> Option<Self::Out> {
+        use Transaction::*;
         // TODO: implement rollback.
         let e = self.pan.dispatch(input_state, message)?;
+        // if state is not available, it makes no sense to continue at all.
         let state: &mut State = input_state.get_state()?;
         match e.into() {
-            pan::Event::Begin(p) => {
-                self.transaction = (self.init_f)(state, p);
-                self.transaction
-                    .clone()
-                    .map(|id| Event::Begin(id, Vector::default()))
+            Begin(p) => {
+                let new_t = (self.init_f)(state, p);
+                self.transaction = new_t;
+                self.transaction.as_ref().map(|id| Begin(id.clone()))
             }
-            pan::Event::Moved(_, v) => {
+            Update(_, v) => {
                 let id = self.transaction.as_mut().unwrap();
-                Some(Event::Update(id.clone(), v))
+                Some(Update(id.clone(), v))
             }
-            pan::Event::End(_, v) => {
+            Commit(_, v) => {
                 let id = self.transaction.as_mut().unwrap().clone();
                 self.transaction = None;
-                Some(Event::Commit(id, v))
+                Some(Commit(id, v))
+            }
+            Rollback(_) => {
+                let id = self.transaction.as_mut().unwrap().clone();
+                self.transaction = None;
+                Some(Rollback(id))
             }
         }
     }

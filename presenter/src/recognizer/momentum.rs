@@ -8,20 +8,27 @@
 //! - The duration is needed to account for the tick subscriptions. Previously I wanted to do this separately, but I saw
 //!   no way to get the subscriptions consistent.
 
-use crate::recognizer::{pan, Pan, Subscription, Translate};
+use crate::recognizer::transaction::{AbsolutePos, Transaction};
+use crate::recognizer::Subscription;
 use crate::{velocity, InputProcessor, InputState};
 use emergent_drawing::{scalar, Point, Vector};
 use emergent_ui::{WindowEvent, WindowMessage};
+use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
-impl Pan {
-    pub fn preserve_momentum(
+impl<T> PreserveMomentum for T where T: InputProcessor {}
+
+pub trait PreserveMomentum: Sized {
+    fn preserve_momentum<Data>(
         self,
         velocity_threshold: scalar,
         drift_easing: fn(scalar) -> scalar,
         drift_duration: Duration,
-    ) -> PreserveMomentum<Self> {
-        PreserveMomentum {
+    ) -> Momentum<Self, Data>
+    where
+        Self: InputProcessor<In = WindowMessage, Out = Transaction<Data>>,
+    {
+        Momentum {
             recognizer: self,
             velocity_threshold,
             drift_easing,
@@ -32,10 +39,11 @@ impl Pan {
 }
 
 #[derive(Debug)]
-enum State {
+enum State<Data> {
     Idle,
     Interacting(velocity::Tracker),
     Drifting {
+        data: Data,
         p: Point,
         start_v: Vector,
         start_time: Instant,
@@ -44,19 +52,23 @@ enum State {
 }
 
 #[derive(Debug)]
-pub struct PreserveMomentum<R> {
+pub struct Momentum<R, Data> {
     recognizer: R,
     velocity_threshold: scalar,
     drift_easing: fn(scalar) -> scalar,
     drift_duration: Duration,
-    state: State,
+    state: State<Data>,
 }
 
-#[derive(Clone, Debug)]
-pub enum Event {
-    Begin(Point),
-    Moved(Point, Vector, Phase),
-    End(Point, Vector, Phase),
+impl<Data> AbsolutePos for Transaction<(Data, Phase)>
+where
+    Transaction<Data>: AbsolutePos,
+    Self: Clone,
+    Data: Debug,
+{
+    fn absolute_pos(&self) -> Point {
+        self.clone().map_data(|(d, p)| d).absolute_pos()
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -65,71 +77,36 @@ pub enum Phase {
     Drifting,
 }
 
-impl Event {
-    pub fn phase(&self) -> Phase {
-        match self {
-            Event::Begin(_) => Phase::Interacting,
-            Event::Moved(_, _, ph) | Event::End(_, _, ph) => *ph,
-        }
-    }
-}
-
-impl Translate for Event {
-    fn translate(self, t: Vector) -> Self
-    where
-        Self: Sized,
-    {
-        match self {
-            Event::Begin(_) => {
-                error!("translating a Begin event does not make sense, the location where an interaction started \
-                    can not be changed");
-                self
-            }
-            Event::Moved(p, v, ph) => Event::Moved(p, v + t, ph),
-            Event::End(p, v, ph) => Event::Moved(p, v + t, ph),
-        }
-    }
-}
-
-impl Into<pan::Event> for Event {
-    fn into(self) -> pan::Event {
-        match self {
-            Event::Begin(p) => pan::Event::Begin(p),
-            Event::Moved(p, v, _) => pan::Event::Moved(p, v),
-            Event::End(p, v, _) => pan::Event::End(p, v),
-        }
-    }
-}
-
-impl<R> InputProcessor for PreserveMomentum<R>
+impl<R, Data> InputProcessor for Momentum<R, Data>
 where
-    R: InputProcessor<In = WindowMessage, Out = pan::Event>,
+    R: InputProcessor<In = WindowMessage, Out = Transaction<Data>>,
+    Transaction<Data>: AbsolutePos,
+    Data: Clone,
 {
     type In = WindowMessage;
-    type Out = Event;
+    type Out = Transaction<(Data, Phase)>;
 
     fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
-        info!("momemtum in: {:?}", message);
         let e = self.recognizer.dispatch(input_state, message.clone());
-        info!("momemtum out: {:?}", e);
+        use Transaction::*;
 
-        match self.state {
+        match &mut self.state {
             State::Idle => match e {
-                Some(pan::Event::Begin(p)) => Some(self.begin(message, p)),
+                Some(e @ Begin(_)) => Some(self.begin(message, e.data().clone(), e.absolute_pos())),
                 e => {
                     warn!("unprocessed event: {:?}", e);
                     None
                 }
             },
-            State::Interacting(ref mut tracker) => match e {
-                Some(pan::Event::Moved(p, v)) => {
-                    tracker.measure(message.time, p + v);
-                    Some(Event::Moved(p, v, Phase::Interacting))
+            State::Interacting(tracker) => match e {
+                Some(e @ Update(_, _)) => {
+                    tracker.measure(message.time, e.absolute_pos());
+                    Some(e.map_data(|p| (p, Phase::Interacting)))
                 }
-                Some(pan::Event::End(p, v)) => {
+                Some(e @ Commit(_, _)) => {
                     // even though v is most likely at the previous Event::Moved coordinate, it is important to
                     // once more send this to the tracker, because of the updated timestamp.
-                    let velocity = tracker.measure(message.time, p + v);
+                    let velocity = tracker.measure(message.time, e.absolute_pos());
 
                     if velocity.length() < self.velocity_threshold {
                         info!(
@@ -137,16 +114,18 @@ where
                             velocity, self.velocity_threshold
                         );
                         self.state = State::Idle;
-                        Some(Event::End(p, v, Phase::Interacting))
+                        Some(e.map_data(|p| (p, Phase::Interacting)))
                     } else {
                         input_state.subscribe(Subscription::Ticks);
+                        let p = e.absolute_pos();
                         self.state = State::Drifting {
-                            p,
-                            start_v: v,
+                            data: e.data().clone(),
+                            p: p - e.v(),
+                            start_v: e.v(),
                             start_time: message.time,
                             drift_way_v: velocity * self.drift_duration.as_secs_f64(),
                         };
-                        Some(Event::Moved(p, v, Phase::Interacting))
+                        Some(e.map_data(|p| (p, Phase::Interacting)))
                     }
                 }
                 e => {
@@ -155,27 +134,30 @@ where
                 }
             },
             State::Drifting {
+                data,
                 p,
                 start_v,
                 start_time,
                 drift_way_v: drift_way,
             } => match (e, &message.event) {
-                (Some(pan::Event::Begin(p)), _) => {
+                (Some(e @ Begin(_)), _) => {
+                    let p = e.absolute_pos();
                     input_state.unsubscribe(Subscription::Ticks);
-                    Some(self.begin(message, p))
+                    Some(self.begin(message, e.data().clone(), p))
                 }
                 (None, WindowEvent::Tick(t2)) => {
                     // TODO: handle time drift here?
-                    let dt = *t2 - start_time;
+                    let dt = *t2 - *start_time;
                     if dt < self.drift_duration {
                         let t = dt.as_secs_f64() / self.drift_duration.as_secs_f64();
-                        let v = start_v + drift_way * (self.drift_easing)(t);
-                        Some(Event::Moved(p, v, Phase::Drifting))
+                        let v = *start_v + *drift_way * (self.drift_easing)(t);
+                        Some(Update((data.clone(), Phase::Drifting), v))
                     } else {
                         input_state.unsubscribe(Subscription::Ticks);
+                        let v = *start_v + *drift_way;
+                        let data = data.clone();
                         self.state = State::Idle;
-                        let v = start_v + drift_way;
-                        Some(Event::End(p, v, Phase::Drifting))
+                        Some(Commit((data, Phase::Drifting), v))
                     }
                 }
                 e => {
@@ -187,11 +169,16 @@ where
     }
 }
 
-impl<R> PreserveMomentum<R> {
-    fn begin(&mut self, message: WindowMessage, p: Point) -> Event {
+impl<R, Data> Momentum<R, Data> {
+    fn begin(
+        &mut self,
+        message: WindowMessage,
+        data: Data,
+        p: Point,
+    ) -> Transaction<(Data, Phase)> {
         let mut tracker = velocity::Tracker::new(0.25);
         tracker.measure(message.time, p);
         self.state = State::Interacting(tracker);
-        Event::Begin(p)
+        Transaction::Begin((data, Phase::Interacting))
     }
 }

@@ -1,8 +1,5 @@
-use crate::transaction;
 use crate::InputState;
-use std::any::{type_name, TypeId};
 use std::marker::PhantomData;
-use std::mem;
 
 /// A trait to define input processors.
 ///
@@ -41,19 +38,6 @@ pub trait InputProcessor {
             recognizer: self,
             apply: f,
             pd: PhantomData,
-        }
-    }
-
-    /// Optionally activates a transaction in response to an event.
-    fn activate<S, I, U, Out>(self, initiator: I) -> Activate<Self, S, I, U, Out>
-    where
-        I: Fn(Self::Out, &mut S) -> transaction::InitialResponse<U, Out>,
-        Self: Sized,
-    {
-        Activate {
-            recognizer: self,
-            initiator,
-            transaction: None,
         }
     }
 }
@@ -95,84 +79,5 @@ where
         let e = self.recognizer.dispatch(input_state, message)?;
         let state: &mut S = input_state.get_state()?;
         (self.apply)(e, state)
-    }
-}
-
-pub struct Activate<R, S, I, U, Out>
-where
-    R: InputProcessor,
-    I: Fn(R::Out, &mut S) -> transaction::InitialResponse<U, Out>,
-{
-    recognizer: R,
-    initiator: I,
-    transaction: Option<(S, U)>,
-}
-
-impl<R, In, S, I, U, Out> InputProcessor for Activate<R, S, I, U, Out>
-where
-    R: InputProcessor<In = In>,
-    S: 'static + Clone, // Clone to support rollback
-    I: Fn(R::Out, &mut S) -> transaction::InitialResponse<U, Out>,
-    U: FnMut(R::Out, &mut S) -> transaction::UpdateResponse<Out>,
-{
-    type In = In;
-    type Out = Out;
-
-    fn dispatch(&mut self, input_state: &mut InputState, message: In) -> Option<Self::Out> {
-        use transaction::{InitialAction::*, UpdateAction::*};
-
-        let e = self.recognizer.dispatch(input_state, message);
-
-        if e.is_none() {
-            if self.transaction.is_some() && input_state.get_state::<S>().is_none() {
-                warn!(
-                    "state {} vanished, but may reappear before the transaction continues",
-                    type_name::<S>(),
-                )
-            }
-            return None;
-        }
-        let e = e.unwrap();
-
-        let state = input_state.get_state();
-        if state.is_none() {
-            info!(
-                "state {} {:?} vanished, cleaning up, {} got ignored",
-                type_name::<S>(),
-                TypeId::of::<S>(),
-                type_name::<R::Out>()
-            );
-            self.transaction = None;
-            return None;
-        }
-        let state = state.unwrap();
-
-        match &mut self.transaction {
-            None => {
-                let response = (self.initiator)(e, state);
-                match response.action {
-                    Neglect => {}
-                    Begin(u) => {
-                        self.transaction = Some((state.clone(), u));
-                    }
-                }
-                response.event
-            }
-            Some((rollback_state, u)) => {
-                let response = u(e, state);
-                match response.action {
-                    Sustain => {}
-                    Commit => {
-                        self.transaction = None;
-                    }
-                    Rollback => {
-                        mem::swap(state, rollback_state);
-                        self.transaction = None
-                    }
-                }
-
-                response.event
-            }
-        }
     }
 }

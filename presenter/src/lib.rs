@@ -37,5 +37,3 @@ pub use view::*;
 
 mod support;
 pub use support::*;
-
-pub mod transaction;

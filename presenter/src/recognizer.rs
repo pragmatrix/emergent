@@ -10,6 +10,8 @@ pub mod converge;
 
 pub mod easing;
 
+pub mod transaction;
+
 pub mod momentum;
 
 pub mod mover;
@@ -28,12 +30,6 @@ pub use tap::TapRecognizer;
 // Below follows a rather convoluted way of transporting a input processor including its subscription
 // state through a `Box<Any>`.
 // TODO: find a simpler way.
-
-pub trait Translate {
-    fn translate(self, v: Vector) -> Self
-    where
-        Self: Sized;
-}
 
 pub(crate) trait Recognizer<Out>: InputProcessor<In = WindowMessage, Out = Out> {
     fn subscriptions(&mut self) -> &mut Subscriptions;

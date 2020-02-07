@@ -9,7 +9,9 @@
 //! - Only the drift phase of the processor that preserves momentum is considered.
 //! - We don't need to subscribe to ticks here, because the one that sends the events already does.
 
-use crate::recognizer::momentum;
+use crate::recognizer::momentum::Phase;
+use crate::recognizer::transaction::AbsolutePos;
+use crate::recognizer::transaction::Transaction;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{scalar, Point};
 use emergent_ui::WindowMessage;
@@ -52,23 +54,28 @@ pub trait ConvergeTo {
     }
 }
 
-impl<R> ConvergeTo for momentum::PreserveMomentum<R> {}
+impl<T> ConvergeTo for T where T: InputProcessor<In = WindowMessage> {}
 
-impl<P, TF, S> InputProcessor for Converge<P, TF, S>
+impl<P, Data, TF, S> InputProcessor for Converge<P, TF, S>
 where
-    P: InputProcessor<In = WindowMessage, Out = momentum::Event> + Sized,
+    P: InputProcessor<In = WindowMessage, Out = Transaction<(Data, Phase)>> + Sized,
     TF: Fn(&S) -> Point,
     S: 'static,
+    Transaction<(Data, Phase)>: AbsolutePos,
+    Data: Clone,
 {
     type In = WindowMessage;
-    type Out = momentum::Event;
+    type Out = Transaction<(Data, Phase)>;
 
     fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
         let message_time = message.time;
         let e = self.processor.dispatch(input_state, message)?;
+        use Transaction::*;
+
+        let current_pos = e.absolute_pos();
 
         match e {
-            momentum::Event::Moved(p, v, momentum::Phase::Drifting) => match self.state {
+            Update((ref data, Phase::Drifting), v) => match self.state {
                 State::Idle => {
                     self.state = State::Drifting {
                         start_t: message_time,
@@ -79,21 +86,20 @@ where
                 State::Drifting { start_t, duration } => {
                     let dt = message_time - start_t;
                     let t = dt.as_secs_f64() / duration.as_secs_f64();
-                    // note: target may be moving, so we query it each time.
+                    // note: target may be moving, so we ask for it each time.
                     let state = input_state.get_state::<S>().unwrap();
-                    let current = p + v;
                     let target = (self.get_target)(state);
                     let f = (self.easing)(t);
-                    let pt = current.to_vector() * (1.0 - f) + target.to_vector() * f;
-                    let v = pt - p.to_vector();
-                    momentum::Event::Moved(p, v, momentum::Phase::Drifting)
+                    let pt = current_pos.to_vector() * (1.0 - f) + target.to_vector() * f;
+                    let v = v + (pt - current_pos.to_vector());
+                    Update((data.clone(), Phase::Drifting), v)
                 }
             },
-            momentum::Event::End(p, _, momentum::Phase::Drifting) => {
+            Commit((d, Phase::Drifting), v) => {
                 let state = input_state.get_state::<S>().unwrap();
                 let target = (self.get_target)(state);
-                let v = target - p;
-                momentum::Event::End(p, v, momentum::Phase::Drifting)
+                let v = v + (target - current_pos);
+                Commit((d, Phase::Drifting), v)
             }
             e => {
                 self.state = State::Idle;

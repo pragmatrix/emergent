@@ -79,7 +79,15 @@ impl<Msg> View<Msg> {
         }
     }
 
-    /// Attaches a recognizer to a view.
+    /// Attaches state to a View.
+    /// Contrary to recognizers, this state block is never memoized.
+    ///
+    /// Attaching state can be useful to provide additional information to the the input processors.
+    pub fn attach_state<S: 'static>(&mut self, state: S) {
+        self.states.push((ContextPath::new(), Box::new(state)));
+    }
+
+    /// Attaches a recognizer to a View.
     ///
     /// This function reuses a recognizer with the same type from the current context.
     /// TODO: this function should not leak the type RecognizerwithSubscription<R>

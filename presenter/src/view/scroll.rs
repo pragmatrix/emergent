@@ -1,7 +1,10 @@
+use crate::recognizer::converge::ConvergeTo;
+use crate::recognizer::easing;
+use crate::recognizer::momentum::PreserveMomentum;
 use crate::recognizer::mover::IntoMovement;
-use crate::recognizer::{easing, Animator, Mover, Subscription};
+use crate::recognizer::transaction::AbsolutePos;
 use crate::{recognizer, Context, InputProcessor, View};
-use emergent_drawing::{scalar, DrawingFastBounds, Rect, Transformed, Vector};
+use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;
 use std::time::Duration;
 
@@ -79,14 +82,18 @@ pub fn view<Msg: 'static>(
     );
 
     let mut view = view.in_area();
+    view.attach_state(constrained_content_transform);
     view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
         recognizer::Pan::new()
-            .preserve_momentum(100.0, easing::ease_out_cubic, Duration::from_secs(1))
             .into_movement(|state: &State, _| Some(state.content_transform))
+            .preserve_momentum(100.0, easing::ease_out_cubic, Duration::from_secs(1))
+            .converge_to(
+                |constrained: &Vector| Point::from(*constrained),
+                easing::ease_out_cubic,
+            )
             .apply(|e, s: &mut State| {
-                let (start, v) = e.state();
-                s.content_transform = start + v;
+                s.content_transform = e.absolute_pos().to_vector();
                 s.movement_active = e.is_active();
                 None
             })

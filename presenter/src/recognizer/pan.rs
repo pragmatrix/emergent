@@ -1,3 +1,4 @@
+use crate::recognizer::transaction::Transaction;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{Point, Vector};
 use emergent_ui::{WindowEvent, WindowMessage};
@@ -13,12 +14,7 @@ enum State {
     Moved(Point, Vector),
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum Event {
-    Begin(Point),
-    Moved(Point, Vector),
-    End(Point, Vector),
-}
+pub type Event = Transaction<Point>;
 
 impl Default for Pan {
     fn default() -> Self {
@@ -46,17 +42,17 @@ impl InputProcessor for Pan {
             }
             (State::Pressed(p), WindowEvent::CursorMoved(current)) => (
                 State::Moved(p, current - p),
-                Some(Event::Moved(p, current - p)),
+                Some(Event::Update(p, current - p)),
             ),
             (State::Moved(p, _), WindowEvent::CursorMoved(current)) => (
                 State::Moved(p, current - p),
-                Some(Event::Moved(p, current - p)),
+                Some(Event::Update(p, current - p)),
             ),
             (State::Pressed(p), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::End(p, Vector::default())))
+                (State::Waiting, Some(Event::Commit(p, Vector::default())))
             }
             (State::Moved(p, v), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::End(p, v)))
+                (State::Waiting, Some(Event::Commit(p, v)))
             }
             (state, _) => (state, None),
         };
