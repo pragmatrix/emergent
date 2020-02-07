@@ -16,6 +16,9 @@ struct State {
     movement_active: bool,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct ConstrainedContentTransform(Vector);
+
 // Experiment: create a scroll view around a content view.
 /// TODO: this must be somehow be lazy, and perhaps something that can be bound to the elements that generate the content views?
 pub fn view<Msg: 'static>(
@@ -82,14 +85,14 @@ pub fn view<Msg: 'static>(
     );
 
     let mut view = view.in_area();
-    view.attach_state(constrained_content_transform);
+    view.attach_state(ConstrainedContentTransform(constrained_content_transform));
     view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
         recognizer::Pan::new()
             .into_movement(|state: &State, _| Some(state.content_transform))
             .preserve_momentum(100.0, easing::ease_out_cubic, Duration::from_secs(1))
             .converge_to(
-                |constrained: &Vector| Point::from(*constrained),
+                |constrained: &ConstrainedContentTransform| Point::from(constrained.0),
                 easing::ease_out_cubic,
             )
             .apply(|e, s: &mut State| {
