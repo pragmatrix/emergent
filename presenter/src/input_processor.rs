@@ -1,3 +1,4 @@
+use crate::recognizer::transaction::Transaction;
 use crate::InputState;
 use std::marker::PhantomData;
 
@@ -28,6 +29,22 @@ pub trait InputProcessor {
         }
     }
 
+    /// Provide a map function at beginning of a transaction event.
+    fn map_begin<F, State, FM, DataIn, DataOut>(
+        self,
+        map_begin: F,
+    ) -> MapBegin<Self, F, State, FM, DataIn, DataOut>
+    where
+        Self: Sized,
+    {
+        MapBegin {
+            processor: self,
+            map_begin,
+            transaction: None,
+            pd: PhantomData,
+        }
+    }
+
     /// Apply the resulting event to another function that can modify another view state and return another event.
     fn apply<To, F, S>(self, f: F) -> Apply<Self, F, To, S>
     where
@@ -35,7 +52,7 @@ pub trait InputProcessor {
         Self: Sized,
     {
         Apply {
-            recognizer: self,
+            processor: self,
             apply: f,
             pd: PhantomData,
         }
@@ -62,22 +79,66 @@ where
 }
 
 pub struct Apply<R, F, To, S> {
-    recognizer: R,
+    processor: R,
     apply: F,
     pd: PhantomData<(*const S, *const To)>,
 }
 
-impl<To, R, F, S: 'static> InputProcessor for Apply<R, F, To, S>
+impl<To, P, F, S: 'static> InputProcessor for Apply<P, F, To, S>
 where
-    R: InputProcessor,
-    F: Fn(R::Out, &mut S) -> Option<To>,
+    P: InputProcessor,
+    F: Fn(P::Out, &mut S) -> Option<To>,
 {
-    type In = R::In;
+    type In = P::In;
     type Out = To;
 
     fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
-        let e = self.recognizer.dispatch(input_state, message)?;
+        let e = self.processor.dispatch(input_state, message)?;
         let state: &mut S = input_state.get_state()?;
         (self.apply)(e, state)
+    }
+}
+
+pub struct MapBegin<P, F, State, FM, DataIn, DataOut> {
+    processor: P,
+    map_begin: F,
+    transaction: Option<FM>,
+    pd: PhantomData<(*const FM, *const State, *const DataIn, *const DataOut)>,
+}
+
+impl<P, F, State, FM, DataIn, DataOut> InputProcessor for MapBegin<P, F, State, FM, DataIn, DataOut>
+where
+    P: InputProcessor<Out = Transaction<DataIn>>,
+    F: Fn(&State) -> FM,
+    FM: Fn(DataIn) -> DataOut,
+    State: 'static,
+{
+    type In = P::In;
+    type Out = Transaction<DataOut>;
+
+    fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
+        let e = self.processor.dispatch(input_state, message)?;
+        let state = input_state.get_state::<State>()?;
+        use Transaction::*;
+        match e {
+            Begin(d) => {
+                let t = (self.map_begin)(state);
+                let e = Begin(t(d));
+                self.transaction = Some(t);
+                e
+            }
+            Update(d, v) => Update(self.transaction.as_ref().unwrap()(d), v),
+            Commit(d, v) => {
+                let e = Commit(self.transaction.as_ref().unwrap()(d), v);
+                self.transaction = None;
+                e
+            }
+            Rollback(d) => {
+                let e = Rollback(self.transaction.as_ref().unwrap()(d));
+                self.transaction = None;
+                e
+            }
+        }
+        .into()
     }
 }
