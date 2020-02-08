@@ -9,11 +9,10 @@
 //! - culled, nested presentations.
 //! - LOD sensitive recursive presentation.
 
-use crate::recognizer::RecognizerWithSubscription;
-use crate::{InputProcessor, RecognizerRecord, ScopedStore, Support, View};
+use crate::{ScopedStore, Support, View};
 use emergent_drawing::{Bounds, MeasureText, Point, Rect, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
-use emergent_ui::{FrameLayout, WindowMessage};
+use emergent_ui::FrameLayout;
 use std::any;
 use std::rc::Rc;
 

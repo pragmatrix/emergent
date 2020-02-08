@@ -8,8 +8,8 @@
 //! - The duration is needed to account for the tick subscriptions. Previously I wanted to do this separately, but I saw
 //!   no way to get the subscriptions consistent.
 
-use crate::recognizer::transaction::Transaction;
-use crate::recognizer::Subscription;
+use crate::input_processor::transaction::Transaction;
+use crate::input_processor::Subscription;
 use crate::{velocity, InputProcessor, InputState};
 use emergent_drawing::{scalar, Point, Vector};
 use emergent_ui::{WindowEvent, WindowMessage};

@@ -1,4 +1,5 @@
-use crate::recognizer::{Recognizer, RecognizerWithSubscription, Subscriptions};
+use crate::input_processor::Subscriptions;
+use crate::recognizer::{Recognizer, RecognizerWithSubscription};
 use crate::{recognizer, ContextPath, ContextScope, InputProcessor, InputState, ScopedState};
 use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;

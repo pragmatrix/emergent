@@ -9,8 +9,8 @@
 //! - Only the drift phase of the processor that preserves momentum is considered.
 //! - We don't need to subscribe to ticks here, because the one that sends the events already does.
 
-use crate::recognizer::momentum::Phase;
-use crate::recognizer::transaction::Transaction;
+use crate::input_processor::momentum::Phase;
+use crate::input_processor::transaction::Transaction;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{scalar, Point};
 use std::marker::PhantomData;

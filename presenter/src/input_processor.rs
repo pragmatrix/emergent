@@ -1,6 +1,28 @@
-use crate::recognizer::transaction::Transaction;
 use crate::InputState;
 use std::marker::PhantomData;
+use transaction::Transaction;
+
+pub mod animator;
+pub use animator::Animator;
+
+pub mod converge;
+
+pub mod easing;
+
+pub mod transaction;
+
+pub mod momentum;
+
+pub mod pan;
+pub use pan::Pan;
+
+pub mod resistance;
+
+mod subscriptions;
+pub use subscriptions::*;
+
+pub mod tap;
+pub use tap::TapRecognizer;
 
 /// A trait to define input processors.
 ///

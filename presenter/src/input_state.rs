@@ -1,4 +1,4 @@
-use crate::recognizer;
+use crate::input_processor;
 use crate::ContextPath;
 use std::any;
 use std::any::{Any, TypeId};
@@ -13,7 +13,7 @@ pub struct InputState {
     /// The time the input event was sent.
     time: Instant,
     /// The subscriptions of the recognizer.
-    subscriptions: recognizer::Subscriptions,
+    subscriptions: input_processor::Subscriptions,
     /// The states available to be modified by the input processor.
     /// There should be a very limited amount of states per context path, so a vector is fine for doing
     /// lookups.
@@ -24,7 +24,7 @@ impl InputState {
     pub fn new(
         recognizer_context: ContextPath,
         time: Instant,
-        subscriptions: recognizer::Subscriptions,
+        subscriptions: input_processor::Subscriptions,
         states: impl IntoIterator<Item = Box<dyn Any>>,
     ) -> Self {
         Self {
@@ -43,15 +43,15 @@ impl InputState {
     // subscription
     //
 
-    pub fn subscribe(&mut self, subscription: recognizer::Subscription) -> bool {
+    pub fn subscribe(&mut self, subscription: input_processor::Subscription) -> bool {
         self.subscriptions.subscribe(subscription)
     }
 
-    pub fn unsubscribe(&mut self, subscription: recognizer::Subscription) -> bool {
+    pub fn unsubscribe(&mut self, subscription: input_processor::Subscription) -> bool {
         self.subscriptions.unsubscribe(subscription)
     }
 
-    pub fn contains(&self, subscription: recognizer::Subscription) -> bool {
+    pub fn contains(&self, subscription: input_processor::Subscription) -> bool {
         self.subscriptions.contains(subscription)
     }
 
@@ -94,7 +94,7 @@ impl InputState {
             .map(|s| s.downcast_mut::<S>().unwrap())
     }
 
-    pub fn into_states(self) -> (recognizer::Subscriptions, Vec<Box<dyn Any>>) {
+    pub fn into_states(self) -> (input_processor::Subscriptions, Vec<Box<dyn Any>>) {
         (self.subscriptions, self.states)
     }
 }

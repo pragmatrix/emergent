@@ -1,27 +1,6 @@
+use crate::input_processor::Subscriptions;
 use crate::{InputProcessor, InputState};
 use emergent_ui::WindowMessage;
-
-pub mod animator;
-pub use animator::Animator;
-
-pub mod converge;
-
-pub mod easing;
-
-pub mod transaction;
-
-pub mod momentum;
-
-pub mod pan;
-pub use pan::Pan;
-
-pub mod resistance;
-
-mod subscriptions;
-pub use subscriptions::*;
-
-pub mod tap;
-pub use tap::TapRecognizer;
 
 // Below follows a rather convoluted way of transporting a input processor including its subscription
 // state through a `Box<Any>`.

@@ -1,4 +1,5 @@
-use crate::recognizer::{AutoSubscribe, Recognizer, Subscription};
+use crate::input_processor::{AutoSubscribe, Subscription};
+use crate::recognizer::Recognizer;
 use crate::{
     AreaHitTest, Context, InputProcessor, InputState, RecognizerRecord, ScopedStore, Support, View,
 };

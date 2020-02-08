@@ -4,7 +4,7 @@ use crate::libtest::TestCapture;
 use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
-use emergent_presenter::recognizer::TapRecognizer;
+use emergent_presenter::input_processor::TapRecognizer;
 use emergent_presenter::{
     Context, Direction, IndexMappable, InputProcessor, Item, Reducible, View,
 };

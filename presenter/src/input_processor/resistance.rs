@@ -1,6 +1,6 @@
 //! Apply resistance to a move gesture.
 
-use crate::recognizer::transaction::Transaction;
+use crate::input_processor::transaction::Transaction;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{Point, Vector};
 use std::marker::PhantomData;

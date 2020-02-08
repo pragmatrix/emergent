@@ -1,8 +1,8 @@
-use crate::recognizer::converge::ConvergeTo;
-use crate::recognizer::easing;
-use crate::recognizer::momentum::PreserveMomentum;
-use crate::recognizer::resistance::WithResistance;
-use crate::{recognizer, Context, InputProcessor, View};
+use crate::input_processor::converge::ConvergeTo;
+use crate::input_processor::easing;
+use crate::input_processor::momentum::PreserveMomentum;
+use crate::input_processor::resistance::WithResistance;
+use crate::{input_processor, Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;
 use std::time::Duration;
@@ -84,7 +84,7 @@ pub fn view<Msg: 'static>(
     view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
         let drift_duration = Duration::from_millis(500);
-        recognizer::Pan::new()
+        input_processor::Pan::new()
             .map_begin(|p: Point, state: &State| {
                 let d = state.content_transform - p.to_vector();
                 Some(move |p: Point| p + d)
