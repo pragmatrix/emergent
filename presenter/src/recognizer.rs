@@ -4,8 +4,6 @@ use emergent_ui::WindowMessage;
 pub mod animator;
 pub use animator::Animator;
 
-pub mod bounce_back;
-
 pub mod converge;
 
 pub mod easing;

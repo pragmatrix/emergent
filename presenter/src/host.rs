@@ -122,8 +122,12 @@ impl<Msg> Host<Msg> {
 
                 msg.event.auto_subscribe(recognizer.subscriptions());
 
-                let mut input_state =
-                    InputState::new(c.clone(), recognizer.subscriptions().clone(), states);
+                let mut input_state = InputState::new(
+                    c.clone(),
+                    msg.time,
+                    recognizer.subscriptions().clone(),
+                    states,
+                );
                 let msg = recognizer.dispatch(&mut input_state, msg.clone());
                 let (new_subscriptions, new_context_states) = input_state.into_states();
                 *recognizer.subscriptions() = new_subscriptions;

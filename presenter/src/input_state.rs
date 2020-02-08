@@ -3,12 +3,15 @@ use crate::ContextPath;
 use std::any;
 use std::any::{Any, TypeId};
 use std::ops::Deref;
+use std::time::Instant;
 
 /// The `InputState` maintains all the state that may be accessed and modified while input is being processed by one
 /// single input processor.
 pub struct InputState {
     /// The recognizer's context. This is used for resolving states.
     recognizer_context: ContextPath,
+    /// The time the input event was sent.
+    time: Instant,
     /// The subscriptions of the recognizer.
     subscriptions: recognizer::Subscriptions,
     /// The states available to be modified by the input processor.
@@ -20,18 +23,20 @@ pub struct InputState {
 impl InputState {
     pub fn new(
         recognizer_context: ContextPath,
+        time: Instant,
         subscriptions: recognizer::Subscriptions,
         states: impl IntoIterator<Item = Box<dyn Any>>,
     ) -> Self {
         Self {
             recognizer_context,
+            time,
             subscriptions,
             states: states.into_iter().collect(),
         }
     }
 
-    pub fn into_states(self) -> (recognizer::Subscriptions, Vec<Box<dyn Any>>) {
-        (self.subscriptions, self.states)
+    pub fn time(&self) -> Instant {
+        self.time
     }
 
     //
@@ -87,5 +92,9 @@ impl InputState {
             .iter_mut()
             .find(|s| s.deref().deref().type_id() == type_id)
             .map(|s| s.downcast_mut::<S>().unwrap())
+    }
+
+    pub fn into_states(self) -> (recognizer::Subscriptions, Vec<Box<dyn Any>>) {
+        (self.subscriptions, self.states)
     }
 }

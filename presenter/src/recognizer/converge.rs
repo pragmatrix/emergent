@@ -13,7 +13,6 @@ use crate::recognizer::momentum::Phase;
 use crate::recognizer::transaction::Transaction;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{scalar, Point};
-use emergent_ui::WindowMessage;
 use std::marker::PhantomData;
 use std::time::{Duration, Instant};
 
@@ -53,19 +52,18 @@ pub trait ConvergeTo {
     }
 }
 
-impl<T> ConvergeTo for T where T: InputProcessor<In = WindowMessage> {}
+impl<T> ConvergeTo for T where T: InputProcessor {}
 
 impl<P, TF, S> InputProcessor for Converge<P, TF, S>
 where
-    P: InputProcessor<In = WindowMessage, Out = Transaction<(Point, Phase)>> + Sized,
+    P: InputProcessor<Out = Transaction<(Point, Phase)>> + Sized,
     TF: Fn(&S) -> Point,
     S: 'static,
 {
-    type In = WindowMessage;
+    type In = P::In;
     type Out = Transaction<(Point, Phase)>;
 
     fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
-        let message_time = message.time;
         let e = self.processor.dispatch(input_state, message)?;
         use Transaction::*;
 
@@ -73,12 +71,12 @@ where
             Update((ref current_pos, Phase::Drifting)) => match self.state {
                 State::Idle => {
                     self.state = State::Drifting {
-                        start_t: message_time,
+                        start_t: input_state.time(),
                     };
                     e
                 }
                 State::Drifting { start_t } => {
-                    let dt = message_time - start_t;
+                    let dt = input_state.time() - start_t;
                     let t = dt.as_secs_f64() / self.duration.as_secs_f64();
                     // note: target may be moving, so we ask for it each time.
                     let state = input_state.get_state::<S>().unwrap();
