@@ -81,7 +81,7 @@ pub fn view<Msg: 'static>(
 
     let mut view = view.in_area();
     view.attach_state(ConstrainedContentTransform(constrained_content_transform));
-    view.attach_recognizer(&mut context, || {
+    view.attach_input_processor(&mut context, || {
         info!("creating new recognizer");
         let drift_duration = Duration::from_millis(500);
         input_processor::Pan::new()
@@ -109,7 +109,7 @@ pub fn view<Msg: 'static>(
             })
     });
 
-    // the bounce-back logic, which is absolutely inelegant, but I found no better solution yet.
+    // the bounce-back logic, which is inelegant, but I found no better solution yet.
     // There are two situations that need to trigger it:
     // - When a move ended without a drifting phase (without activating momentum preserving mode).
     // - When the content was changed _and_ the previously installed input processor is not active.
@@ -118,7 +118,7 @@ pub fn view<Msg: 'static>(
     let state: &State = view.get_state().unwrap();
     if !state.movement_active && state.content_transform != constrained_content_transform {
         let initial = state.content_transform;
-        view.attach_recognizer(&mut context, || {
+        view.attach_input_processor(&mut context, || {
             Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply(
                 move |e: animator::Event, s: &mut State| {
                     s.content_transform = e.interpolate(&initial, &constrained_content_transform);

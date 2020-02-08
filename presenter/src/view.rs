@@ -91,7 +91,7 @@ impl<Msg> View<Msg> {
     ///
     /// This function reuses a recognizer with the same type from the current context.
     /// TODO: this function should not leak the type RecognizerwithSubscription<R>
-    pub fn attach_recognizer<R>(
+    pub fn attach_input_processor<R>(
         &mut self,
         context: &mut Context,
         construct: impl FnOnce() -> R,
@@ -105,14 +105,14 @@ impl<Msg> View<Msg> {
         // need to store a function alongside the recognizer that converts it from an `Any` to its
         // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
         let record = ProcessorRecord::new(r);
-        self.record_recognizer(record)
+        self.record_processor(record)
             .recognizer
             .deref_mut()
             .downcast_mut::<ProcessorWithSubscription<R>>()
             .unwrap()
     }
 
-    pub(crate) fn record_recognizer<'a>(
+    pub(crate) fn record_processor<'a>(
         &mut self,
         recognizer: ProcessorRecord<Msg>,
     ) -> &mut ProcessorRecord<Msg> {
