@@ -1,7 +1,7 @@
 use crate::input_processor::converge::ConvergeTo;
-use crate::input_processor::easing;
 use crate::input_processor::momentum::PreserveMomentum;
 use crate::input_processor::resistance::WithResistance;
+use crate::input_processor::{animator, easing, Animator, Subscription};
 use crate::{input_processor, Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;
@@ -109,27 +109,28 @@ pub fn view<Msg: 'static>(
             })
     });
 
-    /*
+    // the bounce-back logic, which is absolutely inelegant, but I found no better solution yet.
+    // There are two situations that need to trigger it:
+    // - When a move ended without a drifting phase (without activating momentum preserving mode).
+    // - When the content was changed _and_ the previously installed input processor is not active.
+
     // TODO: support Deref to be able to access `is_active()` on `mover`?
     let state: &State = view.get_state().unwrap();
     if !state.movement_active && state.content_transform != constrained_content_transform {
         let initial = state.content_transform;
-        if state.content_transform != constrained_content_transform {
-            view.attach_recognizer(&mut context, || {
-                Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply(
-                    move |e: animator::Event, s: &mut State| {
-                        s.content_transform =
-                            e.interpolate(&initial, &constrained_content_transform);
-                        None
-                    },
-                )
-            })
-            // TODO: subscribe should be able to be applied directly on the return recognizer.
-            // TODO: subscription of ticks should be implicitly done by the recognizer.
-            .subscriptions
-            .subscribe(Subscription::Ticks);
-        }
-    }*/
+        view.attach_recognizer(&mut context, || {
+            Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply(
+                move |e: animator::Event, s: &mut State| {
+                    s.content_transform = e.interpolate(&initial, &constrained_content_transform);
+                    None
+                },
+            )
+        })
+        // TODO: subscribe should be able to be applied directly on the return recognizer.
+        // TODO: subscription of ticks should be implicitly done by the recognizer.
+        .subscriptions
+        .subscribe(Subscription::Ticks);
+    }
 
     view
 }
