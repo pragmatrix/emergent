@@ -17,8 +17,7 @@ impl TestCapture {
                 let mut view = Self::view_header(&name).in_area();
 
                 view.attach_input_processor(&mut c, || {
-                    Tap::new()
-                        .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
+                    Tap::new().map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
                 });
                 view
             });
