@@ -56,13 +56,9 @@ pub fn view<Msg: 'static>(
                 let constrained_content_transform = state.content_transform
                     + (constrained_bounds.center() - preferred_bounds.center());
 
-                let resistance = (preferred_bounds.center().to_vector()
-                    - constrained_bounds.center().to_vector())
-                    / 2.0;
-
                 (
                     constrained_content_transform,
-                    alignment_transform + state.content_transform, /* - resistance*/
+                    alignment_transform + state.content_transform,
                 )
             }
             None => Default::default(),
