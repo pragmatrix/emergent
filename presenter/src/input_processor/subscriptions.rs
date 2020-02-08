@@ -27,7 +27,7 @@ impl Subscriptions {
                     *cnt += 1;
                 }
             }
-            Vacant(_) => error!("inconsistent subscription count for {:?}", subscription),
+            Vacant(_) => error!("unaccountable unsubscribe for {:?}", subscription),
         }
     }
 
