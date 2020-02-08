@@ -14,9 +14,6 @@ pub mod transaction;
 
 pub mod momentum;
 
-pub mod mover;
-pub use mover::Mover;
-
 pub mod pan;
 pub use pan::Pan;
 

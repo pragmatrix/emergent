@@ -1,6 +1,6 @@
 use crate::recognizer::transaction::Transaction;
 use crate::{InputProcessor, InputState};
-use emergent_drawing::{Point, Vector};
+use emergent_drawing::Point;
 use emergent_ui::{WindowEvent, WindowMessage};
 
 pub struct Pan {
@@ -10,8 +10,8 @@ pub struct Pan {
 #[derive(Clone, PartialEq, Debug)]
 enum State {
     Waiting,
-    Pressed(Point),
-    Moved(Point, Vector),
+    Pressed,
+    Moved,
 }
 
 pub type Event = Transaction<Point>;
@@ -35,24 +35,22 @@ impl InputProcessor for Pan {
     type Out = Event;
 
     fn dispatch(&mut self, _: &mut InputState, msg: WindowMessage) -> Option<Self::Out> {
+        let position = msg.state.cursor_position().unwrap();
         let (state, event) = match (self.state.clone(), msg.event) {
             (State::Waiting, event) if event.left_button_pressed() => {
-                let position = msg.state.cursor_position().unwrap();
-                (State::Pressed(position), Some(Event::Begin(position)))
+                (State::Pressed, Some(Event::Begin(position)))
             }
-            (State::Pressed(p), WindowEvent::CursorMoved(current)) => (
-                State::Moved(p, current - p),
-                Some(Event::Update(p, current - p)),
-            ),
-            (State::Moved(p, _), WindowEvent::CursorMoved(current)) => (
-                State::Moved(p, current - p),
-                Some(Event::Update(p, current - p)),
-            ),
-            (State::Pressed(p), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::Commit(p, Vector::ZERO)))
+            (State::Pressed, WindowEvent::CursorMoved(current)) => {
+                (State::Moved, Some(Event::Update(current)))
             }
-            (State::Moved(p, v), event) if event.left_button_released() => {
-                (State::Waiting, Some(Event::Commit(p, v)))
+            (State::Moved, WindowEvent::CursorMoved(current)) => {
+                (State::Moved, Some(Event::Update(current)))
+            }
+            (State::Pressed, event) if event.left_button_released() => {
+                (State::Waiting, Some(Event::Commit(position)))
+            }
+            (State::Moved, event) if event.left_button_released() => {
+                (State::Waiting, Some(Event::Commit(position)))
             }
             (state, _) => (state, None),
         };

@@ -1,8 +1,6 @@
 use crate::recognizer::converge::ConvergeTo;
 use crate::recognizer::easing;
 use crate::recognizer::momentum::PreserveMomentum;
-use crate::recognizer::mover::IntoMovement;
-use crate::recognizer::transaction::AbsolutePos;
 use crate::{recognizer, Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;
@@ -88,15 +86,22 @@ pub fn view<Msg: 'static>(
     view.attach_state(ConstrainedContentTransform(constrained_content_transform));
     view.attach_recognizer(&mut context, || {
         info!("creating new recognizer");
+        let drift_duration = Duration::from_millis(500);
         recognizer::Pan::new()
-            .into_movement(|state: &State, _| Some(state.content_transform))
-            .preserve_momentum(100.0, easing::ease_out_cubic, Duration::from_secs(1))
+            // .into_movement(|state: &State, _| Some(Point::from(state.content_transform)))
+            .map_begin(|p: Point, state: &State| {
+                let d = state.content_transform - p.to_vector();
+                Some(move |p: Point| p + d)
+            })
+            .preserve_momentum(100.0, easing::ease_out_cubic, drift_duration)
             .converge_to(
                 |constrained: &ConstrainedContentTransform| Point::from(constrained.0),
+                drift_duration,
                 easing::ease_out_cubic,
             )
             .apply(|e, s: &mut State| {
-                s.content_transform = e.absolute_pos().to_vector();
+                let (p, _) = e.data();
+                s.content_transform = p.to_vector();
                 s.movement_active = e.is_active();
                 None
             })

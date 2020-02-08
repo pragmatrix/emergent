@@ -35,12 +35,16 @@ pub trait InputProcessor {
         map_begin: F,
     ) -> MapBegin<Self, F, State, FM, DataIn, DataOut>
     where
-        Self: Sized,
+        Self: InputProcessor<Out = Transaction<DataIn>> + Sized,
+        F: Fn(DataIn, &State) -> Option<FM>,
+        FM: Fn(DataIn) -> DataOut,
+        State: 'static,
+        DataIn: Clone,
     {
         MapBegin {
             processor: self,
             map_begin,
-            transaction: None,
+            map_transaction: None,
             pd: PhantomData,
         }
     }
@@ -102,16 +106,17 @@ where
 pub struct MapBegin<P, F, State, FM, DataIn, DataOut> {
     processor: P,
     map_begin: F,
-    transaction: Option<FM>,
+    map_transaction: Option<FM>,
     pd: PhantomData<(*const FM, *const State, *const DataIn, *const DataOut)>,
 }
 
 impl<P, F, State, FM, DataIn, DataOut> InputProcessor for MapBegin<P, F, State, FM, DataIn, DataOut>
 where
     P: InputProcessor<Out = Transaction<DataIn>>,
-    F: Fn(&State) -> FM,
+    F: Fn(DataIn, &State) -> Option<FM>,
     FM: Fn(DataIn) -> DataOut,
     State: 'static,
+    DataIn: Clone,
 {
     type In = P::In;
     type Out = Transaction<DataOut>;
@@ -122,20 +127,20 @@ where
         use Transaction::*;
         match e {
             Begin(d) => {
-                let t = (self.map_begin)(state);
+                let t = (self.map_begin)(d.clone(), state)?;
                 let e = Begin(t(d));
-                self.transaction = Some(t);
+                self.map_transaction = Some(t);
                 e
             }
-            Update(d, v) => Update(self.transaction.as_ref().unwrap()(d), v),
-            Commit(d, v) => {
-                let e = Commit(self.transaction.as_ref().unwrap()(d), v);
-                self.transaction = None;
+            Update(d) => Update(self.map_transaction.as_ref()?(d)),
+            Commit(d) => {
+                let e = Commit(self.map_transaction.as_ref()?(d));
+                self.map_transaction = None;
                 e
             }
             Rollback(d) => {
-                let e = Rollback(self.transaction.as_ref().unwrap()(d));
-                self.transaction = None;
+                let e = Rollback(self.map_transaction.as_ref()?(d));
+                self.map_transaction = None;
                 e
             }
         }

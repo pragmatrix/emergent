@@ -8,7 +8,7 @@
 //! - The duration is needed to account for the tick subscriptions. Previously I wanted to do this separately, but I saw
 //!   no way to get the subscriptions consistent.
 
-use crate::recognizer::transaction::{AbsolutePos, Transaction};
+use crate::recognizer::transaction::Transaction;
 use crate::recognizer::Subscription;
 use crate::{velocity, InputProcessor, InputState};
 use emergent_drawing::{scalar, Point, Vector};
@@ -19,17 +19,17 @@ use std::time::{Duration, Instant};
 impl<T> PreserveMomentum for T where T: InputProcessor {}
 
 pub trait PreserveMomentum: Sized {
-    fn preserve_momentum<Data>(
+    fn preserve_momentum(
         self,
         velocity_threshold: scalar,
         drift_easing: fn(scalar) -> scalar,
         drift_duration: Duration,
-    ) -> Momentum<Self, Data>
+    ) -> Momentum<Self>
     where
-        Self: InputProcessor<In = WindowMessage, Out = Transaction<Data>>,
+        Self: InputProcessor<In = WindowMessage, Out = Transaction<Point>>,
     {
         Momentum {
-            recognizer: self,
+            processor: self,
             velocity_threshold,
             drift_easing,
             drift_duration,
@@ -39,36 +39,23 @@ pub trait PreserveMomentum: Sized {
 }
 
 #[derive(Debug)]
-enum State<Data> {
+enum State {
     Idle,
     Interacting(velocity::Tracker),
     Drifting {
-        data: Data,
-        p: Point,
-        start_v: Vector,
+        start_p: Point,
         start_time: Instant,
         drift_way_v: Vector,
     },
 }
 
 #[derive(Debug)]
-pub struct Momentum<R, Data> {
-    recognizer: R,
+pub struct Momentum<P> {
+    processor: P,
     velocity_threshold: scalar,
     drift_easing: fn(scalar) -> scalar,
     drift_duration: Duration,
-    state: State<Data>,
-}
-
-impl<Data> AbsolutePos for Transaction<(Data, Phase)>
-where
-    Transaction<Data>: AbsolutePos,
-    Self: Clone,
-    Data: Debug,
-{
-    fn absolute_pos(&self) -> Point {
-        self.clone().map_data(|(d, p)| d).absolute_pos()
-    }
+    state: State,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -77,36 +64,34 @@ pub enum Phase {
     Drifting,
 }
 
-impl<R, Data> InputProcessor for Momentum<R, Data>
+impl<P> InputProcessor for Momentum<P>
 where
-    R: InputProcessor<In = WindowMessage, Out = Transaction<Data>>,
-    Transaction<Data>: AbsolutePos,
-    Data: Clone,
+    P: InputProcessor<In = WindowMessage, Out = Transaction<Point>>,
 {
     type In = WindowMessage;
-    type Out = Transaction<(Data, Phase)>;
+    type Out = Transaction<(Point, Phase)>;
 
     fn dispatch(&mut self, input_state: &mut InputState, message: Self::In) -> Option<Self::Out> {
-        let e = self.recognizer.dispatch(input_state, message.clone());
+        let e = self.processor.dispatch(input_state, message.clone());
         use Transaction::*;
 
         match &mut self.state {
             State::Idle => match e {
-                Some(e @ Begin(_)) => Some(self.begin(message, e.data().clone(), e.absolute_pos())),
+                Some(Begin(p)) => Some(self.begin(message, p)),
                 e => {
                     warn!("unprocessed event: {:?}", e);
                     None
                 }
             },
             State::Interacting(tracker) => match e {
-                Some(e @ Update(_, _)) => {
-                    tracker.measure(message.time, e.absolute_pos());
-                    Some(e.map_data(|p| (p, Phase::Interacting)))
+                Some(Update(p)) => {
+                    tracker.measure(message.time, p);
+                    Some(Update((p, Phase::Interacting)))
                 }
-                Some(e @ Commit(_, _)) => {
+                Some(Commit(p)) => {
                     // even though v is most likely at the previous Event::Moved coordinate, it is important to
                     // once more send this to the tracker, because of the updated timestamp.
-                    let velocity = tracker.measure(message.time, e.absolute_pos());
+                    let velocity = tracker.measure(message.time, p);
 
                     if velocity.length() < self.velocity_threshold {
                         info!(
@@ -114,18 +99,15 @@ where
                             velocity, self.velocity_threshold
                         );
                         self.state = State::Idle;
-                        Some(e.map_data(|p| (p, Phase::Interacting)))
+                        Some(Commit((p, Phase::Interacting)))
                     } else {
                         input_state.subscribe(Subscription::Ticks);
-                        let p = e.absolute_pos();
                         self.state = State::Drifting {
-                            data: e.data().clone(),
-                            p: p - e.v(),
-                            start_v: e.v(),
+                            start_p: p,
                             start_time: message.time,
                             drift_way_v: velocity * self.drift_duration.as_secs_f64(),
                         };
-                        Some(e.map_data(|p| (p, Phase::Interacting)))
+                        Some(Update((p, Phase::Interacting)))
                     }
                 }
                 e => {
@@ -134,30 +116,26 @@ where
                 }
             },
             State::Drifting {
-                data,
-                p,
-                start_v,
+                start_p,
                 start_time,
                 drift_way_v: drift_way,
             } => match (e, &message.event) {
-                (Some(e @ Begin(_)), _) => {
-                    let p = e.absolute_pos();
+                (Some(Begin(p)), _) => {
                     input_state.unsubscribe(Subscription::Ticks);
-                    Some(self.begin(message, e.data().clone(), p))
+                    Some(self.begin(message, p))
                 }
                 (None, WindowEvent::Tick(t2)) => {
                     // TODO: handle time drift here?
                     let dt = *t2 - *start_time;
                     if dt < self.drift_duration {
                         let t = dt.as_secs_f64() / self.drift_duration.as_secs_f64();
-                        let v = *start_v + *drift_way * (self.drift_easing)(t);
-                        Some(Update((data.clone(), Phase::Drifting), v))
+                        let p = *start_p + *drift_way * (self.drift_easing)(t);
+                        Some(Update((p, Phase::Drifting)))
                     } else {
                         input_state.unsubscribe(Subscription::Ticks);
-                        let v = *start_v + *drift_way;
-                        let data = data.clone();
+                        let p = *start_p + *drift_way;
                         self.state = State::Idle;
-                        Some(Commit((data, Phase::Drifting), v))
+                        Some(Commit((p, Phase::Drifting)))
                     }
                 }
                 e => {
@@ -169,16 +147,11 @@ where
     }
 }
 
-impl<R, Data> Momentum<R, Data> {
-    fn begin(
-        &mut self,
-        message: WindowMessage,
-        data: Data,
-        p: Point,
-    ) -> Transaction<(Data, Phase)> {
+impl<R> Momentum<R> {
+    fn begin(&mut self, message: WindowMessage, p: Point) -> Transaction<(Point, Phase)> {
         let mut tracker = velocity::Tracker::new(0.25);
         tracker.measure(message.time, p);
         self.state = State::Interacting(tracker);
-        Transaction::Begin((data, Phase::Interacting))
+        Transaction::Begin((p, Phase::Interacting))
     }
 }
