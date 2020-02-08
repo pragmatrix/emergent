@@ -82,7 +82,7 @@ pub fn view<Msg: 'static>(
     let mut view = view.in_area();
     view.attach_state(ConstrainedContentTransform(constrained_content_transform));
     view.attach_input_processor(&mut context, || {
-        info!("creating new recognizer");
+        info!("creating new processor");
         let drift_duration = Duration::from_millis(500);
         input_processor::Pan::new()
             .map_begin(|p: Point, state: &State| {
@@ -126,8 +126,8 @@ pub fn view<Msg: 'static>(
                 },
             )
         })
-        // TODO: subscribe should be able to be applied directly on the return recognizer.
-        // TODO: subscription of ticks should be implicitly done by the recognizer.
+        // TODO: subscribe should be able to be applied directly on the returned processor.
+        // TODO: subscription of ticks should be implicitly done by the processor.
         .subscriptions
         .subscribe(Subscription::Ticks);
     }

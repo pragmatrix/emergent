@@ -1,8 +1,8 @@
-//! A recognizer that converges a move / pan gesture to specific position.
+//! An input processor that converges a move / pan gesture to specific position.
 //!
 //! The convergence is defined by an easing function.
 //!
-//! This recognizer is meant to be combined with a recognizer that preserves momentum, so that the drift
+//! This processor is meant to be combined with a processor that preserves momentum, so that the drift
 //! converges to a constrained ending position.
 //!
 //! Notes:

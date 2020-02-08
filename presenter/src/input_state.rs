@@ -8,11 +8,11 @@ use std::time::Instant;
 /// The `InputState` maintains all the state that may be accessed and modified while input is being processed by one
 /// single input processor.
 pub struct InputState {
-    /// The recognizer's context. This is used for resolving states.
-    recognizer_context: ContextPath,
+    /// The processor's context. This is used for resolving states.
+    processor_context: ContextPath,
     /// The time the input event was sent.
     time: Instant,
-    /// The subscriptions of the recognizer.
+    /// The subscriptions of the processor.
     subscriptions: input_processor::Subscriptions,
     /// The states available to be modified by the input processor.
     /// There should be a very limited amount of states per context path, so a vector is fine for doing
@@ -22,13 +22,13 @@ pub struct InputState {
 
 impl InputState {
     pub fn new(
-        recognizer_context: ContextPath,
+        processor_context: ContextPath,
         time: Instant,
         subscriptions: input_processor::Subscriptions,
         states: impl IntoIterator<Item = Box<dyn Any>>,
     ) -> Self {
         Self {
-            recognizer_context,
+            processor_context,
             time,
             subscriptions,
             states: states.into_iter().collect(),
@@ -79,7 +79,7 @@ impl InputState {
         panic!(
             "found no state {} in {:?}",
             any::type_name::<S>(),
-            self.recognizer_context
+            self.processor_context
         )
     }
 

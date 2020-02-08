@@ -16,8 +16,8 @@ pub struct Host<Msg> {
 
     presentation: Presentation,
 
-    /// The recognizers that are active.
-    recognizers: Vec<ProcessorRecord<Msg>>,
+    /// The input processors that are active.
+    processors: Vec<ProcessorRecord<Msg>>,
 
     /// The store of all captured states of the context scopes.
     store: ScopedStore,
@@ -28,7 +28,7 @@ impl<Msg> Host<Msg> {
         Host {
             support: Rc::new(support),
             presentation: Default::default(),
-            recognizers: Default::default(),
+            processors: Default::default(),
             store: ScopedStore::default(),
         }
     }
@@ -39,17 +39,17 @@ impl<Msg> Host<Msg> {
     {
         // get all the states from the previous run.
         let store = mem::replace(&mut self.store, ScopedStore::default());
-        // move all recognizers into the store so that they can get recycled, too.
-        let recognizer_store =
-            ScopedStore::from_values(self.recognizers.drain(..).map(|r| r.into_scoped_state()));
-        info!("recognizers at []: {:?}", recognizer_store.states);
-        let store = store.merged(recognizer_store);
+        // move all processors into the store so that they can get recycled, too.
+        let processor_store =
+            ScopedStore::from_values(self.processors.drain(..).map(|r| r.into_scoped_state()));
+        info!("processors at []: {:?}", processor_store.states);
+        let store = store.merged(processor_store);
 
         let context = Context::new(self.support.clone(), boundary, store);
-        let (presentation, recognizers, states) = present(context).destructure();
+        let (presentation, processors, states) = present(context).destructure();
 
         self.presentation = presentation;
-        self.recognizers = recognizers;
+        self.processors = processors;
         self.store = ScopedStore::from_values(states);
     }
 
@@ -63,7 +63,7 @@ impl<Msg> Host<Msg> {
 
     // TODO: don't need mut self here.
     pub fn needs_ticks(&mut self) -> bool {
-        self.recognizers
+        self.processors
             .iter_mut()
             .any(|r| r.subscriptions().contains(Subscription::Ticks))
     }
@@ -91,7 +91,7 @@ impl<Msg> Host<Msg> {
         // TODO: what to do about the relative hit positions?
 
         let store = &mut self.store;
-        self.recognizers
+        self.processors
             .iter_mut()
             // filter_map because we need mutable access.
             .filter_map(|r| {
@@ -103,10 +103,10 @@ impl<Msg> Host<Msg> {
                     None
                 }
             })
-            .map(|recognizer| {
-                let c = recognizer.context_path().clone();
+            .map(|processor| {
+                let c = processor.context_path().clone();
 
-                debug!("recognizer for hit at context: {:?}", c);
+                debug!("processor for hit at context: {:?}", c);
                 let states = store.remove_states_at(&c);
                 debug!(
                     "states at {:?}: {} {:?}",
@@ -118,20 +118,20 @@ impl<Msg> Host<Msg> {
                         .collect::<Vec<TypeId>>()
                 );
 
-                // process automatic subscriptions _before_ dispatching the message into the recognizer, so that it
+                // process automatic subscriptions _before_ dispatching the message into the processor, so that it
                 // can veto.
 
-                msg.event.auto_subscribe(recognizer.subscriptions());
+                msg.event.auto_subscribe(processor.subscriptions());
 
                 let mut input_state = InputState::new(
                     c.clone(),
                     msg.time,
-                    recognizer.subscriptions().clone(),
+                    processor.subscriptions().clone(),
                     states,
                 );
-                let msg = recognizer.dispatch(&mut input_state, msg.clone());
+                let msg = processor.dispatch(&mut input_state, msg.clone());
                 let (new_subscriptions, new_context_states) = input_state.into_states();
-                *recognizer.subscriptions() = new_subscriptions;
+                *processor.subscriptions() = new_subscriptions;
                 store.extend_states_at(&c, new_context_states);
 
                 msg

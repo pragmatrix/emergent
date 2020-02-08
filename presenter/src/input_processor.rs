@@ -22,7 +22,7 @@ mod subscriptions;
 pub use subscriptions::*;
 
 pub mod tap;
-pub use tap::TapRecognizer;
+pub use tap::Tap;
 
 /// A trait to define input processors.
 ///

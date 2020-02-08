@@ -2,7 +2,7 @@
 //!
 //! These are:
 //! - Scoping nested views.
-//! - Recognizer registration.
+//! - Input processor registration.
 //! - Function local view state.
 //! And planned are:
 //! - Simple per-frame key / value caching

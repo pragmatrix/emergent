@@ -5,34 +5,34 @@ use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 
-type RecognizerResolver<Out> = Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn processor::Processor<Out>>;
+type ProcessorResolver<Out> = Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn processor::Processor<Out>>;
 
 pub(crate) struct ProcessorRecord<Event> {
     // used to map areas to the processor.
     presentation_path: PresentationPath,
-    // used to know where the recognizer was created,
+    // used to know where the processor was created,
     context_path: ContextPath,
-    // The recognizer needs to be stored as Any, because we want to recycle it later. If
+    // The processor needs to be stored as Any, because we want to recycle it later. If
     // we would store it as a InputProcessor trait, we could never resolve the
     // original type and can't use it as a state record.
-    pub(crate) recognizer: Box<dyn Any>,
+    pub(crate) processor: Box<dyn Any>,
     // A function that converts the Box<Any> to a InputProcessor reference.
-    resolver: RecognizerResolver<Event>,
+    resolver: ProcessorResolver<Event>,
 }
 
 impl<Event> ProcessorRecord<Event> {
-    pub(crate) fn new<R>(recognizer: ProcessorWithSubscription<R>) -> Self
+    pub(crate) fn new<R>(processor: ProcessorWithSubscription<R>) -> Self
     where
         R: InputProcessor<In = WindowMessage, Out = Event> + 'static,
     {
-        let resolver: RecognizerResolver<Event> = Box::new(|r: &mut Box<dyn Any>| {
+        let resolver: ProcessorResolver<Event> = Box::new(|r: &mut Box<dyn Any>| {
             r.downcast_mut::<ProcessorWithSubscription<R>>().unwrap()
         });
 
         Self {
             presentation_path: Default::default(),
             context_path: Default::default(),
-            recognizer: Box::new(recognizer),
+            processor: Box::new(processor),
             resolver,
         }
     }
@@ -62,7 +62,7 @@ impl<Event> ProcessorRecord<Event> {
     }
 
     pub fn into_scoped_state(self) -> ScopedState {
-        (self.context_path, self.recognizer)
+        (self.context_path, self.processor)
     }
 }
 
@@ -70,20 +70,20 @@ impl<Event> InputProcessor for ProcessorRecord<Event> {
     type In = WindowMessage;
     type Out = Event;
     fn dispatch(&mut self, context: &mut InputState, message: WindowMessage) -> Option<Event> {
-        let recognizer = &mut self.recognizer;
+        let processor = &mut self.processor;
         let resolver = &self.resolver;
 
-        let recognizer = resolver(recognizer);
-        recognizer.dispatch(context, message)
+        let processor = resolver(processor);
+        processor.dispatch(context, message)
     }
 }
 
 impl<Event> Processor<Event> for ProcessorRecord<Event> {
     fn subscriptions(&mut self) -> &mut Subscriptions {
-        let recognizer = &mut self.recognizer;
+        let processor = &mut self.processor;
         let resolver = &self.resolver;
 
-        let recognizer = resolver(recognizer);
-        recognizer.subscriptions()
+        let processor = resolver(processor);
+        processor.subscriptions()
     }
 }

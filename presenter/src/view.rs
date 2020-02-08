@@ -25,8 +25,8 @@ pub struct View<Msg> {
     /// computing bounds are not available, so we compute this lazily.
     bounds: RefCell<Option<DrawingBounds>>,
 
-    /// The recognizers that are active.
-    recognizers: Vec<ProcessorRecord<Msg>>,
+    /// The processors that are active.
+    processors: Vec<ProcessorRecord<Msg>>,
 
     /// The captured states of all the context scopes.
     /// TODO: may put them into ScopedStates?
@@ -44,7 +44,7 @@ impl<Msg> View<Msg> {
         Self {
             presentation: Default::default(),
             bounds: None.into(),
-            recognizers: Default::default(),
+            processors: Default::default(),
             states: Default::default(),
         }
     }
@@ -55,7 +55,7 @@ impl<Msg> View<Msg> {
 
     pub fn combined(mut self, right: View<Msg>) -> View<Msg> {
         self.presentation.push_on_top(right.presentation);
-        self.recognizers.extend(right.recognizers);
+        self.processors.extend(right.processors);
         self.states.extend(right.states);
 
         Self {
@@ -66,7 +66,7 @@ impl<Msg> View<Msg> {
             // - re-use combined bounds if each of the subview already has computed one.
             // - embed bounds in Presentations.
             bounds: None.into(),
-            recognizers: self.recognizers,
+            processors: self.processors,
             states: self.states,
         }
     }
@@ -80,17 +80,17 @@ impl<Msg> View<Msg> {
     }
 
     /// Attaches state to a View.
-    /// Contrary to recognizers, this state block is never memoized.
+    /// Contrary to processors, this state block is never memoized.
     ///
     /// Attaching state can be useful to provide additional information to the the input processors.
     pub fn attach_state<S: 'static>(&mut self, state: S) {
         self.states.push((ContextPath::new(), Box::new(state)));
     }
 
-    /// Attaches a recognizer to a View.
+    /// Attaches a processor to a View.
     ///
-    /// This function reuses a recognizer with the same type from the current context.
-    /// TODO: this function should not leak the type RecognizerwithSubscription<R>
+    /// This function reuses a processor with the same type from the current context.
+    /// TODO: this function should not leak the type `ProcessorWithSubscription<R>`
     pub fn attach_input_processor<R>(
         &mut self,
         context: &mut Context,
@@ -102,11 +102,11 @@ impl<Msg> View<Msg> {
         let r = context.recycle_state::<ProcessorWithSubscription<R>>();
         let r = r.unwrap_or_else(|| construct().into());
 
-        // need to store a function alongside the recognizer that converts it from an `Any` to its
+        // need to store a function alongside the processor that converts it from an `Any` to its
         // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
         let record = ProcessorRecord::new(r);
         self.record_processor(record)
-            .recognizer
+            .processor
             .deref_mut()
             .downcast_mut::<ProcessorWithSubscription<R>>()
             .unwrap()
@@ -114,10 +114,10 @@ impl<Msg> View<Msg> {
 
     pub(crate) fn record_processor<'a>(
         &mut self,
-        recognizer: ProcessorRecord<Msg>,
+        processor: ProcessorRecord<Msg>,
     ) -> &mut ProcessorRecord<Msg> {
-        self.recognizers.push(recognizer);
-        self.recognizers.last_mut().unwrap()
+        self.processors.push(processor);
+        self.processors.last_mut().unwrap()
     }
 
     pub fn presentation(&self) -> &Presentation {
@@ -125,7 +125,7 @@ impl<Msg> View<Msg> {
     }
 
     pub(crate) fn destructure(self) -> (Presentation, Vec<ProcessorRecord<Msg>>, Vec<ScopedState>) {
-        (self.presentation, self.recognizers, self.states)
+        (self.presentation, self.processors, self.states)
     }
 
     pub fn into_presentation(self) -> Presentation {
@@ -135,7 +135,7 @@ impl<Msg> View<Msg> {
     pub(crate) fn presentation_scoped(mut self, scope: impl Into<PresentationScope>) -> Self {
         let scope = scope.into();
         self.presentation.replace_with(|p| p.scoped(scope.clone()));
-        self.recognizers
+        self.processors
             .iter_mut()
             .for_each(|r| r.replace_with(|r| r.presentation_scoped(scope.clone())));
         self
@@ -148,7 +148,7 @@ impl<Msg> View<Msg> {
         self.states
             .iter_mut()
             .for_each(|(s, _)| s.replace_with(|s| s.scoped(scope.clone())));
-        self.recognizers
+        self.processors
             .iter_mut()
             .for_each(|r| r.replace_with(|r| r.context_scoped(scope.clone())));
 

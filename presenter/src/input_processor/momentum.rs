@@ -1,4 +1,4 @@
-//! This input processor adds a drifting phase after a regular Pan recognizer by subscribing to ticks for a
+//! This input processor adds a drifting phase after a regular Pan processor by subscribing to ticks for a
 //! pre-specified duration.
 //!
 //! Notes:

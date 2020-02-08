@@ -14,7 +14,7 @@ pub struct ProcessorWithSubscription<R>
 where
     R: InputProcessor,
 {
-    pub recognizer: R,
+    pub processor: R,
     pub subscriptions: Subscriptions,
 }
 
@@ -24,7 +24,7 @@ where
 {
     fn from(r: R) -> Self {
         Self {
-            recognizer: r,
+            processor: r,
             subscriptions: Subscriptions::default(),
         }
     }
@@ -47,6 +47,6 @@ where
     type Out = R::Out;
 
     fn dispatch(&mut self, context: &mut InputState, message: Self::In) -> Option<Self::Out> {
-        self.recognizer.dispatch(context, message)
+        self.processor.dispatch(context, message)
     }
 }

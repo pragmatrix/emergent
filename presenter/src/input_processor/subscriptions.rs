@@ -26,7 +26,7 @@ impl Subscriptions {
 pub enum Subscription {
     /// Subscribed to continuity events after a specific mouse button was pressed.
     ///
-    /// These are automatically subscribed for every recognizer that receives button presses.
+    /// These are automatically subscribed for every input processor that receives button presses.
     ButtonContinuity(MouseButton),
     /// Subscribed to timer ticks once per frame.
     Ticks,
