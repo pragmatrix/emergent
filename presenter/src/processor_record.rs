@@ -1,15 +1,14 @@
 use crate::input_processor::Subscriptions;
-use crate::recognizer::{Recognizer, RecognizerWithSubscription};
-use crate::{recognizer, ContextPath, ContextScope, InputProcessor, InputState, ScopedState};
+use crate::processor::{Processor, ProcessorWithSubscription};
+use crate::{processor, ContextPath, ContextScope, InputProcessor, InputState, ScopedState};
 use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 
-type RecognizerResolver<Out> =
-    Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn recognizer::Recognizer<Out>>;
+type RecognizerResolver<Out> = Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn processor::Processor<Out>>;
 
-pub(crate) struct RecognizerRecord<Event> {
-    // used to map areas to the recognizer.
+pub(crate) struct ProcessorRecord<Event> {
+    // used to map areas to the processor.
     presentation_path: PresentationPath,
     // used to know where the recognizer was created,
     context_path: ContextPath,
@@ -21,13 +20,13 @@ pub(crate) struct RecognizerRecord<Event> {
     resolver: RecognizerResolver<Event>,
 }
 
-impl<Event> RecognizerRecord<Event> {
-    pub(crate) fn new<R>(recognizer: RecognizerWithSubscription<R>) -> Self
+impl<Event> ProcessorRecord<Event> {
+    pub(crate) fn new<R>(recognizer: ProcessorWithSubscription<R>) -> Self
     where
         R: InputProcessor<In = WindowMessage, Out = Event> + 'static,
     {
         let resolver: RecognizerResolver<Event> = Box::new(|r: &mut Box<dyn Any>| {
-            r.downcast_mut::<RecognizerWithSubscription<R>>().unwrap()
+            r.downcast_mut::<ProcessorWithSubscription<R>>().unwrap()
         });
 
         Self {
@@ -67,7 +66,7 @@ impl<Event> RecognizerRecord<Event> {
     }
 }
 
-impl<Event> InputProcessor for RecognizerRecord<Event> {
+impl<Event> InputProcessor for ProcessorRecord<Event> {
     type In = WindowMessage;
     type Out = Event;
     fn dispatch(&mut self, context: &mut InputState, message: WindowMessage) -> Option<Event> {
@@ -79,7 +78,7 @@ impl<Event> InputProcessor for RecognizerRecord<Event> {
     }
 }
 
-impl<Event> Recognizer<Event> for RecognizerRecord<Event> {
+impl<Event> Processor<Event> for ProcessorRecord<Event> {
     fn subscriptions(&mut self) -> &mut Subscriptions {
         let recognizer = &mut self.recognizer;
         let resolver = &self.resolver;

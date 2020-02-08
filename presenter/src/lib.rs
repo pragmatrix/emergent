@@ -22,10 +22,10 @@ pub use interpolated::Interpolated;
 mod context;
 pub use context::*;
 
-pub mod recognizer;
+pub mod processor;
 
-mod recognizer_record;
-pub(crate) use recognizer_record::*;
+mod processor_record;
+pub(crate) use processor_record::*;
 
 mod scoped_store;
 pub use scoped_store::*;

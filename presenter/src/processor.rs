@@ -6,11 +6,11 @@ use emergent_ui::WindowMessage;
 // state through a `Box<Any>`.
 // TODO: find a simpler way.
 
-pub(crate) trait Recognizer<Out>: InputProcessor<In = WindowMessage, Out = Out> {
+pub(crate) trait Processor<Out>: InputProcessor<In = WindowMessage, Out = Out> {
     fn subscriptions(&mut self) -> &mut Subscriptions;
 }
 
-pub struct RecognizerWithSubscription<R>
+pub struct ProcessorWithSubscription<R>
 where
     R: InputProcessor,
 {
@@ -18,7 +18,7 @@ where
     pub subscriptions: Subscriptions,
 }
 
-impl<R> From<R> for RecognizerWithSubscription<R>
+impl<R> From<R> for ProcessorWithSubscription<R>
 where
     R: InputProcessor,
 {
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<R> Recognizer<R::Out> for RecognizerWithSubscription<R>
+impl<R> Processor<R::Out> for ProcessorWithSubscription<R>
 where
     R: InputProcessor<In = WindowMessage>,
 {
@@ -39,7 +39,7 @@ where
     }
 }
 
-impl<R> InputProcessor for RecognizerWithSubscription<R>
+impl<R> InputProcessor for ProcessorWithSubscription<R>
 where
     R: InputProcessor,
 {

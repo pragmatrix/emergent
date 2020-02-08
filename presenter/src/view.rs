@@ -1,5 +1,5 @@
-use crate::recognizer::RecognizerWithSubscription;
-use crate::{Context, ContextPath, ContextScope, InputProcessor, RecognizerRecord, ScopedState};
+use crate::processor::ProcessorWithSubscription;
+use crate::{Context, ContextPath, ContextScope, InputProcessor, ProcessorRecord, ScopedState};
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
@@ -26,7 +26,7 @@ pub struct View<Msg> {
     bounds: RefCell<Option<DrawingBounds>>,
 
     /// The recognizers that are active.
-    recognizers: Vec<RecognizerRecord<Msg>>,
+    recognizers: Vec<ProcessorRecord<Msg>>,
 
     /// The captured states of all the context scopes.
     /// TODO: may put them into ScopedStates?
@@ -95,27 +95,27 @@ impl<Msg> View<Msg> {
         &mut self,
         context: &mut Context,
         construct: impl FnOnce() -> R,
-    ) -> &mut RecognizerWithSubscription<R>
+    ) -> &mut ProcessorWithSubscription<R>
     where
         R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
     {
-        let r = context.recycle_state::<RecognizerWithSubscription<R>>();
+        let r = context.recycle_state::<ProcessorWithSubscription<R>>();
         let r = r.unwrap_or_else(|| construct().into());
 
         // need to store a function alongside the recognizer that converts it from an `Any` to its
         // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
-        let record = RecognizerRecord::new(r);
+        let record = ProcessorRecord::new(r);
         self.record_recognizer(record)
             .recognizer
             .deref_mut()
-            .downcast_mut::<RecognizerWithSubscription<R>>()
+            .downcast_mut::<ProcessorWithSubscription<R>>()
             .unwrap()
     }
 
     pub(crate) fn record_recognizer<'a>(
         &mut self,
-        recognizer: RecognizerRecord<Msg>,
-    ) -> &mut RecognizerRecord<Msg> {
+        recognizer: ProcessorRecord<Msg>,
+    ) -> &mut ProcessorRecord<Msg> {
         self.recognizers.push(recognizer);
         self.recognizers.last_mut().unwrap()
     }
@@ -124,9 +124,7 @@ impl<Msg> View<Msg> {
         &self.presentation
     }
 
-    pub(crate) fn destructure(
-        self,
-    ) -> (Presentation, Vec<RecognizerRecord<Msg>>, Vec<ScopedState>) {
+    pub(crate) fn destructure(self) -> (Presentation, Vec<ProcessorRecord<Msg>>, Vec<ScopedState>) {
         (self.presentation, self.recognizers, self.states)
     }
 

@@ -1,7 +1,7 @@
 use crate::input_processor::{AutoSubscribe, Subscription};
-use crate::recognizer::Recognizer;
+use crate::processor::Processor;
 use crate::{
-    AreaHitTest, Context, InputProcessor, InputState, RecognizerRecord, ScopedStore, Support, View,
+    AreaHitTest, Context, InputProcessor, InputState, ProcessorRecord, ScopedStore, Support, View,
 };
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
@@ -17,7 +17,7 @@ pub struct Host<Msg> {
     presentation: Presentation,
 
     /// The recognizers that are active.
-    recognizers: Vec<RecognizerRecord<Msg>>,
+    recognizers: Vec<ProcessorRecord<Msg>>,
 
     /// The store of all captured states of the context scopes.
     store: ScopedStore,
