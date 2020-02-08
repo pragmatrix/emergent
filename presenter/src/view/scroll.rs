@@ -1,6 +1,7 @@
 use crate::recognizer::converge::ConvergeTo;
 use crate::recognizer::easing;
 use crate::recognizer::momentum::PreserveMomentum;
+use crate::recognizer::resistance::WithResistance;
 use crate::{recognizer, Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;
@@ -88,10 +89,12 @@ pub fn view<Msg: 'static>(
         info!("creating new recognizer");
         let drift_duration = Duration::from_millis(500);
         recognizer::Pan::new()
-            // .into_movement(|state: &State, _| Some(Point::from(state.content_transform)))
             .map_begin(|p: Point, state: &State| {
                 let d = state.content_transform - p.to_vector();
                 Some(move |p: Point| p + d)
+            })
+            .with_resistance(|p, constrained: &ConstrainedContentTransform| {
+                ((p + constrained.0).to_vector() / 2.0) - p.to_vector()
             })
             .preserve_momentum(100.0, easing::ease_out_cubic, drift_duration)
             .converge_to(

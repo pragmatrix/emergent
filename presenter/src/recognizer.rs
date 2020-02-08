@@ -17,11 +17,12 @@ pub mod momentum;
 pub mod pan;
 pub use pan::Pan;
 
+pub mod resistance;
+
 mod subscriptions;
 pub use subscriptions::*;
 
 pub mod tap;
-use emergent_drawing::Vector;
 pub use tap::TapRecognizer;
 
 // Below follows a rather convoluted way of transporting a input processor including its subscription
