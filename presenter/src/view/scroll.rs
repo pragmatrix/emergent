@@ -93,15 +93,18 @@ pub fn view<Msg: 'static>(
                 let d = state.content_transform - p.to_vector();
                 Some(move |p: Point| p + d)
             })
+            // TODO: this can be just a map_with_state()?
             .with_resistance(|p, constrained: &ConstrainedContentTransform| {
                 ((p + constrained.0).to_vector() / 2.0) - p.to_vector()
             })
             .preserve_momentum(100.0, easing::ease_out_cubic, drift_duration)
+            // TODO: can we split up phases here, and implement converge_to with map_with_state() then?
             .converge_to(
                 |constrained: &ConstrainedContentTransform| Point::from(constrained.0),
                 drift_duration,
                 easing::ease_out_cubic,
             )
+            // TODO: insert a map to remove the phase before apply?
             .apply(|e, s: &mut State| {
                 let (p, _) = e.data();
                 s.content_transform = p.to_vector();
