@@ -1,24 +1,42 @@
 use emergent_ui::{ElementState, MouseButton, WindowEvent};
-use std::collections::HashSet;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
-pub struct Subscriptions(HashSet<Subscription>);
+pub struct Subscriptions(HashMap<Subscription, usize>);
 
 impl Subscriptions {
-    pub fn subscribe(&mut self, subscription: Subscription) -> bool {
-        self.0.insert(subscription)
+    pub fn subscribe(&mut self, subscription: Subscription) {
+        use Entry::*;
+        match self.0.entry(subscription) {
+            Occupied(mut e) => *e.get_mut() += 1,
+            Vacant(e) => {
+                e.insert(1);
+            }
+        }
     }
 
-    pub fn unsubscribe(&mut self, subscription: Subscription) -> bool {
-        self.0.remove(&subscription)
+    pub fn unsubscribe(&mut self, subscription: Subscription) {
+        use Entry::*;
+        match self.0.entry(subscription) {
+            Occupied(mut e) => {
+                let cnt = e.get_mut();
+                if *cnt == 1 {
+                    e.remove();
+                } else {
+                    *cnt += 1;
+                }
+            }
+            Vacant(_) => error!("inconsistent subscription count for {:?}", subscription),
+        }
     }
 
-    pub fn contains(&self, subscription: Subscription) -> bool {
-        self.0.contains(&subscription)
+    pub fn subscribes(&self, subscription: Subscription) -> bool {
+        self.0.contains_key(&subscription)
     }
 
     pub fn wants_event(&self, event: &WindowEvent) -> bool {
-        self.0.iter().any(|s| s.wants_event(event))
+        self.0.keys().any(|s| s.wants_event(event))
     }
 }
 

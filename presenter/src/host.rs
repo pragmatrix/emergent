@@ -65,7 +65,7 @@ impl<Msg> Host<Msg> {
     pub fn needs_ticks(&mut self) -> bool {
         self.processors
             .iter_mut()
-            .any(|r| r.subscriptions().contains(Subscription::Ticks))
+            .any(|r| r.subscriptions().subscribes(Subscription::Ticks))
     }
 
     pub fn dispatch_window_message(&mut self, msg: WindowMessage) -> Vec<Msg>

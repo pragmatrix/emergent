@@ -43,16 +43,16 @@ impl InputState {
     // subscription
     //
 
-    pub fn subscribe(&mut self, subscription: input_processor::Subscription) -> bool {
+    pub fn subscribe(&mut self, subscription: input_processor::Subscription) {
         self.subscriptions.subscribe(subscription)
     }
 
-    pub fn unsubscribe(&mut self, subscription: input_processor::Subscription) -> bool {
+    pub fn unsubscribe(&mut self, subscription: input_processor::Subscription) {
         self.subscriptions.unsubscribe(subscription)
     }
 
     pub fn contains(&self, subscription: input_processor::Subscription) -> bool {
-        self.subscriptions.contains(subscription)
+        self.subscriptions.subscribes(subscription)
     }
 
     //
