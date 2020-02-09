@@ -36,7 +36,6 @@ pub trait InputProcessor {
 
     /// Map the resulting event to another.
     ///
-    /// TODO: may call this function map_out()?
     /// TODO: with state support, this could be generalized so that it can replace resistance or at least can be used
     /// for that.
     fn map<F, To>(self, f: F) -> Map<Self, F>
