@@ -1,5 +1,6 @@
 [submodule "rust-skia"]
 	path = rust-skia
+	branch = emergent
 	url = https://github.com/pragmatrix/rust-skia.git
 [submodule "vulkano"]
 	path = vulkano
