@@ -105,8 +105,6 @@ impl ViewRenderer<Msg> for App {
             }
 
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
-                debug!("{} tests captured", captures.0.len());
-
                 // only render compiler messages if we don't have any
                 // captures to show (later we can just collapse them by default).
                 let compiler_messages = if captures.0.is_empty() {

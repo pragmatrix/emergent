@@ -1,11 +1,19 @@
 use crate::PathContainsPoint;
 use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
 use emergent_ui::DPI;
+use std::fmt;
+use std::fmt::{Debug, Formatter};
 
 pub struct Support {
     pub dpi: DPI,
     measure: Box<dyn MeasureText>,
     path_contains_point: Box<dyn PathContainsPoint>,
+}
+
+impl Debug for Support {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("dpi").field(&self.dpi).finish()
+    }
 }
 
 impl Support {

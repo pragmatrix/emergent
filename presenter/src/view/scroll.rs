@@ -1,7 +1,7 @@
-use crate::input_processor::converge::ConvergeTo;
-use crate::input_processor::momentum::PreserveMomentum;
-use crate::input_processor::resistance::WithResistance;
-use crate::input_processor::{animator, easing, Animator, Subscription};
+use crate::input_processor::PreserveMomentum;
+use crate::input_processor::WithResistance;
+use crate::input_processor::{animator, ConvergeTo};
+use crate::input_processor::{easing, Animator, Subscription};
 use crate::{input_processor, Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;

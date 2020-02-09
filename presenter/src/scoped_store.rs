@@ -72,7 +72,7 @@ impl ScopedStore {
         // TODO: that clone!!
         match self.nested.entry(path[0].clone()) {
             Entry::Occupied(e) => e.into_mut().at_mut_or_new(&path[1..]),
-            Entry::Vacant(e) => e.insert(ScopedStore::new()),
+            Entry::Vacant(e) => e.insert(ScopedStore::new()).at_mut_or_new(&path[1..]),
         }
     }
 

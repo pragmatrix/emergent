@@ -55,20 +55,16 @@ impl<Msg> View<Msg> {
 
     pub fn combined(mut self, right: View<Msg>) -> View<Msg> {
         self.presentation.push_on_top(right.presentation);
+        // TODO: this is very problematic, causing bounds to be computed multiple times for
+        // the same subtree of presentations.
+        // Ideas:
+        // - re-use combined bounds if each of the subview already has computed one.
+        // - embed bounds in Presentations.
+        self.bounds = None.into();
         self.processors.extend(right.processors);
         self.states.extend(right.states);
 
-        Self {
-            presentation: self.presentation,
-            // TODO: warnings: this is very problematic, causing bounds to be computed multiple times for
-            // the same subtree of presentations.
-            // Ideas:
-            // - re-use combined bounds if each of the subview already has computed one.
-            // - embed bounds in Presentations.
-            bounds: None.into(),
-            processors: self.processors,
-            states: self.states,
-        }
+        self
     }
 
     /// Put the presentation inside an area.
