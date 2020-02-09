@@ -14,6 +14,7 @@ use emergent_drawing::{Bounds, MeasureText, Point, Rect, Text, Vector};
 use emergent_presentation::{Scope, ScopePath};
 use emergent_ui::FrameLayout;
 use std::any;
+use std::any::TypeId;
 use std::rc::Rc;
 
 // Can't use `Context` here for marking scopes, because it does not support certain trait which Scope / ScopePath needs
@@ -28,6 +29,7 @@ pub struct ContextMarker;
 /// is defined by a named or indexed scope.
 ///
 /// TODO: may rename to ViewState or (View)Builder?
+#[derive(Debug)]
 pub struct Context {
     support: Rc<Support>,
     /// Physical boundaries of the presentation.
@@ -129,7 +131,12 @@ impl Context {
     pub(crate) fn recycle_state<S: 'static>(&mut self) -> Option<S> {
         match self.previous.remove_state() {
             None => {
-                trace!("failed to recycle state: {:?}", any::type_name::<S>());
+                warn!(
+                    "failed to recycle state: {:?} {:?}, states available: {:?}",
+                    TypeId::of::<S>(),
+                    any::type_name::<S>(),
+                    self.previous
+                );
                 None
             }
             Some(r) => Some(r),

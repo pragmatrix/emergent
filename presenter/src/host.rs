@@ -42,7 +42,6 @@ impl<Msg> Host<Msg> {
         // move all processors into the store so that they can get recycled, too.
         let processor_store =
             ScopedStore::from_values(self.processors.drain(..).map(|r| r.into_scoped_state()));
-        info!("processors at []: {:?}", processor_store.states);
         let store = store.merged(processor_store);
 
         let context = Context::new(self.support.clone(), boundary, store);
