@@ -1,30 +1,25 @@
 use crate::InputState;
+pub use animator::Animator;
+pub use converge::ConvergeTo;
+pub use momentum::PreserveMomentum;
+pub use move_threshold::WithMoveThreshold;
+pub use pan::Pan;
+pub use resistance::WithResistance;
 use std::marker::PhantomData;
-use transaction::Transaction;
+pub use subscriptions::*;
+pub use tap::Tap;
+pub use transaction::Transaction;
 
 pub mod animator;
-pub use animator::Animator;
-
-pub mod converge;
-
+mod converge;
 pub mod easing;
-
-pub mod transaction;
-
-pub mod momentum;
-
-pub mod move_threshold;
-
-pub mod pan;
-pub use pan::Pan;
-
-pub mod resistance;
-
+mod momentum;
+mod move_threshold;
+mod pan;
+mod resistance;
 mod subscriptions;
-pub use subscriptions::*;
-
-pub mod tap;
-pub use tap::Tap;
+mod tap;
+mod transaction;
 
 /// A trait to define input processors.
 ///
