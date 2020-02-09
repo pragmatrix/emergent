@@ -1,9 +1,9 @@
-//! A declarative DSL to create user interface views.
+//! A DSL to create user interface views based on slices.
 
 use crate::{Context, Direction, View};
 use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
+use std::marker::PhantomData;
 
-// TODO: View<Msg> and Context<Msg> could be made into a generic V and C?
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
 
 pub struct Item<'a, I> {
@@ -17,17 +17,22 @@ impl<'a, I> Item<'a, I> {
 }
 
 impl<'a, I> Item<'a, I> {
-    pub fn map<Msg>(self, map_f: impl Fn(Context, &I) -> View<Msg> + 'a) -> ItemMap<'a, Msg, I> {
+    pub fn map<F, Msg>(self, map_f: F) -> ItemMap<'a, F, Msg, I>
+    where
+        F: Fn(Context, &I) -> View<Msg>,
+    {
         ItemMap {
             item: self,
-            map_f: Box::new(map_f),
+            map_f,
+            pd: PhantomData,
         }
     }
 }
 
-pub struct ItemMap<'a, Msg, I> {
+pub struct ItemMap<'a, F, Msg, I> {
     item: Item<'a, I>,
-    map_f: Box<dyn Fn(Context, &I) -> View<Msg> + 'a>,
+    map_f: F,
+    pd: PhantomData<*const Msg>,
 }
 
 pub struct Data<'a, E> {
@@ -41,17 +46,22 @@ impl<'a, E> Data<'a, E> {
 }
 
 impl<'a, E> Data<'a, E> {
-    pub fn map<Msg>(self, map_f: impl Fn(Context, &E) -> View<Msg> + 'a) -> DataMap<'a, Msg, E> {
+    pub fn map<F, Msg>(self, map_f: F) -> DataMap<'a, F, Msg, E>
+    where
+        F: Fn(Context, &E) -> View<Msg>,
+    {
         DataMap {
             data: self,
-            map_f: Box::new(map_f),
+            map_f,
+            pd: PhantomData,
         }
     }
 }
 
-pub struct DataMap<'a, Msg, E> {
+pub struct DataMap<'a, F, Msg, E> {
     data: Data<'a, E>,
-    map_f: Box<dyn Fn(Context, &E) -> View<Msg> + 'a>,
+    map_f: F,
+    pd: PhantomData<*const Msg>,
 }
 
 pub trait IndexMappable<Msg> {
@@ -89,7 +99,10 @@ impl<'a, Msg> IndexMappable<Msg> for ExtendedIndexMappable<'a, Msg> {
     }
 }
 
-impl<'a, Msg, I> IndexMappable<Msg> for ItemMap<'a, Msg, I> {
+impl<'a, F, Msg, I> IndexMappable<Msg> for ItemMap<'a, F, Msg, I>
+where
+    F: Fn(Context, &I) -> View<Msg>,
+{
     fn len(&self) -> usize {
         1
     }
@@ -102,7 +115,10 @@ impl<'a, Msg, I> IndexMappable<Msg> for ItemMap<'a, Msg, I> {
     }
 }
 
-impl<'a, Msg, E> IndexMappable<Msg> for DataMap<'a, Msg, E> {
+impl<'a, F, Msg, E> IndexMappable<Msg> for DataMap<'a, F, Msg, E>
+where
+    F: Fn(Context, &E) -> View<Msg>,
+{
     fn len(&self) -> usize {
         self.data.data.len()
     }
