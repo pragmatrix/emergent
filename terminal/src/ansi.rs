@@ -745,7 +745,7 @@ where
 
     // TODO replace OSC parsing with parser combinators
     #[inline]
-    fn osc_dispatch(&mut self, params: &[&[u8]]) {
+    fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
         let writer = &mut self.writer;
 
         fn unhandled(params: &[&[u8]]) {
