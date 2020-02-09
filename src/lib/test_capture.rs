@@ -4,9 +4,9 @@ use crate::libtest::TestCapture;
 use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
-use emergent_presenter::recognizer::TapRecognizer;
+use emergent_presenter::input_processor::Tap;
 use emergent_presenter::{
-    Context, Direction, GestureRecognizer, IndexMappable, Item, Reducible, View,
+    Context, Direction, IndexMappable, InputProcessor, Item, Reducible, View,
 };
 
 impl TestCapture {
@@ -14,12 +14,12 @@ impl TestCapture {
         c.scoped(&self.name, |c| {
             let header = Item::new(&self.name).map(|mut c, name| {
                 let name = name.to_string();
-                let view = Self::view_header(&name).in_area();
+                let mut view = Self::view_header(&name).in_area();
 
-                c.attach_recognizer(view, || {
-                    TapRecognizer::new()
-                        .map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
-                })
+                view.attach_input_processor(&mut c, || {
+                    Tap::new().map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
+                });
+                view
             });
 
             if !show_contents {

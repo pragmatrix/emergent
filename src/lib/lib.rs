@@ -18,6 +18,8 @@ pub mod libtest;
 mod line_breaking;
 pub use line_breaking::*;
 
+mod move_predictor;
+
 mod msg;
 pub use msg::*;
 

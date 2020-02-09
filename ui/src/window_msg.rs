@@ -3,6 +3,7 @@ use emergent_drawing::Point;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use std::time::Instant;
 pub use winit::event::{
     // winit re-exports:
     AxisId,
@@ -14,68 +15,18 @@ pub use winit::event::{
     TouchPhase,
 };
 
-/// We need a custom window state that persists ephemeral information provided with certain events.
-#[derive(Clone, Debug, Default)]
-pub struct WindowState {
-    focused: Option<bool>,
-    /// Cursor entered?
-    cursor_entered: Option<bool>,
-    /// Cursor position, None if not yet set.
-    cursor_position: Option<Point>,
-    // TODO: add modifiers, cursor_entered, etc.
+/// A WindowMessage is a WindowEvent annotated with the current state and the time it occurred.
+#[derive(Clone, Debug)]
+pub struct WindowMessage {
+    pub event: WindowEvent,
+    pub time: Instant,
+    pub state: WindowState,
 }
 
-impl WindowState {
-    pub fn new(_window: &winit::window::Window) -> WindowState {
-        Default::default()
+impl WindowMessage {
+    pub fn new(event: WindowEvent, time: Instant, state: WindowState) -> Self {
+        Self { event, time, state }
     }
-
-    pub fn update(&mut self, event: WindowEvent) {
-        use WindowEvent::*;
-        match event {
-            Focused(focused) => {
-                self.focused = focused.into();
-            }
-            CursorMoved(position) => {
-                self.cursor_position = position.into();
-            }
-            CursorEntered { .. } => {
-                self.cursor_entered = true.into();
-            }
-            CursorLeft { .. } => {
-                self.cursor_entered = false.into();
-            }
-            _ => (),
-        }
-    }
-
-    pub fn focused(&self) -> Option<bool> {
-        self.focused
-    }
-
-    pub fn cursor_position(&self) -> Option<Point> {
-        self.cursor_position
-    }
-
-    pub fn cursor_entered(&self) -> Option<bool> {
-        self.cursor_entered
-    }
-}
-
-impl WindowEvent {
-    /*
-    /// Returns the keyboard modifiers if specified in the Msg, None if not.
-    pub fn modifiers(&self) -> Option<ModifiersState> {
-        use WindowMsg::*;
-        match self {
-            KeyboardInput(winit::KeyboardInput { modifiers, .. })
-            | CursorMoved { modifiers, .. }
-            | MouseWheel { modifiers, .. }
-            | MouseInput { modifiers, .. } => Some(*modifiers),
-            _ => None,
-        }
-    }
-    */
 }
 
 /// A set of events a window based application expects from a windowing system.
@@ -89,7 +40,9 @@ impl WindowEvent {
 /// long run.
 // TODO: Several of the variants are missing a device identifier because winit
 // represents it with a platform dependent type.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+// TODO: make serialization possible again by making Instant serializable if that is even possible (otherwise rep.
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum WindowEvent {
     Resized(FrameLayout),
     Moved(Point),
@@ -125,6 +78,7 @@ pub enum WindowEvent {
         finger_id: u64,
     },
     ScaleFactorChanged(FrameLayout),
+    Tick(Instant),
 }
 
 impl WindowEvent {
@@ -205,14 +159,66 @@ impl WindowEvent {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct WindowMessage {
-    pub state: WindowState,
-    pub event: WindowEvent,
+/// We need a custom window state that persists ephemeral information provided with certain events.
+#[derive(Clone, Debug, Default)]
+pub struct WindowState {
+    focused: Option<bool>,
+    /// Cursor entered?
+    cursor_entered: Option<bool>,
+    /// Cursor position, None if not yet set.
+    cursor_position: Option<Point>,
+    // TODO: add modifiers, cursor_entered, etc.
 }
 
-impl WindowMessage {
-    pub fn new(state: WindowState, event: WindowEvent) -> Self {
-        Self { state, event }
+impl WindowState {
+    pub fn new(_window: &winit::window::Window) -> WindowState {
+        Default::default()
     }
+
+    pub fn update(&mut self, event: WindowEvent) {
+        use WindowEvent::*;
+        match event {
+            Focused(focused) => {
+                self.focused = focused.into();
+            }
+            CursorMoved(position) => {
+                self.cursor_position = position.into();
+            }
+            CursorEntered { .. } => {
+                self.cursor_entered = true.into();
+            }
+            CursorLeft { .. } => {
+                self.cursor_entered = false.into();
+            }
+            _ => (),
+        }
+    }
+
+    pub fn focused(&self) -> Option<bool> {
+        self.focused
+    }
+
+    pub fn cursor_position(&self) -> Option<Point> {
+        self.cursor_position
+    }
+
+    pub fn cursor_entered(&self) -> Option<bool> {
+        self.cursor_entered
+    }
+}
+
+impl WindowEvent {
+    /*
+    /// Returns the keyboard modifiers if specified in the Msg, None if not.
+    pub fn modifiers(&self) -> Option<ModifiersState> {
+        use WindowMsg::*;
+        match self {
+            KeyboardInput(winit::KeyboardInput { modifiers, .. })
+            | CursorMoved { modifiers, .. }
+            | MouseWheel { modifiers, .. }
+            | MouseInput { modifiers, .. } => Some(*modifiers),
+            _ => None,
+        }
+    }
+    */
 }

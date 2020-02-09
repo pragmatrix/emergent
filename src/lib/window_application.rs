@@ -29,6 +29,7 @@ use emergent_presentation::Presentation;
 use emergent_presenter::{Host, Support, ViewRenderer};
 use emergent_ui::{FrameLayout, ModifiersState, WindowEvent, WindowMessage, WindowState, DPI};
 use std::cell::RefCell;
+use std::time::Instant;
 use tears::{Cmd, Model};
 
 /// The generic Window Application Model.
@@ -65,20 +66,6 @@ pub enum WindowApplicationMsg<Msg> {
     Application(Msg),
 }
 
-impl<M, Msg> Model<WindowApplicationMsg<Msg>> for WindowApplication<M, Msg>
-where
-    M: WindowModel<Msg>,
-    Msg: Send + 'static,
-{
-    fn update(&mut self, msg: WindowApplicationMsg<Msg>) -> Cmd<WindowApplicationMsg<Msg>> {
-        use WindowApplicationMsg::*;
-        match msg {
-            WindowEvent(msg) => self.dispatch_event(msg),
-            Application(msg) => self.update_model(msg),
-        }
-    }
-}
-
 impl<M, Msg> WindowApplication<M, Msg>
 where
     M: WindowModel<Msg>,
@@ -110,11 +97,11 @@ where
 
         match event {
             WindowEvent::CloseRequested => self.close_requested = true,
-            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. }
+            WindowEvent::CursorMoved(_) | WindowEvent::MouseInput { .. } | WindowEvent::Tick(_)
                 // TODO: try to make the cursor position available, always.
                 if self.window_state.cursor_position().is_some() =>
             {
-                let msg = WindowMessage::new(self.window_state.clone(), event);
+                let msg = WindowMessage::new(event, Instant::now(), self.window_state.clone());
 
                 let msgs = self.host.borrow_mut().dispatch_window_message(msg);
                 return msgs.into_iter().map(|msg| self.update_model(msg)).collect();
@@ -155,6 +142,25 @@ where
             });
 
         self.host.borrow().presentation().clone()
+    }
+
+    // TODO: don't use mutable here.
+    pub fn needs_ticks(&mut self) -> bool {
+        self.host.borrow_mut().needs_ticks()
+    }
+}
+
+impl<M, Msg> Model<WindowApplicationMsg<Msg>> for WindowApplication<M, Msg>
+where
+    M: WindowModel<Msg>,
+    Msg: Send + 'static,
+{
+    fn update(&mut self, msg: WindowApplicationMsg<Msg>) -> Cmd<WindowApplicationMsg<Msg>> {
+        use WindowApplicationMsg::*;
+        match msg {
+            WindowEvent(msg) => self.dispatch_event(msg),
+            Application(msg) => self.update_model(msg),
+        }
     }
 }
 

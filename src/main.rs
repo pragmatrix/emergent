@@ -11,6 +11,7 @@ use emergent_presenter::Support;
 use emergent_ui as ui;
 use emergent_ui::{measure_fn, Window, DPI};
 use skia_safe::{icu, Typeface};
+use std::time::Instant;
 use std::{env, path, thread};
 use tears::{Application, ThreadSpawnExecutor};
 use vulkano::sync;
@@ -134,7 +135,14 @@ fn main() {
                 );
             }
 
-            measure_fn("application.update()", || application.update());
+            if application.model_mut().needs_ticks() {
+                application
+                    .mailbox()
+                    .post(WindowApplicationMsg::WindowEvent(ui::WindowEvent::Tick(
+                        Instant::now(),
+                    )));
+            }
+            application.update();
         }
 
         debug!("shutting down renderer loop");

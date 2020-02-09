@@ -1,9 +1,6 @@
 #[macro_use]
 extern crate log;
 
-pub mod gesture_recognizer;
-pub use gesture_recognizer::GestureRecognizer;
-
 mod hit_test;
 pub use hit_test::*;
 
@@ -13,24 +10,30 @@ pub use declarative::*;
 mod host;
 pub use host::*;
 
+pub mod input_processor;
+pub use input_processor::InputProcessor;
+
 mod input_state;
 pub use input_state::*;
+
+mod interpolated;
+pub use interpolated::Interpolated;
 
 mod context;
 pub use context::*;
 
-pub mod recognizer;
+pub mod processor;
 
-mod recognizer_record;
-pub(crate) use recognizer_record::*;
+mod processor_record;
+pub(crate) use processor_record::*;
 
 mod scoped_store;
 pub use scoped_store::*;
+
+pub mod velocity;
 
 mod view;
 pub use view::*;
 
 mod support;
 pub use support::*;
-
-pub mod transaction;

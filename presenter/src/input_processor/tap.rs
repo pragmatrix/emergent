@@ -1,27 +1,28 @@
-use crate::{GestureRecognizer, InputState};
+use crate::{InputProcessor, InputState};
 use emergent_drawing::Point;
 use emergent_ui::WindowMessage;
 
-pub struct TapRecognizer {}
+pub struct Tap {}
 
 pub enum Event {
     Tapped(Point),
 }
 
-impl Default for TapRecognizer {
+impl Default for Tap {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl TapRecognizer {
+impl Tap {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl GestureRecognizer for TapRecognizer {
-    type Event = Event;
+impl InputProcessor for Tap {
+    type In = WindowMessage;
+    type Out = Event;
     fn dispatch(&mut self, _: &mut InputState, msg: WindowMessage) -> Option<Event> {
         if msg.event.left_button_pressed() {
             let position = msg.state.cursor_position().unwrap();

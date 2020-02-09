@@ -1,17 +1,20 @@
-use crate::recognizer;
+use crate::input_processor;
 use crate::ContextPath;
 use std::any;
 use std::any::{Any, TypeId};
 use std::ops::Deref;
+use std::time::Instant;
 
 /// The `InputState` maintains all the state that may be accessed and modified while input is being processed by one
-/// single gesture recognizer.
+/// single input processor.
 pub struct InputState {
-    /// The recognizer's context. This is used for resolving states.
-    recognizer_context: ContextPath,
-    /// The subscriptions of the recognizer.
-    subscriptions: recognizer::Subscriptions,
-    /// The states available to be modified by the gesture recognizer.
+    /// The processor's context. This is used for resolving states.
+    processor_context: ContextPath,
+    /// The time the input event was sent.
+    time: Instant,
+    /// The subscriptions of the processor.
+    subscriptions: input_processor::Subscriptions,
+    /// The states available to be modified by the input processor.
     /// There should be a very limited amount of states per context path, so a vector is fine for doing
     /// lookups.
     states: Vec<Box<dyn Any>>,
@@ -19,35 +22,37 @@ pub struct InputState {
 
 impl InputState {
     pub fn new(
-        recognizer_context: ContextPath,
-        subscriptions: recognizer::Subscriptions,
+        processor_context: ContextPath,
+        time: Instant,
+        subscriptions: input_processor::Subscriptions,
         states: impl IntoIterator<Item = Box<dyn Any>>,
     ) -> Self {
         Self {
-            recognizer_context,
+            processor_context,
+            time,
             subscriptions,
             states: states.into_iter().collect(),
         }
     }
 
-    pub fn into_states(self) -> (recognizer::Subscriptions, Vec<Box<dyn Any>>) {
-        (self.subscriptions, self.states)
+    pub fn time(&self) -> Instant {
+        self.time
     }
 
     //
     // subscription
     //
 
-    pub fn subscribe(&mut self, subscription: recognizer::Subscription) -> bool {
+    pub fn subscribe(&mut self, subscription: input_processor::Subscription) {
         self.subscriptions.subscribe(subscription)
     }
 
-    pub fn unsubscribe(&mut self, subscription: recognizer::Subscription) -> bool {
+    pub fn unsubscribe(&mut self, subscription: input_processor::Subscription) {
         self.subscriptions.unsubscribe(subscription)
     }
 
-    pub fn is_subscribed(&self, subscription: recognizer::Subscription) -> bool {
-        self.subscriptions.is_subscribed(subscription)
+    pub fn contains(&self, subscription: input_processor::Subscription) -> bool {
+        self.subscriptions.subscribes(subscription)
     }
 
     //
@@ -74,12 +79,12 @@ impl InputState {
         panic!(
             "found no state {} in {:?}",
             any::type_name::<S>(),
-            self.recognizer_context
+            self.processor_context
         )
     }
 
     /// Return a mutable reference to a typed state record.
-    pub fn get_mut<S: 'static>(&mut self) -> Option<&mut S> {
+    pub fn get_state<S: 'static>(&mut self) -> Option<&mut S> {
         let type_id = TypeId::of::<S>();
         let states = &mut self.states;
 
@@ -87,5 +92,9 @@ impl InputState {
             .iter_mut()
             .find(|s| s.deref().deref().type_id() == type_id)
             .map(|s| s.downcast_mut::<S>().unwrap())
+    }
+
+    pub fn into_states(self) -> (input_processor::Subscriptions, Vec<Box<dyn Any>>) {
+        (self.subscriptions, self.states)
     }
 }

@@ -1,10 +1,13 @@
-use crate::{Context, ContextPath, ContextScope, RecognizerRecord, ScopedState};
+use crate::processor::ProcessorWithSubscription;
+use crate::{Context, ContextPath, ContextScope, InputProcessor, ProcessorRecord, ScopedState};
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
 use emergent_presentation::{Presentation, PresentationScope, Scoped};
+use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::cell::RefCell;
+use std::ops::{Deref, DerefMut};
 
 pub mod scroll;
 
@@ -22,8 +25,8 @@ pub struct View<Msg> {
     /// computing bounds are not available, so we compute this lazily.
     bounds: RefCell<Option<DrawingBounds>>,
 
-    /// The recognizers that are active.
-    recognizers: Vec<RecognizerRecord<Msg>>,
+    /// The processors that are active.
+    processors: Vec<ProcessorRecord<Msg>>,
 
     /// The captured states of all the context scopes.
     /// TODO: may put them into ScopedStates?
@@ -41,7 +44,7 @@ impl<Msg> View<Msg> {
         Self {
             presentation: Default::default(),
             bounds: None.into(),
-            recognizers: Default::default(),
+            processors: Default::default(),
             states: Default::default(),
         }
     }
@@ -52,7 +55,7 @@ impl<Msg> View<Msg> {
 
     pub fn combined(mut self, right: View<Msg>) -> View<Msg> {
         self.presentation.push_on_top(right.presentation);
-        self.recognizers.extend(right.recognizers);
+        self.processors.extend(right.processors);
         self.states.extend(right.states);
 
         Self {
@@ -63,7 +66,7 @@ impl<Msg> View<Msg> {
             // - re-use combined bounds if each of the subview already has computed one.
             // - embed bounds in Presentations.
             bounds: None.into(),
-            recognizers: self.recognizers,
+            processors: self.processors,
             states: self.states,
         }
     }
@@ -76,19 +79,53 @@ impl<Msg> View<Msg> {
         }
     }
 
-    pub(crate) fn record_recognizer(mut self, recognizer: RecognizerRecord<Msg>) -> Self {
-        self.recognizers.push(recognizer);
-        self
+    /// Attaches state to a View.
+    /// Contrary to processors, this state block is never memoized.
+    ///
+    /// Attaching state can be useful to provide additional information to the the input processors.
+    pub fn attach_state<S: 'static>(&mut self, state: S) {
+        self.states.push((ContextPath::new(), Box::new(state)));
+    }
+
+    /// Attaches a processor to a View.
+    ///
+    /// This function reuses a processor with the same type from the current context.
+    /// TODO: this function should not leak the type `ProcessorWithSubscription<R>`
+    pub fn attach_input_processor<R>(
+        &mut self,
+        context: &mut Context,
+        construct: impl FnOnce() -> R,
+    ) -> &mut ProcessorWithSubscription<R>
+    where
+        R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
+    {
+        let r = context.recycle_state::<ProcessorWithSubscription<R>>();
+        let r = r.unwrap_or_else(|| construct().into());
+
+        // need to store a function alongside the processor that converts it from an `Any` to its
+        // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
+        let record = ProcessorRecord::new(r);
+        self.record_processor(record)
+            .processor
+            .deref_mut()
+            .downcast_mut::<ProcessorWithSubscription<R>>()
+            .unwrap()
+    }
+
+    pub(crate) fn record_processor<'a>(
+        &mut self,
+        processor: ProcessorRecord<Msg>,
+    ) -> &mut ProcessorRecord<Msg> {
+        self.processors.push(processor);
+        self.processors.last_mut().unwrap()
     }
 
     pub fn presentation(&self) -> &Presentation {
         &self.presentation
     }
 
-    pub(crate) fn destructure(
-        self,
-    ) -> (Presentation, Vec<RecognizerRecord<Msg>>, Vec<ScopedState>) {
-        (self.presentation, self.recognizers, self.states)
+    pub(crate) fn destructure(self) -> (Presentation, Vec<ProcessorRecord<Msg>>, Vec<ScopedState>) {
+        (self.presentation, self.processors, self.states)
     }
 
     pub fn into_presentation(self) -> Presentation {
@@ -98,7 +135,7 @@ impl<Msg> View<Msg> {
     pub(crate) fn presentation_scoped(mut self, scope: impl Into<PresentationScope>) -> Self {
         let scope = scope.into();
         self.presentation.replace_with(|p| p.scoped(scope.clone()));
-        self.recognizers
+        self.processors
             .iter_mut()
             .for_each(|r| r.replace_with(|r| r.presentation_scoped(scope.clone())));
         self
@@ -111,22 +148,32 @@ impl<Msg> View<Msg> {
         self.states
             .iter_mut()
             .for_each(|(s, _)| s.replace_with(|s| s.scoped(scope.clone())));
-        self.recognizers
+        self.processors
             .iter_mut()
             .for_each(|r| r.replace_with(|r| r.context_scoped(scope.clone())));
 
         self
     }
 
-    pub fn store_states(mut self, states: impl IntoIterator<Item = Box<dyn Any>>) -> Self {
+    pub fn with_states(mut self, states: impl IntoIterator<Item = Box<dyn Any>>) -> Self {
         self.states
             .extend(states.into_iter().map(|s| (ContextPath::new(), s)));
         self
     }
 
-    pub fn store_state(mut self, state: impl Any + 'static) -> Self {
+    pub fn with_state(mut self, state: impl Any + 'static) -> Self {
         self.states.push((ContextPath::new(), Box::new(state)));
         self
+    }
+
+    pub fn get_state<S: 'static>(&self) -> Option<&S> {
+        self.states.iter().find_map(|(c, s)| {
+            if c.is_empty() {
+                s.deref().downcast_ref::<S>()
+            } else {
+                None
+            }
+        })
     }
 }
 
