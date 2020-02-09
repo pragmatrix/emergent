@@ -53,11 +53,8 @@ where
                 }
             }
             (e, state @ ThresholdReached) => {
-                if e.is_active() {
-                    (Some(e), state)
-                } else {
-                    (Some(e), Idle)
-                }
+                let state = if e.is_active() { state } else { Idle };
+                (Some(e), state)
             }
             (_, state) => (None, state),
         };
