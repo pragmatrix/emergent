@@ -13,6 +13,8 @@ pub mod transaction;
 
 pub mod momentum;
 
+pub mod move_threshold;
+
 pub mod pan;
 pub use pan::Pan;
 

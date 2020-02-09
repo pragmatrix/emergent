@@ -1,9 +1,23 @@
+use crate::input_processor::move_threshold::WithMoveThreshold;
 use crate::input_processor::transaction::Transaction;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::Point;
 use emergent_ui::{WindowEvent, WindowMessage};
 
-pub struct Pan {
+pub enum Pan {}
+
+impl Pan {
+    pub fn new() -> impl InputProcessor<In = WindowMessage, Out = Transaction<Point>> {
+        PanProcessor {
+            state: State::Waiting,
+        }
+        .with_move_threshold(10.0)
+    }
+}
+
+pub type Event = Transaction<Point>;
+
+struct PanProcessor {
     state: State,
 }
 
@@ -14,23 +28,7 @@ enum State {
     Moved,
 }
 
-pub type Event = Transaction<Point>;
-
-impl Default for Pan {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Pan {
-    pub fn new() -> Self {
-        Self {
-            state: State::Waiting,
-        }
-    }
-}
-
-impl InputProcessor for Pan {
+impl InputProcessor for PanProcessor {
     type In = WindowMessage;
     type Out = Event;
 
