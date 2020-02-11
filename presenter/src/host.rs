@@ -1,4 +1,4 @@
-use crate::input_processor::{ Subscriber, Subscription};
+use crate::input_processor::{Subscriber, Subscription};
 use crate::{
     AreaHitTest, Context, InputProcessor, InputState, ProcessorRecord, ScopedStore, Support, View,
 };
