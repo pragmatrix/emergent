@@ -1,18 +1,19 @@
 use crate::input_processor::move_threshold::WithMoveThreshold;
 use crate::input_processor::transaction::Transaction;
+use crate::input_processor::{Subscriber, Subscription, Subscriptions};
 use crate::{InputProcessor, InputState};
 use emergent_drawing::Point;
-use emergent_ui::{WindowEvent, WindowMessage};
+use emergent_ui::{MouseButton, WindowEvent, WindowMessage};
 
 pub enum Pan {}
 
 impl Pan {
-    pub fn new() -> impl InputProcessor<In = WindowMessage, Out = Transaction<Point>> {
+    pub fn new() -> impl InputProcessor<In = WindowMessage, Out = Transaction<Point>> + Subscriber {
         Self::new_bare().with_move_threshold(10.0)
     }
 
     // TODO: call this somewhat else (Move processor?)
-    pub(crate) fn new_bare() -> impl InputProcessor<In = WindowMessage, Out = Transaction<Point>> {
+    pub(crate) fn new_bare() -> PanProcessor {
         PanProcessor {
             state: State::Waiting,
         }
@@ -21,7 +22,7 @@ impl Pan {
 
 pub type Event = Transaction<Point>;
 
-struct PanProcessor {
+pub struct PanProcessor {
     state: State,
 }
 
@@ -59,5 +60,16 @@ impl InputProcessor for PanProcessor {
         };
         self.state = state;
         event
+    }
+}
+
+impl Subscriber for PanProcessor {
+    fn subscriptions(&self) -> Subscriptions {
+        let subscriptions = match self.state {
+            State::Waiting => None,
+            State::Pressed => Some(Subscription::ButtonContinuity(MouseButton::Left)),
+            State::Moved => Some(Subscription::ButtonContinuity(MouseButton::Left)),
+        };
+        subscriptions.iter().collect()
     }
 }

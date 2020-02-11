@@ -22,8 +22,6 @@ pub use interpolated::Interpolated;
 mod context;
 pub use context::*;
 
-pub mod processor;
-
 mod processor_record;
 pub(crate) use processor_record::*;
 

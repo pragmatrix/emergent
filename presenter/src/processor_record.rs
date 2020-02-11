@@ -1,11 +1,18 @@
-use crate::input_processor::Subscriptions;
-use crate::processor::{Processor, ProcessorWithSubscription};
-use crate::{processor, ContextPath, ContextScope, InputProcessor, InputState, ScopedState};
+use crate::input_processor::{Subscriber, Subscriptions};
+use crate::{ContextPath, ContextScope, InputProcessor, InputState, ScopedState};
 use emergent_presentation::{PresentationPath, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 
-type ProcessorResolver<Out> = Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn processor::Processor<Out>>;
+type ProcessorResolver<Out> =
+    Box<dyn Fn(&mut Box<dyn Any>) -> &mut dyn WindowMessageProcessor<Out>>;
+
+trait WindowMessageProcessor<Out>: InputProcessor<In = WindowMessage, Out = Out> + Subscriber {}
+
+impl<T, Out> WindowMessageProcessor<Out> for T where
+    T: InputProcessor<In = WindowMessage, Out = Out> + Subscriber
+{
+}
 
 pub(crate) struct ProcessorRecord<Event> {
     // used to map areas to the processor.
@@ -21,13 +28,12 @@ pub(crate) struct ProcessorRecord<Event> {
 }
 
 impl<Event> ProcessorRecord<Event> {
-    pub(crate) fn new<R>(processor: ProcessorWithSubscription<R>) -> Self
+    pub(crate) fn new<R>(processor: R) -> Self
     where
-        R: InputProcessor<In = WindowMessage, Out = Event> + 'static,
+        R: InputProcessor<In = WindowMessage, Out = Event> + Subscriber + 'static,
     {
-        let resolver: ProcessorResolver<Event> = Box::new(|r: &mut Box<dyn Any>| {
-            r.downcast_mut::<ProcessorWithSubscription<R>>().unwrap()
-        });
+        let resolver: ProcessorResolver<Event> =
+            Box::new(|r: &mut Box<dyn Any>| r.downcast_mut::<R>().unwrap());
 
         Self {
             presentation_path: Default::default(),
@@ -78,9 +84,10 @@ impl<Event> InputProcessor for ProcessorRecord<Event> {
     }
 }
 
-impl<Event> Processor<Event> for ProcessorRecord<Event> {
-    fn subscriptions(&mut self) -> &mut Subscriptions {
-        let processor = &mut self.processor;
+impl<Event> Subscriber for ProcessorRecord<Event> {
+    fn subscriptions(&self) -> Subscriptions {
+        // TODO: avoid unsafe.
+        let processor = unsafe { &mut *(&self.processor as *const _ as *mut _) };
         let resolver = &self.resolver;
 
         let processor = resolver(processor);

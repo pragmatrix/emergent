@@ -126,10 +126,6 @@ pub fn view<Msg: 'static>(
                 },
             )
         })
-        // TODO: subscribe should be able to be applied directly on the returned processor.
-        // TODO: subscription of ticks should be implicitly done by the processor.
-        .subscriptions
-        .subscribe(Subscription::Ticks);
     }
 
     view

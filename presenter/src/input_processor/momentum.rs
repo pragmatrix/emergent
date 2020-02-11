@@ -9,7 +9,7 @@
 //!   no way to get the subscriptions consistent.
 
 use crate::input_processor::transaction::Transaction;
-use crate::input_processor::Subscription;
+use crate::input_processor::{Subscriber, Subscription, Subscriptions};
 use crate::{velocity, InputProcessor, InputState};
 use emergent_drawing::{scalar, Point, Vector};
 use emergent_ui::{WindowEvent, WindowMessage};
@@ -101,7 +101,6 @@ where
                         self.state = State::Idle;
                         Some(Commit((p, Phase::Interacting)))
                     } else {
-                        input_state.subscribe(Subscription::Ticks);
                         self.state = State::Drifting {
                             start_p: p,
                             start_time: message.time,
@@ -120,10 +119,7 @@ where
                 start_time,
                 drift_way_v: drift_way,
             } => match (e, &message.event) {
-                (Some(Begin(p)), _) => {
-                    input_state.unsubscribe(Subscription::Ticks);
-                    Some(self.begin(message, p))
-                }
+                (Some(Begin(p)), _) => Some(self.begin(message, p)),
                 (None, WindowEvent::Tick(t2)) => {
                     // TODO: handle time drift here?
                     let dt = *t2 - *start_time;
@@ -132,7 +128,6 @@ where
                         let p = *start_p + *drift_way * (self.drift_easing)(t);
                         Some(Update((p, Phase::Drifting)))
                     } else {
-                        input_state.unsubscribe(Subscription::Ticks);
                         let p = *start_p + *drift_way;
                         self.state = State::Idle;
                         Some(Commit((p, Phase::Drifting)))
@@ -147,7 +142,22 @@ where
     }
 }
 
-impl<R> Momentum<R> {
+impl<P> Subscriber for Momentum<P>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        let mut subs = self.processor.subscriptions();
+        match self.state {
+            State::Idle => {}
+            State::Interacting(_) => {}
+            State::Drifting { .. } => subs.subscribe(Subscription::Ticks),
+        }
+        subs
+    }
+}
+
+impl<P> Momentum<P> {
     fn begin(&mut self, message: WindowMessage, p: Point) -> Transaction<(Point, Phase)> {
         let mut tracker = velocity::Tracker::new(0.25);
         tracker.measure(message.time, p);

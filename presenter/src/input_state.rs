@@ -12,8 +12,6 @@ pub struct InputState {
     processor_context: ContextPath,
     /// The time the input event was sent.
     time: Instant,
-    /// The subscriptions of the processor.
-    subscriptions: input_processor::Subscriptions,
     /// The states available to be modified by the input processor.
     /// There should be a very limited amount of states per context path, so a vector is fine for doing
     /// lookups.
@@ -30,29 +28,12 @@ impl InputState {
         Self {
             processor_context,
             time,
-            subscriptions,
             states: states.into_iter().collect(),
         }
     }
 
     pub fn time(&self) -> Instant {
         self.time
-    }
-
-    //
-    // subscription
-    //
-
-    pub fn subscribe(&mut self, subscription: input_processor::Subscription) {
-        self.subscriptions.subscribe(subscription)
-    }
-
-    pub fn unsubscribe(&mut self, subscription: input_processor::Subscription) {
-        self.subscriptions.unsubscribe(subscription)
-    }
-
-    pub fn contains(&self, subscription: input_processor::Subscription) -> bool {
-        self.subscriptions.subscribes(subscription)
     }
 
     //
@@ -94,7 +75,7 @@ impl InputState {
             .map(|s| s.downcast_mut::<S>().unwrap())
     }
 
-    pub fn into_states(self) -> (input_processor::Subscriptions, Vec<Box<dyn Any>>) {
-        (self.subscriptions, self.states)
+    pub fn into_states(self) -> Vec<Box<dyn Any>> {
+        self.states
     }
 }
