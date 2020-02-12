@@ -3,26 +3,19 @@
 #[macro_use]
 extern crate log;
 
+pub use capture::*;
+pub use frame::*;
+pub use line_breaking::*;
+pub use msg::*;
 use std::thread::JoinHandle;
 
 mod capture;
-pub use capture::*;
-
-mod frame;
-pub use frame::*;
-
 pub mod compiler_message;
-
+mod frame;
 pub mod libtest;
-
 mod line_breaking;
-pub use line_breaking::*;
-
 mod move_predictor;
-
 mod msg;
-pub use msg::*;
-
 mod test_capture;
 pub mod test_runner;
 pub mod test_watcher;
