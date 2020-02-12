@@ -2,6 +2,7 @@
 
 use crate::{Context, Direction, View};
 use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
@@ -45,10 +46,19 @@ impl<'a, E> Data<'a, E> {
     }
 }
 
-impl<'a, E> Data<'a, E> {
-    pub fn map<F, Msg>(self, map_f: F) -> DataMap<'a, F, Msg, E>
+impl<'a, E> IndexAccessible<E> for Data<'a, E> {
+    fn as_slice(&self) -> &[E] {
+        self.data
+    }
+}
+
+pub trait IndexAccessible<E> {
+    fn as_slice(&self) -> &[E];
+
+    fn map_view<F, Msg>(self, map_f: F) -> DataMap<Self, F, Msg, E>
     where
         F: Fn(Context, &E) -> View<Msg>,
+        Self: Sized,
     {
         DataMap {
             data: self,
@@ -56,12 +66,47 @@ impl<'a, E> Data<'a, E> {
             pd: PhantomData,
         }
     }
+
+    fn order_by<F>(self, order_f: F) -> OrderBy<Self, F, E>
+    where
+        E: Clone,
+        F: Fn(&E, &E) -> Ordering,
+        Self: Sized,
+    {
+        let mut projection: Vec<_> = self.as_slice().iter().cloned().collect();
+        projection.sort_by(&order_f);
+
+        OrderBy {
+            data: self,
+            projection,
+            order_f,
+            pd: PhantomData,
+        }
+    }
 }
 
-pub struct DataMap<'a, F, Msg, E> {
-    data: Data<'a, E>,
+pub struct OrderBy<D, F, E> {
+    data: D,
+    projection: Vec<E>,
+    order_f: F,
+    pd: PhantomData<*const E>,
+}
+
+// TODO: may use AsRef<[E]> for that.
+
+impl<'b, D, E, F> IndexAccessible<E> for OrderBy<D, F, E>
+where
+    D: IndexAccessible<E>,
+{
+    fn as_slice(&self) -> &[E] {
+        &self.projection
+    }
+}
+
+pub struct DataMap<D, F, Msg, E> {
+    data: D,
     map_f: F,
-    pd: PhantomData<*const Msg>,
+    pd: PhantomData<(*const Msg, *const E)>,
 }
 
 pub trait IndexMappable<Msg> {
@@ -115,17 +160,18 @@ where
     }
 }
 
-impl<'a, F, Msg, E> IndexMappable<Msg> for DataMap<'a, F, Msg, E>
+impl<D, F, Msg, E> IndexMappable<Msg> for DataMap<D, F, Msg, E>
 where
+    D: IndexAccessible<E>,
     F: Fn(Context, &E) -> View<Msg>,
 {
     fn len(&self) -> usize {
-        self.data.data.len()
+        self.data.as_slice().len()
     }
 
     fn map_i(&self, context: Context, i: usize) -> View<Msg> {
         let map_f = &self.map_f;
-        let data = &self.data.data[i];
+        let data = &self.data.as_slice()[i];
 
         (map_f)(context, data)
     }
