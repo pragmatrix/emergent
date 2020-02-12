@@ -91,7 +91,6 @@ impl<Msg> Host<Msg> {
         let store = &mut self.store;
         self.processors
             .iter_mut()
-            // filter_map because we need mutable access.
             .filter_map(|r| {
                 if r.subscriptions().wants_event(&msg.event)
                     || presentation_scope_hits.contains(r.presentation_path())
@@ -101,34 +100,40 @@ impl<Msg> Host<Msg> {
                     None
                 }
             })
-            .map(|processor| {
-                let c = processor.context_path().clone();
-
-                debug!("processor for hit at context: {:?}", c);
-                let states = store.remove_states_at(&c);
-                debug!(
-                    "states at {:?}: {} {:?}",
-                    c,
-                    states.len(),
-                    states
-                        .iter()
-                        .map(|s| s.deref().type_id())
-                        .collect::<Vec<TypeId>>()
-                );
-
-                let mut input_state = InputState::new(
-                    c.clone(),
-                    msg.time,
-                    processor.subscriptions().clone(),
-                    states,
-                );
-                let msg = processor.dispatch(&mut input_state, msg.clone());
-                let new_context_states = input_state.into_states();
-                store.extend_states_at(&c, new_context_states);
-
-                msg
-            })
+            .map(|processor| Self::dispatch_to_processor(msg.clone(), processor, store))
             .flatten()
             .collect()
+    }
+
+    fn dispatch_to_processor(
+        msg: WindowMessage,
+        processor: &mut ProcessorRecord<Msg>,
+        store: &mut ScopedStore,
+    ) -> Option<Msg> {
+        let c = processor.context_path().clone();
+
+        debug!("processor for msg at context: {:?}", c);
+        let states = store.remove_states_at(&c);
+        debug!(
+            "states at {:?}: {} {:?}",
+            c,
+            states.len(),
+            states
+                .iter()
+                .map(|s| s.deref().type_id())
+                .collect::<Vec<TypeId>>()
+        );
+
+        let mut input_state = InputState::new(
+            c.clone(),
+            msg.time,
+            processor.subscriptions().clone(),
+            states,
+        );
+        let msg = processor.dispatch(&mut input_state, msg);
+        let new_context_states = input_state.into_states();
+        store.extend_states_at(&c, new_context_states);
+
+        msg
     }
 }
