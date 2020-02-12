@@ -91,16 +91,15 @@ impl<Msg> Host<Msg> {
         let store = &mut self.store;
         self.processors
             .iter_mut()
-            .filter_map(|r| {
-                if r.subscriptions().wants_event(&msg.event)
-                    || presentation_scope_hits.contains(r.presentation_path())
+            .map(|processor| {
+                if processor.subscriptions().wants_event(&msg.event)
+                    || presentation_scope_hits.contains(processor.presentation_path())
                 {
-                    Some(r)
+                    Self::dispatch_to_processor(msg.clone(), processor, store)
                 } else {
                     None
                 }
             })
-            .map(|processor| Self::dispatch_to_processor(msg.clone(), processor, store))
             .flatten()
             .collect()
     }

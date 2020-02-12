@@ -39,8 +39,9 @@ impl WindowMessage {
 /// Some of the variants like `KeyboardInput` do refer public winit types, but these may be ported in the
 /// long run.
 // TODO: Several of the variants are missing a device identifier because winit
-// represents it with a platform dependent type.
-// TODO: make serialization possible again by making Instant serializable if that is even possible (otherwise rep.
+//       represents it with a platform dependent type.
+// TODO: make serialization possible again by making Instant serializable if that is even possible.
+//       Otherwise replace Instant with something else.
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum WindowEvent {
