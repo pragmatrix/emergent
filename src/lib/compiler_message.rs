@@ -96,7 +96,7 @@ pub fn diagnostic_level_ordering(l: &CompilerMessage, r: &CompilerMessage) -> Or
     diagnostic_level_severity(l)
         .cmp(&diagnostic_level_severity(r))
         .reverse()
-}f
+}
 
 /// Returns the diagnostic level as an usize, A higher usize means a diagnostic level of an higher severity.
 fn diagnostic_level_severity(compiler_message: &CompilerMessage) -> usize {
