@@ -1,5 +1,4 @@
-use crate::input_processor::{AutoSubscribe, Subscription};
-use crate::processor::Processor;
+use crate::input_processor::{Subscriber, Subscription};
 use crate::{
     AreaHitTest, Context, InputProcessor, InputState, ProcessorRecord, ScopedStore, Support, View,
 };
@@ -92,50 +91,48 @@ impl<Msg> Host<Msg> {
         let store = &mut self.store;
         self.processors
             .iter_mut()
-            // filter_map because we need mutable access.
-            .filter_map(|r| {
-                if r.subscriptions().wants_event(&msg.event)
-                    || presentation_scope_hits.contains(r.presentation_path())
+            .map(|processor| {
+                if processor.subscriptions().wants_event(&msg.event)
+                    || presentation_scope_hits.contains(processor.presentation_path())
                 {
-                    Some(r)
+                    Self::dispatch_to_processor(msg.clone(), processor, store)
                 } else {
                     None
                 }
             })
-            .map(|processor| {
-                let c = processor.context_path().clone();
-
-                debug!("processor for hit at context: {:?}", c);
-                let states = store.remove_states_at(&c);
-                debug!(
-                    "states at {:?}: {} {:?}",
-                    c,
-                    states.len(),
-                    states
-                        .iter()
-                        .map(|s| s.deref().type_id())
-                        .collect::<Vec<TypeId>>()
-                );
-
-                // process automatic subscriptions _before_ dispatching the message into the processor, so that it
-                // can veto.
-
-                msg.event.auto_subscribe(processor.subscriptions());
-
-                let mut input_state = InputState::new(
-                    c.clone(),
-                    msg.time,
-                    processor.subscriptions().clone(),
-                    states,
-                );
-                let msg = processor.dispatch(&mut input_state, msg.clone());
-                let (new_subscriptions, new_context_states) = input_state.into_states();
-                *processor.subscriptions() = new_subscriptions;
-                store.extend_states_at(&c, new_context_states);
-
-                msg
-            })
             .flatten()
             .collect()
+    }
+
+    fn dispatch_to_processor(
+        msg: WindowMessage,
+        processor: &mut ProcessorRecord<Msg>,
+        store: &mut ScopedStore,
+    ) -> Option<Msg> {
+        let c = processor.context_path().clone();
+
+        debug!("processor for msg at context: {:?}", c);
+        let states = store.remove_states_at(&c);
+        debug!(
+            "states at {:?}: {} {:?}",
+            c,
+            states.len(),
+            states
+                .iter()
+                .map(|s| s.deref().type_id())
+                .collect::<Vec<TypeId>>()
+        );
+
+        let mut input_state = InputState::new(
+            c.clone(),
+            msg.time,
+            processor.subscriptions().clone(),
+            states,
+        );
+        let msg = processor.dispatch(&mut input_state, msg);
+        let new_context_states = input_state.into_states();
+        store.extend_states_at(&c, new_context_states);
+
+        msg
     }
 }

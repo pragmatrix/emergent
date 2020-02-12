@@ -11,6 +11,7 @@
 
 use crate::input_processor::momentum::Phase;
 use crate::input_processor::transaction::Transaction;
+use crate::input_processor::{Subscriber, Subscriptions};
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{scalar, Point};
 use std::marker::PhantomData;
@@ -97,5 +98,14 @@ where
             }
         }
         .into()
+    }
+}
+
+impl<P, TF, S> Subscriber for Converge<P, TF, S>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
     }
 }

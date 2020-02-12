@@ -1,8 +1,8 @@
-use crate::input_processor::PreserveMomentum;
 use crate::input_processor::WithResistance;
 use crate::input_processor::{animator, ConvergeTo};
-use crate::input_processor::{easing, Animator, Subscription};
-use crate::{input_processor, Context, InputProcessor, View};
+use crate::input_processor::{easing, Animator};
+use crate::input_processor::{Pan, PreserveMomentum};
+use crate::{Context, InputProcessor, View};
 use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
 use std::ops::Deref;
 use std::time::Duration;
@@ -84,7 +84,7 @@ pub fn view<Msg: 'static>(
     view.attach_input_processor(&mut context, || {
         info!("creating new processor");
         let drift_duration = Duration::from_millis(500);
-        input_processor::Pan::new()
+        Pan::new()
             .map_begin(|p: Point, state: &State| {
                 let d = state.content_transform - p.to_vector();
                 Some(move |p: Point| p + d)
@@ -126,10 +126,6 @@ pub fn view<Msg: 'static>(
                 },
             )
         })
-        // TODO: subscribe should be able to be applied directly on the returned processor.
-        // TODO: subscription of ticks should be implicitly done by the processor.
-        .subscriptions
-        .subscribe(Subscription::Ticks);
     }
 
     view

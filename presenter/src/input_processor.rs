@@ -10,6 +10,7 @@ pub use subscriptions::*;
 pub use tap::Tap;
 pub use transaction::Transaction;
 
+mod activator;
 pub mod animator;
 mod converge;
 pub mod easing;
@@ -83,22 +84,31 @@ pub trait InputProcessor {
     }
 }
 
-pub struct Map<R, F> {
-    processor: R,
+pub struct Map<P, F> {
+    processor: P,
     map_event: F,
 }
 
-impl<To, R, F> InputProcessor for Map<R, F>
+impl<To, P, F> InputProcessor for Map<P, F>
 where
-    R: InputProcessor,
-    F: Fn(R::Out) -> Option<To>,
+    P: InputProcessor,
+    F: Fn(P::Out) -> Option<To>,
 {
-    type In = R::In;
+    type In = P::In;
     type Out = To;
 
-    fn dispatch(&mut self, input_state: &mut InputState, message: R::In) -> Option<Self::Out> {
+    fn dispatch(&mut self, input_state: &mut InputState, message: P::In) -> Option<Self::Out> {
         let event = self.processor.dispatch(input_state, message);
         event.and_then(&self.map_event)
+    }
+}
+
+impl<P, F> Subscriber for Map<P, F>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
     }
 }
 
@@ -120,6 +130,15 @@ where
         let e = self.processor.dispatch(input_state, message)?;
         let state: &mut S = input_state.get_state()?;
         (self.apply)(e, state)
+    }
+}
+
+impl<P, F, To, S> Subscriber for Apply<P, F, To, S>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
     }
 }
 
@@ -165,5 +184,14 @@ where
             }
         }
         .into()
+    }
+}
+
+impl<P, F, State, FM, DataIn, DataOut> Subscriber for MapBegin<P, F, State, FM, DataIn, DataOut>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
     }
 }

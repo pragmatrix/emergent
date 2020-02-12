@@ -1,6 +1,7 @@
 //! State based animation.
 
 use super::subscriptions::Subscription;
+use crate::input_processor::{Subscriber, Subscriptions};
 use crate::interpolated::Interpolated;
 use crate::{InputProcessor, InputState};
 use emergent_drawing::scalar;
@@ -34,6 +35,7 @@ pub struct Animator {
     start_time: Instant,
     duration: Duration,
     easing: fn(scalar) -> scalar,
+    active: bool,
 }
 
 impl Animator {
@@ -46,6 +48,7 @@ impl Animator {
             start_time: Instant::now(),
             duration,
             easing,
+            active: true,
         }
     }
 }
@@ -59,12 +62,12 @@ impl InputProcessor for Animator {
             WindowEvent::Tick(i) => {
                 if i < self.start_time {
                     warn!("time skew, committing animation");
-                    context.unsubscribe(Subscription::Ticks);
+                    self.active = false;
                     return Some(Event::Commit);
                 }
 
                 if i > self.start_time + self.duration {
-                    context.unsubscribe(Subscription::Ticks);
+                    self.active = false;
                     return Some(Event::Commit);
                 }
 
@@ -73,5 +76,16 @@ impl InputProcessor for Animator {
             }
             _ => None,
         }
+    }
+}
+
+impl Subscriber for Animator {
+    fn subscriptions(&self) -> Subscriptions {
+        if self.active {
+            [Subscription::Ticks].iter()
+        } else {
+            [].iter()
+        }
+        .collect()
     }
 }

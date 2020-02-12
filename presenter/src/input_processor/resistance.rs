@@ -1,6 +1,7 @@
 //! Apply resistance to a move gesture.
 
 use crate::input_processor::transaction::Transaction;
+use crate::input_processor::{Subscriber, Subscriptions};
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{Point, Vector};
 use std::marker::PhantomData;
@@ -41,5 +42,14 @@ where
         let e = self.processor.dispatch(input_state, message)?;
         let state: &State = input_state.get_state()?;
         e.map(|p| p + (self.get_resistance_vector)(p, state)).into()
+    }
+}
+
+impl<P, F, State> Subscriber for Resistance<P, F, State>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
     }
 }

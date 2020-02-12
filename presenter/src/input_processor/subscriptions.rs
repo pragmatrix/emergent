@@ -1,6 +1,11 @@
 use emergent_ui::{ElementState, MouseButton, WindowEvent};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::iter::FromIterator;
+
+pub trait Subscriber {
+    fn subscriptions(&self) -> Subscriptions;
+}
 
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct Subscriptions(HashMap<Subscription, usize>);
@@ -40,6 +45,18 @@ impl Subscriptions {
     }
 }
 
+impl FromIterator<Subscription> for Subscriptions {
+    fn from_iter<T: IntoIterator<Item = Subscription>>(iter: T) -> Self {
+        Subscriptions(HashMap::from_iter(iter.into_iter().map(|i| (i, 1))))
+    }
+}
+
+impl<'a> FromIterator<&'a Subscription> for Subscriptions {
+    fn from_iter<T: IntoIterator<Item = &'a Subscription>>(iter: T) -> Self {
+        Subscriptions(HashMap::from_iter(iter.into_iter().map(|i| (i.clone(), 1))))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Subscription {
     /// Subscribed to continuity events after a specific mouse button was pressed.
@@ -66,25 +83,6 @@ impl Subscription {
                 WindowEvent::Tick(_) => true,
                 _ => false,
             },
-        }
-    }
-}
-
-pub(crate) trait AutoSubscribe {
-    /// the set of subscriptions to add or to remove in response to an event.
-    fn auto_subscribe(&self, subscriptions: &mut Subscriptions);
-}
-
-impl AutoSubscribe for WindowEvent {
-    fn auto_subscribe(&self, subscriptions: &mut Subscriptions) {
-        match self {
-            WindowEvent::MouseInput { state, button } if *state == ElementState::Pressed => {
-                subscriptions.subscribe(Subscription::ButtonContinuity(*button));
-            }
-            WindowEvent::MouseInput { state, button } if *state == ElementState::Released => {
-                subscriptions.unsubscribe(Subscription::ButtonContinuity(*button));
-            }
-            _ => {}
         }
     }
 }

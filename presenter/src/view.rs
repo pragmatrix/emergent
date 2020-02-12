@@ -1,4 +1,4 @@
-use crate::processor::ProcessorWithSubscription;
+use crate::input_processor::Subscriber;
 use crate::{Context, ContextPath, ContextScope, InputProcessor, ProcessorRecord, ScopedState};
 use emergent_drawing::{
     Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
@@ -7,7 +7,7 @@ use emergent_presentation::{Presentation, PresentationScope, Scoped};
 use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::cell::RefCell;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
 pub mod scroll;
 
@@ -78,7 +78,7 @@ impl<Msg> View<Msg> {
     /// Attaches state to a View.
     /// Contrary to processors, this state block is never memoized.
     ///
-    /// Attaching state can be useful to provide additional information to the the input processors.
+    /// Attaching state can be useful to provide additional information to input processors.
     pub fn attach_state<S: 'static>(&mut self, state: S) {
         self.states.push((ContextPath::new(), Box::new(state)));
     }
@@ -91,29 +91,20 @@ impl<Msg> View<Msg> {
         &mut self,
         context: &mut Context,
         construct: impl FnOnce() -> R,
-    ) -> &mut ProcessorWithSubscription<R>
-    where
-        R: InputProcessor<In = WindowMessage, Out = Msg> + 'static,
+    ) where
+        R: InputProcessor<In = WindowMessage, Out = Msg> + Subscriber + 'static,
     {
-        let r = context.recycle_state::<ProcessorWithSubscription<R>>();
+        let r = context.recycle_state::<R>();
         let r = r.unwrap_or_else(|| construct().into());
 
         // need to store a function alongside the processor that converts it from an `Any` to its
-        // concrete type, so that it can later be converted back to `Any` in the next rendering cycle.
+        // concrete type, so that it can be converted back to `Any` in the next rendering cycle.
         let record = ProcessorRecord::new(r);
-        self.record_processor(record)
-            .processor
-            .deref_mut()
-            .downcast_mut::<ProcessorWithSubscription<R>>()
-            .unwrap()
+        self.record_processor(record);
     }
 
-    pub(crate) fn record_processor<'a>(
-        &mut self,
-        processor: ProcessorRecord<Msg>,
-    ) -> &mut ProcessorRecord<Msg> {
+    pub(crate) fn record_processor<'a>(&mut self, processor: ProcessorRecord<Msg>) {
         self.processors.push(processor);
-        self.processors.last_mut().unwrap()
     }
 
     pub fn presentation(&self) -> &Presentation {

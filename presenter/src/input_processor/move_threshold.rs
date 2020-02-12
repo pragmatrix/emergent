@@ -1,4 +1,5 @@
 use crate::input_processor::transaction::Transaction;
+use crate::input_processor::{Subscriber, Subscriptions};
 use crate::{InputProcessor, InputState};
 use emergent_drawing::{scalar, Point};
 
@@ -75,6 +76,15 @@ where
     }
 }
 
+impl<P> Subscriber for MoveThreshold<P>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
+    }
+}
+
 pub struct MoveStopThreshold<P> {
     processor: P,
     threshold: scalar,
@@ -121,5 +131,14 @@ where
 
         self.state = new_state;
         e
+    }
+}
+
+impl<P> Subscriber for MoveStopThreshold<P>
+where
+    P: Subscriber,
+{
+    fn subscriptions(&self) -> Subscriptions {
+        self.processor.subscriptions()
     }
 }
