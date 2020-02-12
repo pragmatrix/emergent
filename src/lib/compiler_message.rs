@@ -1,8 +1,10 @@
 //! Rendering of compiler messages.
 
+use cargo_metadata::diagnostic::DiagnosticLevel;
 use cargo_metadata::CompilerMessage;
 use emergent_drawing::{font, functions::*, Drawing, DrawingTarget, Font, Paint, RGB};
 use emergent_terminal::{color_schemes, term, text_attributor};
+use std::cmp::Ordering;
 
 pub trait ToDrawing {
     fn to_drawing(&self) -> Drawing;
@@ -86,6 +88,25 @@ impl ToDrawing for CompilerMessage {
                 drawing
             }
         }
+    }
+}
+
+/// Orders by diagnostic level, from the most severe level to the least.
+pub fn diagnostic_level_ordering(l: &CompilerMessage, r: &CompilerMessage) -> Ordering {
+    diagnostic_level_severity(l)
+        .cmp(&diagnostic_level_severity(r))
+        .reverse()
+}f
+
+/// Returns the diagnostic level as an usize, A higher usize means a diagnostic level of an higher severity.
+fn diagnostic_level_severity(compiler_message: &CompilerMessage) -> usize {
+    match compiler_message.message.level {
+        DiagnosticLevel::Ice => 5,
+        DiagnosticLevel::Error => 4,
+        DiagnosticLevel::Warning => 3,
+        DiagnosticLevel::Note => 2,
+        DiagnosticLevel::Help => 1,
+        DiagnosticLevel::Unknown => 0,
     }
 }
 
