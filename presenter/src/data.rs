@@ -1,9 +1,10 @@
-//! A declarative DSL to create user interface views.
+//! A DSL to create user interface views based on slices.
 
 use crate::{Context, Direction, View};
 use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
+use std::cmp::Ordering;
+use std::marker::PhantomData;
 
-// TODO: View<Msg> and Context<Msg> could be made into a generic V and C?
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
 
 pub struct Item<'a, I> {
@@ -17,17 +18,22 @@ impl<'a, I> Item<'a, I> {
 }
 
 impl<'a, I> Item<'a, I> {
-    pub fn map<Msg>(self, map_f: impl Fn(Context, &I) -> View<Msg> + 'a) -> ItemMap<'a, Msg, I> {
+    pub fn map<F, Msg>(self, map_f: F) -> ItemMap<'a, F, Msg, I>
+    where
+        F: Fn(Context, &I) -> View<Msg>,
+    {
         ItemMap {
             item: self,
-            map_f: Box::new(map_f),
+            map_f,
+            pd: PhantomData,
         }
     }
 }
 
-pub struct ItemMap<'a, Msg, I> {
+pub struct ItemMap<'a, F, Msg, I> {
     item: Item<'a, I>,
-    map_f: Box<dyn Fn(Context, &I) -> View<Msg> + 'a>,
+    map_f: F,
+    pd: PhantomData<*const Msg>,
 }
 
 pub struct Data<'a, E> {
@@ -40,18 +46,67 @@ impl<'a, E> Data<'a, E> {
     }
 }
 
-impl<'a, E> Data<'a, E> {
-    pub fn map<Msg>(self, map_f: impl Fn(Context, &E) -> View<Msg> + 'a) -> DataMap<'a, Msg, E> {
+impl<'a, E> IndexAccessible<E> for Data<'a, E> {
+    fn as_slice(&self) -> &[E] {
+        self.data
+    }
+}
+
+pub trait IndexAccessible<E> {
+    fn as_slice(&self) -> &[E];
+
+    fn map_view<F, Msg>(self, map_f: F) -> DataMap<Self, F, Msg, E>
+    where
+        F: Fn(Context, &E) -> View<Msg>,
+        Self: Sized,
+    {
         DataMap {
             data: self,
-            map_f: Box::new(map_f),
+            map_f,
+            pd: PhantomData,
+        }
+    }
+
+    fn order_by<F>(self, order_f: F) -> OrderBy<Self, F, E>
+    where
+        E: Clone,
+        F: Fn(&E, &E) -> Ordering,
+        Self: Sized,
+    {
+        let mut projection: Vec<_> = self.as_slice().iter().cloned().collect();
+        projection.sort_by(&order_f);
+
+        OrderBy {
+            data: self,
+            projection,
+            order_f,
+            pd: PhantomData,
         }
     }
 }
 
-pub struct DataMap<'a, Msg, E> {
-    data: Data<'a, E>,
-    map_f: Box<dyn Fn(Context, &E) -> View<Msg> + 'a>,
+pub struct OrderBy<D, F, E> {
+    data: D,
+    projection: Vec<E>,
+    order_f: F,
+    pd: PhantomData<*const E>,
+}
+
+// TODO: may use AsRef<[E]> for that.
+
+impl<'b, D, E, F> IndexAccessible<E> for OrderBy<D, F, E>
+where
+    D: IndexAccessible<E>,
+{
+    fn as_slice(&self) -> &[E] {
+        &self.projection
+    }
+}
+
+pub struct DataMap<D, F, Msg, E> {
+    data: D,
+    map_f: F,
+    pd: PhantomData<(*const Msg, *const E)>,
 }
 
 pub trait IndexMappable<Msg> {
@@ -89,7 +144,10 @@ impl<'a, Msg> IndexMappable<Msg> for ExtendedIndexMappable<'a, Msg> {
     }
 }
 
-impl<'a, Msg, I> IndexMappable<Msg> for ItemMap<'a, Msg, I> {
+impl<'a, F, Msg, I> IndexMappable<Msg> for ItemMap<'a, F, Msg, I>
+where
+    F: Fn(Context, &I) -> View<Msg>,
+{
     fn len(&self) -> usize {
         1
     }
@@ -102,14 +160,18 @@ impl<'a, Msg, I> IndexMappable<Msg> for ItemMap<'a, Msg, I> {
     }
 }
 
-impl<'a, Msg, E> IndexMappable<Msg> for DataMap<'a, Msg, E> {
+impl<D, F, Msg, E> IndexMappable<Msg> for DataMap<D, F, Msg, E>
+where
+    D: IndexAccessible<E>,
+    F: Fn(Context, &E) -> View<Msg>,
+{
     fn len(&self) -> usize {
-        self.data.data.len()
+        self.data.as_slice().len()
     }
 
     fn map_i(&self, context: Context, i: usize) -> View<Msg> {
         let map_f = &self.map_f;
-        let data = &self.data.data[i];
+        let data = &self.data.as_slice()[i];
 
         (map_f)(context, data)
     }

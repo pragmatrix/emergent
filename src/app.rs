@@ -2,10 +2,10 @@ use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use emergent::test_watcher::{Notification, TestWatcher};
-use emergent::WindowModel;
+use emergent::{compiler_message, WindowModel};
 use emergent::{test_watcher, Msg};
 use emergent_presenter::{
-    scroll, Context, Data, Direction, IndexMappable, Reducible, View, ViewRenderer,
+    scroll, Context, Data, Direction, IndexAccessible, IndexMappable, Reducible, View, ViewRenderer,
 };
 use std::collections::HashSet;
 use tears::Cmd;
@@ -100,7 +100,8 @@ impl ViewRenderer<Msg> for App {
         let content = |ctx: Context| match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
                 Data::new(compiler_messages)
-                    .map(|_, cm| cm.to_drawing().into())
+                    .order_by(compiler_message::diagnostic_level_ordering)
+                    .map_view(|_, cm| cm.to_drawing().into())
                     .reduce(ctx, Direction::Column)
             }
 
@@ -113,10 +114,11 @@ impl ViewRenderer<Msg> for App {
                     &[]
                 };
 
-                let compiler_messages =
-                    Data::new(compiler_messages).map(|_, cm| cm.to_drawing().into());
+                let compiler_messages = Data::new(compiler_messages)
+                    .order_by(compiler_message::diagnostic_level_ordering)
+                    .map_view(|_, cm| cm.to_drawing().into());
 
-                let captures = Data::new(&captures.0).map(|c, capture| {
+                let captures = Data::new(&captures.0).map_view(|c, capture| {
                     let show_contents = !self.collapsed_tests.contains(&capture.name);
                     capture.present(c, show_contents)
                 });

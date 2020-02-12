@@ -4,8 +4,8 @@ extern crate log;
 mod hit_test;
 pub use hit_test::*;
 
-mod declarative;
-pub use declarative::*;
+mod data;
+pub use data::*;
 
 mod host;
 pub use host::*;
