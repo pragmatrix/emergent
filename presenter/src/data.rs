@@ -1,9 +1,13 @@
 //! A DSL to create user interface views based on slices.
 
 use crate::{Context, Direction, View};
-use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
+use emergent_drawing::{
+    Bounds, DrawingBounds, DrawingFastBounds, DrawingFastBoundsSlice, MeasureText, Point,
+    Transformed, Vector,
+};
 use std::cmp::Ordering;
 use std::marker::PhantomData;
+use std::ops::Deref;
 
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
 
@@ -36,6 +40,10 @@ pub struct ItemMap<'a, F, Msg, I> {
     pd: PhantomData<*const Msg>,
 }
 
+//
+// Data (TODO: rename this to projection?)
+//
+
 pub struct Data<'a, E> {
     data: &'a [E],
 }
@@ -52,6 +60,30 @@ impl<'a, E> IndexAccessible<E> for Data<'a, E> {
     }
 }
 
+//
+// AsData / TODO: rename to Project / as_projection()?
+//
+
+pub trait AsData<'a, E> {
+    fn as_data(&'a self) -> Data<'a, E>;
+}
+
+impl<'a, E> AsData<'a, E> for Vec<E> {
+    fn as_data(&'a self) -> Data<'a, E> {
+        Data::new(&self)
+    }
+}
+
+impl<'a, E> AsData<'a, E> for &'a [E] {
+    fn as_data(&'a self) -> Data<'a, E> {
+        Data::new(self)
+    }
+}
+
+//
+// IndexAccessible
+//
+
 pub trait IndexAccessible<E> {
     fn as_slice(&self) -> &[E];
 
@@ -64,6 +96,25 @@ pub trait IndexAccessible<E> {
             data: self,
             map_f,
             pd: PhantomData,
+        }
+    }
+
+    fn partition<F>(self, partition_f: F) -> Partition<Self, F, E>
+    where
+        E: Clone,
+        F: Fn(&E) -> bool,
+        Self: Sized,
+    {
+        let (a, b): (Vec<_>, Vec<_>) = self
+            .as_slice()
+            .iter()
+            .cloned()
+            .partition(|e| partition_f(e));
+
+        Partition {
+            data: self,
+            partition_f,
+            result: (a, b),
         }
     }
 
@@ -80,16 +131,18 @@ pub trait IndexAccessible<E> {
             data: self,
             projection,
             order_f,
-            pd: PhantomData,
         }
     }
 }
+
+//
+// OrderBy
+//
 
 pub struct OrderBy<D, F, E> {
     data: D,
     projection: Vec<E>,
     order_f: F,
-    pd: PhantomData<*const E>,
 }
 
 // TODO: may use AsRef<[E]> for that.
@@ -102,6 +155,20 @@ where
         &self.projection
     }
 }
+
+//
+// Partition
+//
+
+pub struct Partition<D, F, E> {
+    data: D,
+    partition_f: F,
+    pub result: (Vec<E>, Vec<E>),
+}
+
+//
+// DataMap
+//
 
 pub struct DataMap<D, F, Msg, E> {
     data: D,
