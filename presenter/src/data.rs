@@ -1,13 +1,13 @@
 //! A DSL to create user interface views based on slices.
 
-use crate::{Context, Direction, View};
+use crate::{Context, ContextScope, Direction, View};
 use emergent_drawing::{
-    Bounds, DrawingBounds, DrawingFastBounds, DrawingFastBoundsSlice, MeasureText, Point,
-    Transformed, Vector,
+    DrawingBounds, DrawingFastBounds, DrawingFastBoundsSlice, MeasureText, Point, Transformed,
+    Vector,
 };
+use emergent_presentation::Scope;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
-use std::ops::Deref;
 
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
 
@@ -246,6 +246,18 @@ where
 
 pub trait Reducible<Msg> {
     fn reduce(self, context: Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg>;
+
+    fn reduce_scoped(
+        self,
+        context: &mut Context,
+        scope: impl Into<ContextScope>,
+        reducer: impl ViewReducer<Msg> + 'static,
+    ) -> View<Msg>
+    where
+        Self: Sized,
+    {
+        context.scoped(scope, |c| self.reduce(c, reducer))
+    }
 }
 
 impl<Msg, T> Reducible<Msg> for T
@@ -285,11 +297,15 @@ impl<Msg> ViewReducer<Msg> for () {
 
 impl<Msg> ViewReducer<Msg> for Direction {
     fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg> {
+        let bounds = views.fast_bounds(&context);
+        let v = self.layout(bounds.into_iter());
+
+        let mut p = Point::default();
+        let direction = self.to_vector();
+
         // TODO: recycle container?
         // TODO: only display elements that are visible.
         // TODO: Use a generic layout manager here.
-        let mut p = Point::default();
-        let direction = self.to_vector();
 
         let views = views.into_iter().enumerate().map(|(i, view)| {
             let view = view.presentation_scoped(i);
@@ -305,5 +321,38 @@ impl<Msg> ViewReducer<Msg> for Direction {
         });
 
         View::new_combined(views)
+    }
+}
+
+pub trait SimpleLayout {
+    fn layout(&self, bounds: impl Iterator<Item = DrawingBounds>) -> Vec<Vector>;
+
+    fn layout_bounds(&self, bounds: impl Iterator<Item = DrawingBounds>) -> Vec<DrawingBounds> {
+        let bounds: Vec<_> = bounds.collect();
+        let vecs = self.layout(bounds.iter().cloned());
+        vecs.into_iter()
+            .enumerate()
+            .map(|(i, v)| bounds[i].transformed(v))
+            .collect()
+    }
+}
+
+impl SimpleLayout for Direction {
+    fn layout(&self, bounds: impl Iterator<Item = DrawingBounds>) -> Vec<Vector> {
+        let mut p = Point::default();
+        let direction = self.to_vector();
+
+        bounds
+            .map(|drawing_bounds| {
+                if let Some(bounds) = drawing_bounds.as_bounds() {
+                    let align = -bounds.point.to_vector();
+                    let nested = (p + align).to_vector();
+                    p += Vector::from(bounds.extent) * direction;
+                    nested
+                } else {
+                    Vector::default()
+                }
+            })
+            .collect()
     }
 }
