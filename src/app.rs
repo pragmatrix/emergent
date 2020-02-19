@@ -1,3 +1,4 @@
+use cargo_metadata::diagnostic::DiagnosticLevel;
 use crossbeam_channel::Receiver;
 use emergent::compiler_message::ToDrawing;
 use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
@@ -5,7 +6,8 @@ use emergent::test_watcher::{Notification, TestWatcher};
 use emergent::{compiler_message, WindowModel};
 use emergent::{test_watcher, Msg};
 use emergent_presenter::{
-    scroll, Context, Data, Direction, IndexAccessible, IndexMappable, Reducible, View, ViewRenderer,
+    scroll, tab, AsData, Context, Data, Direction, IndexAccessible, IndexMappable, Reducible, View,
+    ViewRenderer,
 };
 use std::collections::HashSet;
 use tears::Cmd;
@@ -97,42 +99,67 @@ impl App {
 
 impl ViewRenderer<Msg> for App {
     fn render_view(&self, ctx: Context) -> View<Msg> {
-        let content = |ctx: Context| match &self.test_run_result {
+        let create = |ctx: &mut Context| match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
-                Data::new(compiler_messages)
+                let partition = compiler_messages
+                    .as_data()
+                    .partition(|c| match c.message.level {
+                        DiagnosticLevel::Error => true,
+                        _ => false,
+                    });
+
+                let (errors, rest) = partition.result;
+                let errors = errors
+                    .as_data()
+                    .map_view(|_, cm| cm.to_drawing().into())
+                    .reduce_scoped(ctx, "errors", Direction::Column);
+                let rest = rest
+                    .as_data()
                     .order_by(compiler_message::diagnostic_level_ordering)
                     .map_view(|_, cm| cm.to_drawing().into())
-                    .reduce(ctx, Direction::Column)
+                    .reduce_scoped(ctx, "warnings", Direction::Column);
+
+                (errors, rest, View::new())
             }
 
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
-                // only render compiler messages if we don't have any
-                // captures to show (later we can just collapse them by default).
-                let compiler_messages = if captures.0.is_empty() {
-                    compiler_messages.as_slice()
-                } else {
-                    &[]
-                };
+                let partition = compiler_messages
+                    .as_data()
+                    .partition(|c| match c.message.level {
+                        DiagnosticLevel::Error => true,
+                        _ => false,
+                    });
 
-                let compiler_messages = Data::new(compiler_messages)
+                let (errors, rest) = partition.result;
+                let errors = errors
+                    .as_data()
+                    .map_view(|_, cm| cm.to_drawing().into())
+                    .reduce_scoped(ctx, "errors", Direction::Column);
+                let rest = rest
+                    .as_data()
                     .order_by(compiler_message::diagnostic_level_ordering)
-                    .map_view(|_, cm| cm.to_drawing().into());
+                    .map_view(|_, cm| cm.to_drawing().into())
+                    .reduce_scoped(ctx, "warnings", Direction::Column);
 
-                let captures = Data::new(&captures.0).map_view(|c, capture| {
+                let captures = captures.0.as_data().map_view(|c, capture| {
                     let show_contents = !self.collapsed_tests.contains(&capture.name);
                     capture.present(c, show_contents)
                 });
 
-                let elements = compiler_messages.extend(&captures);
-                elements.reduce(ctx, Direction::Column)
+                let captures = captures.reduce_scoped(ctx, "captures", Direction::Column);
+
+                (errors, rest, captures)
             }
             _ => {
                 // TODO: no result yet (should we display some notification... running test, etc?)
-                View::new()
+                Default::default()
             }
         };
 
-        scroll::view(ctx, content)
+        tab::view(ctx, |ctx| {
+            let (errors, warnings, tests) = create(ctx);
+            vec![errors, warnings, tests]
+        })
     }
 }
 
