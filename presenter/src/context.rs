@@ -79,7 +79,8 @@ impl Context {
         scope: impl Into<ContextScope>,
         create_content: impl FnOnce(Context) -> View<Msg>,
     ) -> View<Msg> {
-        self.scoped_r(scope, |c| ((), create_content(c))).1
+        let (_r, view) = self.scoped_r(scope, |c| ((), create_content(c)));
+        view
     }
     /// Produce a view inside the scoped context.
     ///
@@ -112,6 +113,7 @@ impl Context {
         self.with_state_r(construct, |c, s| ((), with_state(c, s)))
             .1
     }
+
     /// Calls a function that maintains uses view state and generates a view.
     ///
     /// If there is no state available at the current context scope, `construct` is called to generate a new one.
