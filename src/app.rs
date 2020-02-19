@@ -109,17 +109,25 @@ impl ViewRenderer<Msg> for App {
                     });
 
                 let (errors, rest) = partition.result;
-                let errors = errors
-                    .as_data()
-                    .map_view(|_, cm| cm.to_drawing().into())
-                    .reduce_scoped(ctx, "errors", Direction::Column);
-                let rest = rest
-                    .as_data()
-                    .order_by(compiler_message::diagnostic_level_ordering)
-                    .map_view(|_, cm| cm.to_drawing().into())
-                    .reduce_scoped(ctx, "warnings", Direction::Column);
+                let errors = |ctx: Context| {
+                    errors
+                        .as_data()
+                        .map_view(|_, cm| cm.to_drawing().into())
+                        .reduce(ctx, Direction::Column)
+                };
 
-                (errors, rest, View::new())
+                let rest = |ctx: Context| {
+                    rest.as_data()
+                        .order_by(compiler_message::diagnostic_level_ordering)
+                        .map_view(|_, cm| cm.to_drawing().into())
+                        .reduce(ctx, Direction::Column)
+                };
+
+                (
+                    ctx.scoped("errors", |ctx| scroll::view(ctx, errors)),
+                    ctx.scoped("warnings", |ctx| scroll::view(ctx, rest)),
+                    View::new(),
+                )
             }
 
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
@@ -131,24 +139,34 @@ impl ViewRenderer<Msg> for App {
                     });
 
                 let (errors, rest) = partition.result;
-                let errors = errors
-                    .as_data()
-                    .map_view(|_, cm| cm.to_drawing().into())
-                    .reduce_scoped(ctx, "errors", Direction::Column);
-                let rest = rest
-                    .as_data()
-                    .order_by(compiler_message::diagnostic_level_ordering)
-                    .map_view(|_, cm| cm.to_drawing().into())
-                    .reduce_scoped(ctx, "warnings", Direction::Column);
+                let errors = |ctx: Context| {
+                    errors
+                        .as_data()
+                        .map_view(|_, cm| cm.to_drawing().into())
+                        .reduce(ctx, Direction::Column)
+                };
 
-                let captures = captures.0.as_data().map_view(|c, capture| {
-                    let show_contents = !self.collapsed_tests.contains(&capture.name);
-                    capture.present(c, show_contents)
-                });
+                let rest = |ctx: Context| {
+                    rest.as_data()
+                        .order_by(compiler_message::diagnostic_level_ordering)
+                        .map_view(|_, cm| cm.to_drawing().into())
+                        .reduce(ctx, Direction::Column)
+                };
 
-                let captures = captures.reduce_scoped(ctx, "captures", Direction::Column);
+                let captures = |ctx: Context| {
+                    let captures = captures.0.as_data().map_view(|c, capture| {
+                        let show_contents = !self.collapsed_tests.contains(&capture.name);
+                        capture.present(c, show_contents)
+                    });
 
-                (errors, rest, captures)
+                    captures.reduce(ctx, Direction::Column)
+                };
+
+                (
+                    ctx.scoped("errors", |ctx| scroll::view(ctx, errors)),
+                    ctx.scoped("warnings", |ctx| scroll::view(ctx, rest)),
+                    ctx.scoped("captures", |ctx| scroll::view(ctx, captures)),
+                )
             }
             _ => {
                 // TODO: no result yet (should we display some notification... running test, etc?)
