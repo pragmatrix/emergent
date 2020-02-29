@@ -55,6 +55,13 @@ impl Vector {
     pub fn cross_product(a: &Vector, b: &Vector) -> scalar {
         a.x * b.y - a.y * b.x
     }
+
+    pub fn abs(self) -> Vector {
+        Vector {
+            x: self.x.abs(),
+            y: self.y.abs(),
+        }
+    }
 }
 
 //

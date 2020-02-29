@@ -124,6 +124,7 @@ impl Context {
         with_state: impl FnOnce(Context, &S) -> (R, View<Msg>),
     ) -> (R, View<Msg>) {
         let state = self.recycle_state().unwrap_or_else(construct);
+        // better use TypeId, at least in release builds?
         let scope: ContextScope = any::type_name::<S>().into();
         let (r, view) = self.scoped_r(scope, |ctx| with_state(ctx, &state));
         (r, view.with_state(state))
@@ -135,8 +136,8 @@ impl Context {
             None => {
                 warn!(
                     "failed to recycle state: {:?} {:?}, states available: {:?}",
-                    TypeId::of::<S>(),
                     any::type_name::<S>(),
+                    TypeId::of::<S>(),
                     self.previous
                 );
                 None

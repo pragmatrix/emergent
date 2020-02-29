@@ -1,11 +1,7 @@
 //! A DSL to create user interface views based on slices.
 
 use crate::{Context, ContextScope, Direction, View};
-use emergent_drawing::{
-    DrawingBounds, DrawingFastBounds, DrawingFastBoundsSlice, MeasureText, Point, Transformed,
-    Vector,
-};
-use emergent_presentation::Scope;
+use emergent_drawing::{DrawingBounds, DrawingFastBounds, Point, Transformed, Vector};
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
@@ -311,7 +307,9 @@ impl<Msg> ViewReducer<Msg> for Direction {
             let view = view.presentation_scoped(i);
             let drawing_bounds = view.fast_bounds(&context);
             if let Some(bounds) = drawing_bounds.as_bounds() {
-                let align = -bounds.point.to_vector();
+                // * direction.abs() makes sure that only alignment in the layout direction is considered, and
+                // the alignment of the cross axis is left as it is.
+                let align = -bounds.point.to_vector() * direction.abs();
                 let nested = view.transformed((p + align).to_vector());
                 p += Vector::from(bounds.extent) * direction;
                 nested

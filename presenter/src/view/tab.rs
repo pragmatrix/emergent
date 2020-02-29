@@ -24,9 +24,9 @@ pub fn view<Msg: 'static>(
             assert!(!views.is_empty());
             let focused = s.focused_index.min(views.len() - 1);
             let bounds = Direction::Row.layout_bounds(views.iter().map(|v| v.fast_bounds(&c)));
-            let focused_bounds = bounds[focused];
+            let focused_bounds = bounds[focused].as_bounds();
             let view = Direction::Row.reduce(c, views);
-            match focused_bounds.as_bounds() {
+            match focused_bounds {
                 Some(bounds) => view.transformed(bounds.point.to_vector()),
                 None => view,
             }
