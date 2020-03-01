@@ -293,9 +293,6 @@ impl<Msg> ViewReducer<Msg> for () {
 
 impl<Msg> ViewReducer<Msg> for Direction {
     fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg> {
-        let bounds = views.fast_bounds(&context);
-        let v = self.layout(bounds.into_iter());
-
         let mut p = Point::default();
         let direction = self.to_vector();
 
