@@ -2,6 +2,7 @@ use crate::{
     Arc, Bounds, Circle, Clip, Clipped, Contains, Drawing, Extent, Line, Outset, Oval, Point,
     Polygon, Rect, RoundedRect, Shape, Text, Transform, Transformed, Union,
 };
+use std::ops::Deref;
 
 pub trait MeasureText {
     /// Measure the given text bounds.
@@ -74,6 +75,28 @@ pub trait ComplexFastBounds {
 
 pub trait DrawingFastBounds {
     fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds;
+}
+
+pub trait DrawingFastBoundsSlice {
+    fn fast_bounds(&self, measure: &dyn MeasureText) -> Vec<DrawingBounds>;
+}
+
+impl<E> DrawingFastBoundsSlice for &[E]
+where
+    E: DrawingFastBounds,
+{
+    fn fast_bounds(&self, measure: &dyn MeasureText) -> Vec<DrawingBounds> {
+        self.iter().map(|e| e.fast_bounds(measure)).collect()
+    }
+}
+
+impl<E> DrawingFastBoundsSlice for Vec<E>
+where
+    E: DrawingFastBounds,
+{
+    fn fast_bounds(&self, measure: &MeasureText) -> Vec<DrawingBounds> {
+        self.deref().fast_bounds(measure)
+    }
 }
 
 //

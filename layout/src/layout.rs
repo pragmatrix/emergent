@@ -67,7 +67,7 @@ impl LayoutContext {
 
 /// A layout bound on an axis.
 ///
-/// TOOD: this looks similar to Max.
+/// TODO: this looks similar to Max.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Bound {
     Unbounded,

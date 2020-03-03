@@ -1,7 +1,7 @@
 //! A DSL to create user interface views based on slices.
 
-use crate::{Context, Direction, View};
-use emergent_drawing::{DrawingFastBounds, Point, Transformed, Vector};
+use crate::{Context, ContextScope, Direction, View};
+use emergent_drawing::{DrawingBounds, DrawingFastBounds, Point, Transformed, Vector};
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
@@ -36,6 +36,10 @@ pub struct ItemMap<'a, F, Msg, I> {
     pd: PhantomData<*const Msg>,
 }
 
+//
+// Data (TODO: rename this to projection?)
+//
+
 pub struct Data<'a, E> {
     data: &'a [E],
 }
@@ -52,6 +56,30 @@ impl<'a, E> IndexAccessible<E> for Data<'a, E> {
     }
 }
 
+//
+// AsData / TODO: rename to Project / as_projection()?
+//
+
+pub trait AsData<'a, E> {
+    fn as_data(&'a self) -> Data<'a, E>;
+}
+
+impl<'a, E> AsData<'a, E> for Vec<E> {
+    fn as_data(&'a self) -> Data<'a, E> {
+        Data::new(&self)
+    }
+}
+
+impl<'a, E> AsData<'a, E> for &'a [E] {
+    fn as_data(&'a self) -> Data<'a, E> {
+        Data::new(self)
+    }
+}
+
+//
+// IndexAccessible
+//
+
 pub trait IndexAccessible<E> {
     fn as_slice(&self) -> &[E];
 
@@ -64,6 +92,25 @@ pub trait IndexAccessible<E> {
             data: self,
             map_f,
             pd: PhantomData,
+        }
+    }
+
+    fn partition<F>(self, partition_f: F) -> Partition<Self, F, E>
+    where
+        E: Clone,
+        F: Fn(&E) -> bool,
+        Self: Sized,
+    {
+        let (a, b): (Vec<_>, Vec<_>) = self
+            .as_slice()
+            .iter()
+            .cloned()
+            .partition(|e| partition_f(e));
+
+        Partition {
+            data: self,
+            partition_f,
+            result: (a, b),
         }
     }
 
@@ -80,16 +127,18 @@ pub trait IndexAccessible<E> {
             data: self,
             projection,
             order_f,
-            pd: PhantomData,
         }
     }
 }
+
+//
+// OrderBy
+//
 
 pub struct OrderBy<D, F, E> {
     data: D,
     projection: Vec<E>,
     order_f: F,
-    pd: PhantomData<*const E>,
 }
 
 // TODO: may use AsRef<[E]> for that.
@@ -102,6 +151,20 @@ where
         &self.projection
     }
 }
+
+//
+// Partition
+//
+
+pub struct Partition<D, F, E> {
+    data: D,
+    partition_f: F,
+    pub result: (Vec<E>, Vec<E>),
+}
+
+//
+// DataMap
+//
 
 pub struct DataMap<D, F, Msg, E> {
     data: D,
@@ -179,6 +242,18 @@ where
 
 pub trait Reducible<Msg> {
     fn reduce(self, context: Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg>;
+
+    fn reduce_scoped(
+        self,
+        context: &mut Context,
+        scope: impl Into<ContextScope>,
+        reducer: impl ViewReducer<Msg> + 'static,
+    ) -> View<Msg>
+    where
+        Self: Sized,
+    {
+        context.scoped(scope, |c| self.reduce(c, reducer))
+    }
 }
 
 impl<Msg, T> Reducible<Msg> for T
@@ -218,17 +293,20 @@ impl<Msg> ViewReducer<Msg> for () {
 
 impl<Msg> ViewReducer<Msg> for Direction {
     fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg> {
+        let mut p = Point::default();
+        let direction = self.to_vector();
+
         // TODO: recycle container?
         // TODO: only display elements that are visible.
         // TODO: Use a generic layout manager here.
-        let mut p = Point::default();
-        let direction = self.to_vector();
 
         let views = views.into_iter().enumerate().map(|(i, view)| {
             let view = view.presentation_scoped(i);
             let drawing_bounds = view.fast_bounds(&context);
             if let Some(bounds) = drawing_bounds.as_bounds() {
-                let align = -bounds.point.to_vector();
+                // * direction.abs() makes sure that only alignment in the layout direction is considered, and
+                // the alignment of the cross axis is left as it is.
+                let align = -bounds.point.to_vector() * direction.abs();
                 let nested = view.transformed((p + align).to_vector());
                 p += Vector::from(bounds.extent) * direction;
                 nested
@@ -238,5 +316,38 @@ impl<Msg> ViewReducer<Msg> for Direction {
         });
 
         View::new_combined(views)
+    }
+}
+
+pub trait SimpleLayout {
+    fn layout(&self, bounds: impl Iterator<Item = DrawingBounds>) -> Vec<Vector>;
+
+    fn layout_bounds(&self, bounds: impl Iterator<Item = DrawingBounds>) -> Vec<DrawingBounds> {
+        let bounds: Vec<_> = bounds.collect();
+        let vecs = self.layout(bounds.iter().cloned());
+        vecs.into_iter()
+            .enumerate()
+            .map(|(i, v)| bounds[i].transformed(v))
+            .collect()
+    }
+}
+
+impl SimpleLayout for Direction {
+    fn layout(&self, bounds: impl Iterator<Item = DrawingBounds>) -> Vec<Vector> {
+        let mut p = Point::default();
+        let direction = self.to_vector();
+
+        bounds
+            .map(|drawing_bounds| {
+                if let Some(bounds) = drawing_bounds.as_bounds() {
+                    let align = -bounds.point.to_vector();
+                    let nested = (p + align).to_vector();
+                    p += Vector::from(bounds.extent) * direction;
+                    nested
+                } else {
+                    Vector::default()
+                }
+            })
+            .collect()
     }
 }

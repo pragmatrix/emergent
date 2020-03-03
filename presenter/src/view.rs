@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::ops::Deref;
 
 pub mod scroll;
+pub mod tab;
 
 pub trait ViewRenderer<Msg> {
     fn render_view(&self, context: Context) -> View<Msg>;
@@ -25,7 +26,7 @@ pub struct View<Msg> {
     /// computing bounds are not available, so we compute this lazily.
     bounds: RefCell<Option<DrawingBounds>>,
 
-    /// The processors that are active.
+    /// The input processors that are active.
     processors: Vec<ProcessorRecord<Msg>>,
 
     /// The captured states of all the context scopes.

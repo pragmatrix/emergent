@@ -14,7 +14,7 @@ impl<T, Out> WindowMessageProcessor<Out> for T where
 {
 }
 
-pub(crate) struct ProcessorRecord<Event> {
+pub(crate) struct ProcessorRecord<Msg> {
     // used to map areas to the processor.
     presentation_path: PresentationPath,
     // used to know where the processor was created,
@@ -24,7 +24,7 @@ pub(crate) struct ProcessorRecord<Event> {
     // original type and can't use it as a state record.
     pub(crate) processor: Box<dyn Any>,
     // A function that converts the Box<Any> to a InputProcessor reference.
-    resolver: ProcessorResolver<Event>,
+    resolver: ProcessorResolver<Msg>,
 }
 
 impl<Event> ProcessorRecord<Event> {
