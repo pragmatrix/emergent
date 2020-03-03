@@ -76,11 +76,11 @@ impl<Msg> View<Msg> {
         }
     }
 
-    /// Attaches state to a View.
+    /// Sets a new state and makes it available to the current Context.
     /// Contrary to processors, this state block is never memoized.
     ///
-    /// Attaching state can be useful to provide additional information to input processors.
-    pub fn attach_state<S: 'static>(&mut self, state: S) {
+    /// Setting a state can be useful to provide additional information to input processors.
+    pub fn set_state<S: 'static>(&mut self, state: S) {
         self.states.push((ContextPath::new(), Box::new(state)));
     }
 

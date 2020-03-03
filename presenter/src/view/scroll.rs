@@ -80,7 +80,7 @@ pub fn view<Msg: 'static>(
     );
 
     let mut view = view.in_area();
-    view.attach_state(ConstrainedContentTransform(constrained_content_transform));
+    view.set_state(ConstrainedContentTransform(constrained_content_transform));
     view.attach_input_processor(&mut context, || {
         info!("creating new processor");
         let drift_duration = Duration::from_millis(500);
