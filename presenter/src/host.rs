@@ -1,6 +1,7 @@
 use crate::input_processor::{Subscriber, Subscription};
 use crate::{
     AreaHitTest, Context, InputProcessor, InputState, ProcessorRecord, ScopedStore, Support, View,
+    ViewBuilder,
 };
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
@@ -32,8 +33,11 @@ impl<Msg> Host<Msg> {
         }
     }
 
-    pub fn present(&mut self, boundary: FrameLayout, present: impl FnOnce(Context) -> View<Msg>)
-    where
+    pub fn present(
+        &mut self,
+        boundary: FrameLayout,
+        present: impl FnOnce(ViewBuilder<Msg>) -> View<Msg>,
+    ) where
         Msg: 'static,
     {
         // get all the states from the previous run.
@@ -44,7 +48,8 @@ impl<Msg> Host<Msg> {
         let store = store.merged(processor_store);
 
         let context = Context::new(self.support.clone(), boundary, store);
-        let (presentation, processors, states) = present(context).destructure();
+        let builder = ViewBuilder::new(context);
+        let (presentation, processors, states) = present(builder).destructure();
 
         self.presentation = presentation;
         self.processors = processors;

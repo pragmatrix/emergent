@@ -2,9 +2,8 @@ use crate::input_processor::WithResistance;
 use crate::input_processor::{animator, ConvergeTo};
 use crate::input_processor::{easing, Animator};
 use crate::input_processor::{Pan, PreserveMomentum};
-use crate::{Context, InputProcessor, View};
-use emergent_drawing::{scalar, DrawingFastBounds, Point, Rect, Transformed, Vector};
-use std::ops::Deref;
+use crate::{InputProcessor, View, ViewBuilder};
+use emergent_drawing::{scalar, Point, Rect, Vector};
 use std::time::Duration;
 
 #[derive(Clone)]
@@ -21,67 +20,62 @@ struct ConstrainedContentTransform(Vector);
 // Experiment: create a scroll view around a content view.
 /// TODO: this must be somehow be lazy, and perhaps something that can be bound to the elements that generate the content views?
 pub fn view<Msg: 'static>(
-    mut context: Context,
-    build_content: impl FnOnce(Context) -> View<Msg>,
+    mut builder: ViewBuilder<Msg>,
+    build_content: impl FnOnce(ViewBuilder<Msg>) -> View<Msg>,
 ) -> View<Msg> {
-    let create_content = |context: Context, state: &State| {
-        trace!("scrollview at: {:?}", state.content_transform);
-        // TODO, we must consume the context, but then we need to get support and view_bounds out of it, this is ugly.
-        let support = context.support();
-        let view_bounds = context.view_bounds();
-        trace!("view_bounds: {:?}", view_bounds);
+    // TODO, we must consume the context, but then we need to get support and view_bounds out of it, this is ugly.
+    let container_bounds = builder.view_bounds();
+    trace!("view_bounds: {:?}", container_bounds);
 
-        let view = build_content(context);
+    let view = builder.scoped(0, build_content);
 
-        let content_bounds = view.fast_bounds(support.deref());
-        let (constrained_content_transform, transform) = match content_bounds.as_bounds() {
-            Some(content_bounds) => {
-                let content_bounds = content_bounds.to_rect();
-                trace!("content_bounds: {:?}", content_bounds);
+    let content_bounds = view.fast_bounds(&builder);
 
-                let aligned_bounds = align_in_container(
-                    &content_bounds,
-                    (Alignment::Center, Alignment::Begin),
-                    &view_bounds,
-                );
-                let alignment_transform = aligned_bounds.left_top() - content_bounds.left_top();
-                trace!("alignment_transform: {:?}", alignment_transform);
+    let state = builder.use_state(|| {
+        info!("scrollview: resetting state");
+        State {
+            content_transform: Vector::new(0.0, 0.0),
+            movement_active: false,
+        }
+    });
 
-                let preferred_bounds = aligned_bounds + state.content_transform;
-                trace!("preferred_bounds: {:?}", preferred_bounds);
+    trace!("scrollview at: {:?}", state.content_transform);
 
-                let constrained_bounds = constrain_in_container(&preferred_bounds, &view_bounds);
-                trace!("perfect_place: {:?}", constrained_bounds);
+    let (constrained_content_transform, transform) = match content_bounds.as_bounds() {
+        Some(content_bounds) => {
+            let content_bounds = content_bounds.to_rect();
+            trace!("content_bounds: {:?}", content_bounds);
 
-                let constrained_content_transform = state.content_transform
-                    + (constrained_bounds.center() - preferred_bounds.center());
+            let aligned_bounds = align_in_container(
+                &content_bounds,
+                (Alignment::Center, Alignment::Begin),
+                &container_bounds,
+            );
+            let alignment_transform = aligned_bounds.left_top() - content_bounds.left_top();
+            trace!("alignment_transform: {:?}", alignment_transform);
 
-                (
-                    constrained_content_transform,
-                    alignment_transform + state.content_transform,
-                )
-            }
-            None => Default::default(),
-        };
-        trace!("final_transform: {:?}", transform);
+            let preferred_bounds = aligned_bounds + state.content_transform;
+            trace!("preferred_bounds: {:?}", preferred_bounds);
 
-        (constrained_content_transform, view.transformed(transform))
+            let constrained_bounds = constrain_in_container(&preferred_bounds, &container_bounds);
+            trace!("perfect_place: {:?}", constrained_bounds);
+
+            let constrained_content_transform =
+                state.content_transform + (constrained_bounds.center() - preferred_bounds.center());
+
+            (
+                constrained_content_transform,
+                alignment_transform + state.content_transform,
+            )
+        }
+        None => Default::default(),
     };
+    trace!("final_transform: {:?}", transform);
 
-    let (constrained_content_transform, view) = context.with_state_r(
-        || {
-            info!("scrollview: resetting state");
-            State {
-                content_transform: Vector::new(0.0, 0.0),
-                movement_active: false,
-            }
-        },
-        create_content,
-    );
+    let view = view.transformed(transform).in_area();
 
-    let mut view = view.in_area();
-    view.set_state(ConstrainedContentTransform(constrained_content_transform));
-    view.attach_input_processor(&mut context, || {
+    builder.set_state(ConstrainedContentTransform(constrained_content_transform));
+    builder.use_input_processor(|| {
         info!("creating new processor");
         let drift_duration = Duration::from_millis(500);
         Pan::new()
@@ -115,10 +109,10 @@ pub fn view<Msg: 'static>(
     // - When the content was changed _and_ the previously installed input processor is not active.
 
     // TODO: support Deref to be able to access `is_active()` on `mover`?
-    let state: &State = view.get_state().unwrap();
+    let state: &State = builder.get_state().unwrap();
     if !state.movement_active && state.content_transform != constrained_content_transform {
         let initial = state.content_transform;
-        view.attach_input_processor(&mut context, || {
+        builder.use_input_processor(|| {
             Animator::new(Duration::from_millis(200), easing::ease_out_cubic).apply(
                 move |e: animator::Event, s: &mut State| {
                     s.content_transform = e.interpolate(&initial, &constrained_content_transform);
@@ -128,7 +122,7 @@ pub fn view<Msg: 'static>(
         })
     }
 
-    view
+    builder.wrapped(view)
 }
 
 fn align_in_container(to_center: &Rect, align: (Alignment, Alignment), container: &Rect) -> Rect {

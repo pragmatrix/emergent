@@ -4,35 +4,38 @@ use crate::libtest::TestCapture;
 use crate::Msg;
 use emergent_drawing::functions::{paint, text};
 use emergent_drawing::{font, Drawing, DrawingTarget, Font};
+use emergent_presentation::Presentation;
 use emergent_presenter::input_processor::Tap;
 use emergent_presenter::{
-    Context, Direction, IndexMappable, InputProcessor, Item, Reducible, View,
+    Direction, IndexMappable, InputProcessor, Item, Reducible, View, ViewBuilder,
 };
 
 impl TestCapture {
-    pub fn present(&self, mut c: Context, show_contents: bool) -> View<Msg> {
-        c.scoped(&self.name, |c| {
-            let header = Item::new(&self.name).map(|mut c, name| {
+    pub fn present(&self, mut b: ViewBuilder<Msg>, show_contents: bool) -> View<Msg> {
+        let nested = b.scoped(&self.name, |mut b| {
+            let header = Item::new(&self.name).map(|mut b, name| {
                 let name = name.to_string();
-                let mut view = Self::view_header(&name).in_area();
-
-                view.attach_input_processor(&mut c, || {
+                let presentation = Self::present_header(&name).in_area();
+                b.use_input_processor(|| {
                     Tap::new().map(move |_| Some(Msg::ToggleTestcase { name: name.clone() }))
                 });
-                view
+                b.present(presentation)
             });
 
             if !show_contents {
-                return header.reduce(c, ());
+                return header.reduce(b, ());
             }
 
-            let contents = Item::new(&self.output).map(|_, output| Self::view_output(output));
+            let contents =
+                Item::new(&self.output).map(|b, output| b.present(Self::present_output(output)));
 
-            header.extend(&contents).reduce(c, Direction::Column)
-        })
+            header.extend(&contents).reduce(b, Direction::Column)
+        });
+
+        b.wrapped(nested)
     }
 
-    fn view_header(title: &str) -> View<Msg> {
+    fn present_header(title: &str) -> Presentation {
         let header_font = &Font::new("", font::Style::NORMAL, font::Size::new(20.0));
         let mut drawing = Drawing::new();
         let text = text(title, header_font, None);
@@ -40,7 +43,7 @@ impl TestCapture {
         drawing.into()
     }
 
-    fn view_output(output: &str) -> View<Msg> {
+    fn present_output(output: &str) -> Presentation {
         // TODO: render invalid output as text and mark it appropriately
         if !output.starts_with("> ") {
             return Drawing::new().into();
@@ -55,13 +58,13 @@ impl TestCapture {
 #[cfg(test)]
 mod tests {
     use crate::libtest::{TestCapture, TestResult};
-    use crate::skia::test_environment::context;
+    use crate::skia::test_environment::view_builder;
     use emergent_drawing::functions::rect;
     use emergent_drawing::{Drawing, DrawingTarget, Paint, Render, Visualize, RGB};
 
     #[test]
     fn capture_presentations() {
-        let context = context::from_test_environment();
+        let b = view_builder::from_test_environment();
 
         let output = {
             let mut drawing = Drawing::new();
@@ -78,8 +81,9 @@ mod tests {
         // TODO: a more direct way to visualize views would be nice, it's a bit confusing to have to clone
         //       support from context before it is consumed.
 
-        let support = context.support();
-        let view = capture.present(context, true);
+        let support = b.support().clone();
+
+        let view = capture.present(b, true);
         // TODO: this &* is counter-intuitive too (comes from the Rc wrapper).
         view.into_presentation().visualize(&*support).render();
     }

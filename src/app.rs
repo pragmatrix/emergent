@@ -5,9 +5,9 @@ use emergent::test_runner::{TestEnvironment, TestRunRequest, TestRunResult};
 use emergent::test_watcher::{Notification, TestWatcher};
 use emergent::{compiler_message, WindowModel};
 use emergent::{test_watcher, Msg};
+use emergent_presentation::Presentation;
 use emergent_presenter::{
-    scroll, tab, AsData, Context, Data, Direction, IndexAccessible, IndexMappable, Reducible, View,
-    ViewRenderer,
+    scroll, tab, AsData, Direction, IndexAccessible, Reducible, View, ViewBuilder, ViewRenderer,
 };
 use std::collections::HashSet;
 use tears::Cmd;
@@ -98,8 +98,8 @@ impl App {
 }
 
 impl ViewRenderer<Msg> for App {
-    fn render_view(&self, ctx: Context) -> View<Msg> {
-        let create = |ctx: &mut Context| match &self.test_run_result {
+    fn render_view(&self, builder: ViewBuilder<Msg>) -> View<Msg> {
+        let create = |b: &mut ViewBuilder<Msg>| match &self.test_run_result {
             Some(TestRunResult::CompilationFailed(compiler_messages, _e)) => {
                 let partition = compiler_messages
                     .as_data()
@@ -109,25 +109,24 @@ impl ViewRenderer<Msg> for App {
                     });
 
                 let (errors, rest) = partition.result;
-                let errors = |ctx: Context| {
+                let errors = |b: ViewBuilder<Msg>| {
                     errors
                         .as_data()
-                        .map_view(|_, cm| cm.to_drawing().into())
-                        .reduce(ctx, Direction::Column)
+                        .map_view(|b, cm| b.present(cm.to_drawing().into()))
+                        .reduce(b, Direction::Column)
                 };
 
-                let rest = |ctx: Context| {
+                let rest = |b: ViewBuilder<Msg>| {
                     rest.as_data()
                         .order_by(compiler_message::diagnostic_level_ordering)
-                        .map_view(|_, cm| cm.to_drawing().into())
-                        .reduce(ctx, Direction::Column)
+                        .map_view(|b, cm| b.present(cm.to_drawing().into()))
+                        .reduce(b, Direction::Column)
                 };
 
-                (
-                    ctx.scoped("errors", |ctx| scroll::view(ctx, errors)),
-                    ctx.scoped("warnings", |ctx| scroll::view(ctx, rest)),
-                    View::new(),
-                )
+                vec![
+                    b.scoped("errors", |b| scroll::view(b, errors)),
+                    b.scoped("warnings", |b| scroll::view(b, rest)),
+                ]
             }
 
             Some(TestRunResult::TestsCaptured(compiler_messages, captures)) => {
@@ -139,45 +138,42 @@ impl ViewRenderer<Msg> for App {
                     });
 
                 let (errors, rest) = partition.result;
-                let errors = |ctx: Context| {
+                let errors = |b: ViewBuilder<_>| {
                     errors
                         .as_data()
-                        .map_view(|_, cm| cm.to_drawing().into())
-                        .reduce(ctx, Direction::Column)
+                        .map_view(|b, cm| b.present(cm.to_drawing().into()))
+                        .reduce(b, Direction::Column)
                 };
 
-                let rest = |ctx: Context| {
+                let rest = |b: ViewBuilder<_>| {
                     rest.as_data()
                         .order_by(compiler_message::diagnostic_level_ordering)
-                        .map_view(|_, cm| cm.to_drawing().into())
-                        .reduce(ctx, Direction::Column)
+                        // TODO: support map_drawing and map_presentation?
+                        .map_view(|b, cm| b.present(cm.to_drawing().into()))
+                        .reduce(b, Direction::Column)
                 };
 
-                let captures = |ctx: Context| {
+                let captures = |b: ViewBuilder<_>| {
                     let captures = captures.0.as_data().map_view(|c, capture| {
                         let show_contents = !self.collapsed_tests.contains(&capture.name);
                         capture.present(c, show_contents)
                     });
 
-                    captures.reduce(ctx, Direction::Column)
+                    captures.reduce(b, Direction::Column)
                 };
 
-                (
-                    ctx.scoped("errors", |ctx| scroll::view(ctx, errors)),
-                    ctx.scoped("warnings", |ctx| scroll::view(ctx, rest)),
-                    ctx.scoped("captures", |ctx| scroll::view(ctx, captures)),
-                )
+                vec![
+                    b.scoped("errors", |b| scroll::view(b, errors)),
+                    b.scoped("warnings", |b| scroll::view(b, rest)),
+                    b.scoped("captures", |b| scroll::view(b, captures)),
+                ]
             }
-            _ => {
-                // TODO: no result yet (should we display some notification... running test, etc?)
-                Default::default()
-            }
+            // TODO: present some state that indicates that no captures where found yet or that tests are
+            // still running?
+            _ => vec![b.scoped("captures", |b| b.present(Presentation::Empty))],
         };
 
-        tab::view(ctx, |ctx| {
-            let (errors, warnings, tests) = create(ctx);
-            vec![errors, warnings, tests]
-        })
+        tab::view(builder, create)
     }
 }
 

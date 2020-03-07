@@ -1,5 +1,5 @@
-use crate::input_processor::{Pan, Subscriber, Subscriptions, Transaction, WithMoveThreshold};
-use crate::{InputProcessor, InputState};
+use crate::input_processor::{Pan, Subscriber, Transaction, WithMoveThreshold};
+use crate::InputProcessor;
 use emergent_drawing::Point;
 use emergent_ui::WindowMessage;
 

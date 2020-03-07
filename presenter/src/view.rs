@@ -1,19 +1,16 @@
-use crate::input_processor::Subscriber;
-use crate::{Context, ContextPath, ContextScope, InputProcessor, ProcessorRecord, ScopedState};
+use crate::{ContextPath, ContextScope, ProcessorRecord, ScopedState, ViewBuilder};
 use emergent_drawing::{
-    Drawing, DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
+    DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
 };
 use emergent_presentation::{Presentation, PresentationScope, Scoped};
-use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::cell::RefCell;
-use std::ops::Deref;
 
 pub mod scroll;
 pub mod tab;
 
 pub trait ViewRenderer<Msg> {
-    fn render_view(&self, context: Context) -> View<Msg>;
+    fn render_view(&self, builder: ViewBuilder<Msg>) -> View<Msg>;
 }
 
 pub struct View<Msg> {
@@ -34,27 +31,28 @@ pub struct View<Msg> {
     states: Vec<(ContextPath, Box<dyn Any>)>,
 }
 
-impl<Msg> Default for View<Msg> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<Msg> View<Msg> {
-    pub fn new() -> Self {
+    pub(crate) fn new(
+        presentation: Presentation,
+        processors: Vec<ProcessorRecord<Msg>>,
+        states: Vec<(ContextPath, Box<dyn Any>)>,
+    ) -> Self {
         Self {
-            presentation: Default::default(),
+            presentation,
             bounds: None.into(),
-            processors: Default::default(),
-            states: Default::default(),
+            processors,
+            states,
         }
     }
 
-    pub fn new_combined(views: impl IntoIterator<Item = View<Msg>>) -> View<Msg> {
-        views.into_iter().fold(View::new(), |c, n| c.combined(n))
+    pub(crate) fn new_combined(
+        container: View<Msg>,
+        nested: impl IntoIterator<Item = View<Msg>>,
+    ) -> View<Msg> {
+        nested.into_iter().fold(container, |c, n| c.combined(n))
     }
 
-    pub fn combined(mut self, right: View<Msg>) -> View<Msg> {
+    pub(crate) fn combined(mut self, right: View<Msg>) -> View<Msg> {
         self.presentation.push_on_top(right.presentation);
         // TODO: this is very problematic, causing bounds to be computed multiple times for
         // the same subtree of presentations.
@@ -76,40 +74,12 @@ impl<Msg> View<Msg> {
         }
     }
 
-    /// Sets a new state and makes it available to the current Context.
-    /// Contrary to processors, this state block is never memoized.
-    ///
-    /// Setting a state can be useful to provide additional information to input processors.
-    pub fn set_state<S: 'static>(&mut self, state: S) {
-        self.states.push((ContextPath::new(), Box::new(state)));
-    }
-
-    /// Attaches a processor to a View.
-    ///
-    /// This function reuses a processor with the same type from the current context.
-    /// TODO: this function should not leak the type `ProcessorWithSubscription<R>`
-    pub fn attach_input_processor<R>(
-        &mut self,
-        context: &mut Context,
-        construct: impl FnOnce() -> R,
-    ) where
-        R: InputProcessor<In = WindowMessage, Out = Msg> + Subscriber + 'static,
-    {
-        let r = context.recycle_state::<R>();
-        let r = r.unwrap_or_else(|| construct().into());
-
-        // need to store a function alongside the processor that converts it from an `Any` to its
-        // concrete type, so that it can be converted back to `Any` in the next rendering cycle.
-        let record = ProcessorRecord::new(r);
-        self.record_processor(record);
-    }
-
-    pub(crate) fn record_processor<'a>(&mut self, processor: ProcessorRecord<Msg>) {
-        self.processors.push(processor);
-    }
-
     pub fn presentation(&self) -> &Presentation {
         &self.presentation
+    }
+
+    pub(crate) fn presentation_mut(&mut self) -> &mut Presentation {
+        &mut self.presentation
     }
 
     pub(crate) fn destructure(self) -> (Presentation, Vec<ProcessorRecord<Msg>>, Vec<ScopedState>) {
@@ -153,16 +123,6 @@ impl<Msg> View<Msg> {
         self.states.push((ContextPath::new(), Box::new(state)));
         self
     }
-
-    pub fn get_state<S: 'static>(&self) -> Option<&S> {
-        self.states.iter().find_map(|(c, s)| {
-            if c.is_empty() {
-                s.deref().downcast_ref::<S>()
-            } else {
-                None
-            }
-        })
-    }
 }
 
 impl<Msg> Transformed for View<Msg> {
@@ -190,20 +150,5 @@ impl<Msg> DrawingFastBounds for View<Msg> {
             }
         });
         r
-    }
-}
-
-impl<Msg> From<Presentation> for View<Msg> {
-    fn from(presentation: Presentation) -> Self {
-        Self {
-            presentation,
-            ..View::new()
-        }
-    }
-}
-
-impl<Msg> From<Drawing> for View<Msg> {
-    fn from(drawing: Drawing) -> Self {
-        Presentation::from(drawing).into()
     }
 }
