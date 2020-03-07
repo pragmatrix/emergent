@@ -28,6 +28,9 @@ pub(crate) use processor_record::*;
 mod scoped_store;
 pub use scoped_store::*;
 
+mod scoped_view;
+pub use scoped_view::*;
+
 mod support;
 pub use support::*;
 
