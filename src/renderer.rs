@@ -11,7 +11,7 @@ use vulkano::instance::{ApplicationInfo, Instance, PhysicalDevice, Version};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain;
-use vulkano::swapchain::ColorSpace;
+use vulkano::swapchain::{ColorSpace, FullscreenExclusive};
 use vulkano::swapchain::{
     PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainCreationError,
 };
@@ -172,7 +172,8 @@ pub fn create_context_and_frame_state<W: Window>(
             SurfaceTransform::Identity,
             alpha,
             present_mode,
-            true,
+            FullscreenExclusive::Default,
+            true, /* clipped */
             ColorSpace::SrgbNonLinear,
         )
         .unwrap()
@@ -422,7 +423,7 @@ impl<W: Window> RenderContext<W> {
 
         let (new_swapchain, new_images) = match frame
             .swapchain
-            .recreate_with_dimension([dimensions.0, dimensions.1])
+            .recreate_with_dimensions([dimensions.0, dimensions.1])
         {
             Ok(r) => r,
             // This error tends to happen when the user is manually resizing the window.

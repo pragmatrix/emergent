@@ -40,15 +40,15 @@ crossbeam-channel = "0.4"
 skia-safe = { path = "rust-skia/skia-safe", features = ["vulkan", "textlayout"] }
 
 # window & rendering
-winit = { version = "0.20", features = ["serde"] }
+winit = { version = "0.21", features = ["serde"] }
 
 # we need a custom vulkano build that sets the request Vulkan instance version
 # to the same version as the physical device's version,
 # because of the version consistency Skia expects.
 vk-sys = { path = "vulkano/vk-sys" }
-vulkano = { path = "vulkano/vulkano", version = "0.16" }
-vulkano-win = { path = "vulkano/vulkano-win", version = "0.16" }
-vulkano-shaders = { path = "vulkano/vulkano-shaders", version = "0.16" }
+vulkano = { path = "vulkano/vulkano", version = "0.17" }
+vulkano-win = { path = "vulkano/vulkano-win", version = "0.17" }
+vulkano-shaders = { path = "vulkano/vulkano-shaders", version = "0.17" }
 
 # logging
 log = "0.4"
