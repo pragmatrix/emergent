@@ -47,6 +47,10 @@ impl<Event> ProcessorRecord<Event> {
         &self.presentation_path
     }
 
+    pub(crate) fn presentation_path_mut(&mut self) -> &mut PresentationPath {
+        &mut self.presentation_path
+    }
+
     pub fn context_path(&self) -> &ContextPath {
         &self.context_path
     }

@@ -28,7 +28,7 @@ pub struct ContextMarker;
 /// An ephemeral type that is used to present views inside a space that
 /// is defined by a named or indexed scope.
 ///
-/// TODO: may rename to ViewState or (View)Builder?
+/// TODO: make this pub(crate) or embed it into ViewBuilder<Msg>?
 #[derive(Debug)]
 pub struct Context {
     support: Rc<Support>,
@@ -74,7 +74,15 @@ impl Context {
         }
     }
 
-    pub fn scoped<Msg>(
+    pub fn support(&self) -> &Rc<Support> {
+        &self.support
+    }
+
+    pub fn view_bounds(&self) -> Rect {
+        self.view_bounds.clone()
+    }
+
+    pub(crate) fn scoped<Msg>(
         &mut self,
         scope: impl Into<ContextScope>,
         create_content: impl FnOnce(Context) -> View<Msg>,
@@ -82,13 +90,14 @@ impl Context {
         let (_r, view) = self.scoped_r(scope, |c| ((), create_content(c)));
         view
     }
+
     /// Produce a view inside the scoped context.
     ///
     /// A `ContextScope` is meant to be resemble the function call hierarchy and is not necessarily related to the
     /// resulting view graph.
     ///
     /// The return value _is_ the view that was produced inside the scoped context.
-    pub fn scoped_r<Msg, R>(
+    pub(crate) fn scoped_r<Msg, R>(
         &mut self,
         scope: impl Into<ContextScope>,
         create_content: impl FnOnce(Context) -> (R, View<Msg>),
@@ -105,31 +114,6 @@ impl Context {
         (r, view)
     }
 
-    pub fn with_state<S: 'static, Msg>(
-        &mut self,
-        construct: impl FnOnce() -> S,
-        with_state: impl FnOnce(Context, &S) -> View<Msg>,
-    ) -> View<Msg> {
-        self.with_state_r(construct, |c, s| ((), with_state(c, s)))
-            .1
-    }
-
-    /// Calls a function that maintains uses view state and generates a view.
-    ///
-    /// If there is no state available at the current context scope, `construct` is called to generate a new one.
-    /// If there is a state available, the previous state is recycled and passed to the `with_state` function.
-    pub fn with_state_r<S: 'static, Msg, R>(
-        &mut self,
-        construct: impl FnOnce() -> S,
-        with_state: impl FnOnce(Context, &S) -> (R, View<Msg>),
-    ) -> (R, View<Msg>) {
-        let state = self.recycle_state().unwrap_or_else(construct);
-        // better use TypeId, at least in release builds?
-        let scope: ContextScope = any::type_name::<S>().into();
-        let (r, view) = self.scoped_r(scope, |ctx| with_state(ctx, &state));
-        (r, view.with_state(state))
-    }
-
     /// Tries to recycle a typed state from the current context. If successful, the typed state is removed.
     pub(crate) fn recycle_state<S: 'static>(&mut self) -> Option<S> {
         match self.previous.remove_state() {
@@ -144,14 +128,6 @@ impl Context {
             }
             Some(r) => Some(r),
         }
-    }
-
-    pub fn support(&self) -> Rc<Support> {
-        self.support.clone()
-    }
-
-    pub fn view_bounds(&self) -> Rect {
-        self.view_bounds.clone()
     }
 }
 

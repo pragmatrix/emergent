@@ -1,3 +1,12 @@
+pub mod view_builder {
+    use emergent_presenter::ViewBuilder;
+
+    pub fn from_test_environment<Msg>() -> ViewBuilder<Msg> {
+        let context = super::context::from_test_environment();
+        ViewBuilder::new(context)
+    }
+}
+
 pub mod context {
     use emergent_presenter::{Context, ScopedStore};
 

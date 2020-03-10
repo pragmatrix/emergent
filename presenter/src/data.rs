@@ -1,9 +1,12 @@
-//! A DSL to create user interface views based on slices.
+//! A DSL to create user interface views based on data.
 
-use crate::{Context, ContextScope, Direction, View};
-use emergent_drawing::{DrawingBounds, DrawingFastBounds, Point, Transformed, Vector};
+use crate::{Direction, ScopedView, View, ViewBuilder};
+use emergent_drawing::{DrawingBounds, Point, Transformed, Vector};
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::marker::PhantomData;
+use std::mem;
+use std::ops::Range;
 
 // TODO: combine Item and Data somehow, or can we use a trait to make them both mappable?
 
@@ -20,7 +23,7 @@ impl<'a, I> Item<'a, I> {
 impl<'a, I> Item<'a, I> {
     pub fn map<F, Msg>(self, map_f: F) -> ItemMap<'a, F, Msg, I>
     where
-        F: Fn(Context, &I) -> View<Msg>,
+        F: Fn(ViewBuilder<Msg>, &I) -> View<Msg>,
     {
         ItemMap {
             item: self,
@@ -85,7 +88,7 @@ pub trait IndexAccessible<E> {
 
     fn map_view<F, Msg>(self, map_f: F) -> DataMap<Self, F, Msg, E>
     where
-        F: Fn(Context, &E) -> View<Msg>,
+        F: Fn(ViewBuilder<Msg>, &E) -> View<Msg>,
         Self: Sized,
     {
         DataMap {
@@ -174,7 +177,7 @@ pub struct DataMap<D, F, Msg, E> {
 
 pub trait IndexMappable<Msg> {
     fn len(&self) -> usize;
-    fn map_i(&self, context: Context, i: usize) -> View<Msg>;
+    fn map_i(&self, builder: ViewBuilder<Msg>, i: usize) -> View<Msg>;
 
     fn extend<'a>(&'a self, other: &'a dyn IndexMappable<Msg>) -> ExtendedIndexMappable<'a, Msg>
     where
@@ -197,63 +200,55 @@ impl<'a, Msg> IndexMappable<Msg> for ExtendedIndexMappable<'a, Msg> {
         self.left.len() + self.right.len()
     }
 
-    fn map_i(&self, context: Context, i: usize) -> View<Msg> {
+    fn map_i(&self, builder: ViewBuilder<Msg>, i: usize) -> View<Msg> {
         let ll = self.left.len();
         if i < ll {
-            self.left.map_i(context, i)
+            self.left.map_i(builder, i)
         } else {
-            self.right.map_i(context, i - ll)
+            self.right.map_i(builder, i - ll)
         }
     }
 }
 
 impl<'a, F, Msg, I> IndexMappable<Msg> for ItemMap<'a, F, Msg, I>
 where
-    F: Fn(Context, &I) -> View<Msg>,
+    F: Fn(ViewBuilder<Msg>, &I) -> View<Msg>,
 {
     fn len(&self) -> usize {
         1
     }
 
-    fn map_i(&self, context: Context, i: usize) -> View<Msg> {
+    fn map_i(&self, builder: ViewBuilder<Msg>, i: usize) -> View<Msg> {
         debug_assert_eq!(i, 0);
         let map_f = &self.map_f;
         let item = &self.item.item;
-        (map_f)(context, item)
+        (map_f)(builder, item)
     }
 }
 
 impl<D, F, Msg, E> IndexMappable<Msg> for DataMap<D, F, Msg, E>
 where
     D: IndexAccessible<E>,
-    F: Fn(Context, &E) -> View<Msg>,
+    F: Fn(ViewBuilder<Msg>, &E) -> View<Msg>,
 {
     fn len(&self) -> usize {
         self.data.as_slice().len()
     }
 
-    fn map_i(&self, context: Context, i: usize) -> View<Msg> {
+    fn map_i(&self, builder: ViewBuilder<Msg>, i: usize) -> View<Msg> {
         let map_f = &self.map_f;
         let data = &self.data.as_slice()[i];
 
-        (map_f)(context, data)
+        (map_f)(builder, data)
     }
 }
 
 pub trait Reducible<Msg> {
-    fn reduce(self, context: Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg>;
-
-    fn reduce_scoped(
+    fn reduce(
         self,
-        context: &mut Context,
-        scope: impl Into<ContextScope>,
+        builder: ViewBuilder<Msg>,
         reducer: impl ViewReducer<Msg> + 'static,
-    ) -> View<Msg>
-    where
-        Self: Sized,
-    {
-        context.scoped(scope, |c| self.reduce(c, reducer))
-    }
+    ) -> View<Msg>;
 }
 
 impl<Msg, T> Reducible<Msg> for T
@@ -261,38 +256,64 @@ where
     T: IndexMappable<Msg>,
 {
     // TODO: this is not the whole story here, how can we reduce incrementally?
-    fn reduce(self, mut context: Context, reducer: impl ViewReducer<Msg> + 'static) -> View<Msg> {
-        let len = self.len();
-
-        let views: Vec<View<Msg>> = (0..len)
-            .map(|i| context.scoped(i, |c| self.map_i(c, i)))
-            .collect();
-        let reduced = reducer.reduce(context, views);
+    fn reduce(
+        self,
+        mut builder: ViewBuilder<Msg>,
+        reducer: impl ViewReducer<Msg> + 'static,
+    ) -> View<Msg> {
+        let reduced = reducer.reduce(builder, 0..self.len(), |builder, i| {
+            builder.scoped(i, |b| self.map_i(b, i))
+        });
         reduced
     }
 }
 
-// TODO: I think this trait provides the wrong functionality, we need to support to pull
-//       view elements lazily (probably by index?).
-//       If so, this interface may be replacible by IndexMappable?
 pub trait ViewReducer<Msg> {
-    fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg>;
+    fn reduce(
+        &self,
+        container: ViewBuilder<Msg>,
+        views: Range<usize>,
+        builder: impl Fn(&mut ViewBuilder<Msg>, usize) -> ScopedView<Msg>,
+    ) -> View<Msg>;
+
+    // TODO: this is temporary until we might find a better signature for reduce, that allows both, a set of
+    // pre-generated ScopedViews and lazy resolvement.
+    fn reduce_immediate(&self, container: ViewBuilder<Msg>, v: Vec<ScopedView<Msg>>) -> View<Msg> {
+        let v: Vec<_> = v.into_iter().map(Some).collect();
+        let len = v.len();
+        // TODO: avoid the RefCell here?
+        let v = RefCell::new(v);
+        self.reduce(container, 0..len, |_, i| {
+            let v = mem::replace(v.borrow_mut().get_mut(i).unwrap(), None).unwrap();
+            v
+        })
+    }
 }
 
 /// TODO: find a better type for the identity reducer.
 
 impl<Msg> ViewReducer<Msg> for () {
-    fn reduce(&self, _context: Context, views: Vec<View<Msg>>) -> View<Msg> {
-        let views = views
+    fn reduce(
+        &self,
+        mut container: ViewBuilder<Msg>,
+        views: Range<usize>,
+        builder: impl Fn(&mut ViewBuilder<Msg>, usize) -> ScopedView<Msg>,
+    ) -> View<Msg> {
+        let nested: Vec<_> = views
             .into_iter()
-            .enumerate()
-            .map(|(i, view)| view.presentation_scoped(i));
-        View::new_combined(views)
+            .map(|i| builder(&mut container, i))
+            .collect();
+        container.combined(nested)
     }
 }
 
 impl<Msg> ViewReducer<Msg> for Direction {
-    fn reduce(&self, context: Context, views: Vec<View<Msg>>) -> View<Msg> {
+    fn reduce(
+        &self,
+        mut container: ViewBuilder<Msg>,
+        views: Range<usize>,
+        builder: impl Fn(&mut ViewBuilder<Msg>, usize) -> ScopedView<Msg>,
+    ) -> View<Msg> {
         let mut p = Point::default();
         let direction = self.to_vector();
 
@@ -300,22 +321,25 @@ impl<Msg> ViewReducer<Msg> for Direction {
         // TODO: only display elements that are visible.
         // TODO: Use a generic layout manager here.
 
-        let views = views.into_iter().enumerate().map(|(i, view)| {
-            let view = view.presentation_scoped(i);
-            let drawing_bounds = view.fast_bounds(&context);
-            if let Some(bounds) = drawing_bounds.as_bounds() {
-                // * direction.abs() makes sure that only alignment in the layout direction is considered, and
-                // the alignment of the cross axis is left as it is.
-                let align = -bounds.point.to_vector() * direction.abs();
-                let nested = view.transformed((p + align).to_vector());
-                p += Vector::from(bounds.extent) * direction;
-                nested
-            } else {
-                View::new()
-            }
-        });
+        let views: Vec<_> = views
+            .into_iter()
+            .filter_map(|i| {
+                let nested = builder(&mut container, i).presentation_scoped(i);
+                let drawing_bounds = nested.fast_bounds(&container);
+                if let Some(bounds) = drawing_bounds.as_bounds() {
+                    // * direction.abs() makes sure that only alignment in the layout direction is considered, and
+                    // the alignment of the cross axis is left as it is.
+                    let align = -bounds.point.to_vector() * direction.abs();
+                    let nested = nested.transformed((p + align).to_vector());
+                    p += Vector::from(bounds.extent) * direction;
+                    Some(nested)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-        View::new_combined(views)
+        container.combined(views)
     }
 }
 

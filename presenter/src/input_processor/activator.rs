@@ -5,9 +5,7 @@
 //! The predicate is verified at every change of the states at the processor's context scope and
 //! might drop the subsequent processor at any time.
 
-use crate::input_processor::{Subscriber, Subscription, Subscriptions};
 use crate::{InputProcessor, InputState};
-use std::iter::FromIterator;
 use std::marker::PhantomData;
 
 pub struct Activator<R, PF, SP, CF, SC> {
