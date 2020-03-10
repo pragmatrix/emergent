@@ -155,7 +155,6 @@ pub fn create_context_and_frame_state<W: Window>(
 
             PREFERRED_PRESENT_MODE
                 .iter()
-                .copied()
                 .find(|p| supported.contains(p))
                 .expect("unsupported Vulkan Presentation Mode")
         };
@@ -171,7 +170,7 @@ pub fn create_context_and_frame_state<W: Window>(
             &queue,
             SurfaceTransform::Identity,
             alpha,
-            present_mode,
+            present_mode.clone(),
             FullscreenExclusive::Default,
             true, /* clipped */
             ColorSpace::SrgbNonLinear,
