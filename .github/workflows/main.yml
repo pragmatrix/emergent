@@ -22,13 +22,18 @@ jobs:
         rustup component add clippy
       shell: bash
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@master
       with:
-        submodules: 'recursive'
+        submodules: recursive
 
     - name: Install Ninja (needed for shaderc-sys, Windows only)
       run: |
         choco install ninja
+      if: runner.os == 'Windows'
+
+    - name: Install LLVM (Windows only)
+      run: |
+        choco install llvm
       if: runner.os == 'Windows'
 
     - name: Ninja --version (Windows only)
@@ -39,8 +44,18 @@ jobs:
     - name: Setup Python 2 (Windows only)
       uses: actions/setup-python@v1
       with:
-        python-version: '2.7.16'
+        python-version: '2.7.17'
       if: runner.os == 'Windows'
+
+    - name: Uninstall LLVM (macOS only, conflicts with preinstalled Apple CLang)
+      run: brew uninstall llvm
+      shell: bash
+      if: runner.os == 'macOS'
+
+    - name: Install Mesa (Linux only)
+      run: sudo apt-get install libgl1-mesa-dev
+      shell: bash
+      if: runner.os == 'Linux'
    
     - name: Build
       run: cargo build -vv --release
@@ -58,9 +73,9 @@ jobs:
     name: Check Rust Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@master
         with:
-          submodules: 'recursive'
+          submodules: recursive
       - name: Install Rust
         run: rustup update stable && rustup default stable && rustup component add rustfmt
       - run: cargo fmt -- --check
