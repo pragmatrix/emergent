@@ -22,10 +22,9 @@ jobs:
         rustup component add clippy
       shell: bash
 
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        fetch-depth: 1
-        submodules: true
+        submodules: 'recursive'
 
     - name: Install Ninja (needed for shaderc-sys, Windows only)
       run: |
@@ -37,13 +36,12 @@ jobs:
         ninja --version
       if: runner.os == 'Windows'
 
-#    - name: Setup Python 2 (Windows only)
-#      uses: actions/setup-python@v1
-#      with:
-#        python-version: '2.x'
-#        architecture: 'x64'
-#      if: runner.os == 'Windows'
-
+    - name: Setup Python 2 (Windows only)
+      uses: actions/setup-python@v1
+      with:
+        python-version: '2.7.16'
+      if: runner.os == 'Windows'
+   
     - name: Build
       run: cargo build -vv --release
       shell: bash
@@ -60,10 +58,9 @@ jobs:
     name: Check Rust Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
         with:
-          fetch-depth: 1
-          submodules: true
+          submodules: 'recursive'
       - name: Install Rust
         run: rustup update stable && rustup default stable && rustup component add rustfmt
       - run: cargo fmt -- --check
