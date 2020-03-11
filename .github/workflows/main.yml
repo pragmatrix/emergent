@@ -1,9 +1,6 @@
 name: Rust
 on: [push]
 
-env:
-    FORCE_SKIA_BINARIES_DOWNLOAD: 1
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
