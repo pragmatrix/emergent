@@ -127,10 +127,14 @@ impl<Msg> View<Msg> {
 
     /// Returns this view trimmed to a boundary.
     ///
-    /// This removes
-    /// - parts of the presentation that are completely outside the boundary rectangle.
-    /// - processors of which their presentation scope does not exist anymore and don't
-    ///   have any active subscriptions.
+    /// This removes parts of the presentation that are completely outside the boundary rectangle.
+    ///
+    /// # Note
+    ///
+    /// Processors of which their presentation scope does not exist anymore and don't
+    /// have any active subscriptions could be removed, but are not so far, because keeping
+    /// them around probably has no significant performance drawbacks. This might change if we
+    /// do the trimming more than once for a single presentation run.
     pub fn trimmed(self, bounds: Bounds, measure: &dyn MeasureText) -> Self {
         let (presentation, _) = self.presentation.trimmed(bounds, measure);
         Self {

@@ -4,6 +4,7 @@ use emergent_drawing::{
     DrawingTarget, FastBounds, MeasureText, Outset, Paint, ReplaceWith, Transform, Transformed,
     Union, Visualize, RGB,
 };
+use std::collections::HashSet;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct PresentationMarker;
@@ -232,6 +233,35 @@ impl Presentation {
                 } else {
                     (P::Empty, DrawingBounds::Empty)
                 }
+            }
+        }
+    }
+
+    /// Returns all the presentation paths that are used in the presentation.
+    pub fn paths(&self) -> HashSet<PresentationPath> {
+        // TODO: think about something like a prefix tree for a compact representation of paths.
+        let mut set = HashSet::new();
+        fill_paths(self, &PresentationPath::new(), &mut set);
+        return set;
+
+        fn fill_paths(
+            s: &Presentation,
+            base: &PresentationPath,
+            dict: &mut HashSet<PresentationPath>,
+        ) {
+            match s {
+                Presentation::Scoped(scope, nested) => {
+                    let p = base.clone().scoped(scope.clone());
+                    fill_paths(nested, &p, dict);
+                    dict.insert(p);
+                }
+                Presentation::Area(_, nested)
+                | Presentation::Clipped(_, nested)
+                | Presentation::Transformed(_, nested) => fill_paths(nested, base, dict),
+                Presentation::BackToFront(presentations) => {
+                    presentations.iter().for_each(|p| fill_paths(p, base, dict))
+                }
+                Presentation::Empty | Presentation::InlineArea(_) | Presentation::Drawing(_) => {}
             }
         }
     }
