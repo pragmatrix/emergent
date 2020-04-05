@@ -7,11 +7,12 @@ use std::marker::PhantomData;
 ///
 /// The type argument `T` is used to discriminate different types of scope paths.
 ///
-/// # Notes
+/// # Performance
 ///
 /// - Even though `VecDeque` would probably be a better type, we have uses in which we prefer to
 ///   access parts of paths through slices.
-
+/// - Path lengths should not exceed a few elements, so inserting at the beginning might not
+///   be that expensive.
 pub type ScopePath<T> = Vec<Scope<T>>;
 
 /// A trait that can be implemented by types that can be extended with / put into a scope.

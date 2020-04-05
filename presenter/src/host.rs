@@ -3,6 +3,7 @@ use crate::{
     AreaHitTest, Context, InputProcessor, InputState, ProcessorRecord, ScopedStore, Support, View,
     ViewBuilder,
 };
+use emergent_drawing::{Bounds, Extent, Point};
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
 use std::any::TypeId;
@@ -49,7 +50,16 @@ impl<Msg> Host<Msg> {
 
         let context = Context::new(self.support.clone(), boundary, store);
         let builder = ViewBuilder::new(context);
-        let (presentation, processors, states) = present(builder).destructure();
+
+        let view = {
+            let view = present(builder);
+            let (width, height) = boundary.dimensions;
+            view.trimmed(
+                Bounds::new(Point::ZERO, Extent::from((width as isize, height as isize))),
+                self.support.deref(),
+            )
+        };
+        let (presentation, processors, states) = view.destructure();
 
         self.presentation = presentation;
         self.processors = processors;

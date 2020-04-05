@@ -55,6 +55,12 @@ impl Transformed for DrawingBounds {
     }
 }
 
+impl Transformed for Bounds {
+    fn transformed(self, transform: impl Into<Transform>) -> Self {
+        transform.into().to_matrix().map_bounds(self)
+    }
+}
+
 impl Contains<Point> for DrawingBounds {
     fn contains(&self, point: Point) -> bool {
         match self {
@@ -236,10 +242,8 @@ impl DrawingBounds {
 
     pub fn intersect(a: &DrawingBounds, b: &DrawingBounds) -> DrawingBounds {
         match (a, b) {
-            (DrawingBounds::Empty, _) => DrawingBounds::Empty,
-            (_, DrawingBounds::Empty) => DrawingBounds::Empty,
-            (DrawingBounds::Unbounded, b) => *b,
-            (a, DrawingBounds::Unbounded) => *a,
+            (DrawingBounds::Empty, _) | (_, DrawingBounds::Empty) => DrawingBounds::Empty,
+            (DrawingBounds::Unbounded, a) | (a, DrawingBounds::Unbounded) => *a,
             (DrawingBounds::Bounded(a), DrawingBounds::Bounded(b)) => {
                 match Bounds::intersect(&a, &b) {
                     Some(intersection) => DrawingBounds::Bounded(intersection),
@@ -258,10 +262,10 @@ impl DrawingBounds {
 impl Union for DrawingBounds {
     fn union(a: Self, b: Self) -> Self {
         match (a, b) {
-            (DrawingBounds::Empty, b) => b,
-            (a, DrawingBounds::Empty) => a,
-            (DrawingBounds::Unbounded, _) => DrawingBounds::Unbounded,
-            (_, DrawingBounds::Unbounded) => DrawingBounds::Unbounded,
+            (DrawingBounds::Empty, a) | (a, DrawingBounds::Empty) => a,
+            (DrawingBounds::Unbounded, _) | (_, DrawingBounds::Unbounded) => {
+                DrawingBounds::Unbounded
+            }
             (DrawingBounds::Bounded(a), DrawingBounds::Bounded(b)) => {
                 DrawingBounds::Bounded(Bounds::union(a, b))
             }

@@ -1,8 +1,10 @@
 use crate::{Scope, ScopePath, Scoped};
 use emergent_drawing::{
-    BackToFront, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds, DrawingTarget,
-    MeasureText, Outset, Paint, ReplaceWith, Transform, Transformed, Visualize, RGB,
+    BackToFront, Bounds, Clip, Clipped, DrawTo, Drawing, DrawingBounds, DrawingFastBounds,
+    DrawingTarget, FastBounds, MeasureText, Outset, Paint, ReplaceWith, Transform, Transformed,
+    Union, Visualize, RGB,
 };
+use std::collections::HashSet;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct PresentationMarker;
@@ -58,30 +60,22 @@ impl Transformed for Presentation {
     }
 }
 
-/*
-impl<Msg> BackToFront<Presentation<Msg>> for Vec<Presentation<Msg>> {
-    fn back_to_front(self) -> Presentation<Msg> {
-        Presentation::BackToFront(self.into_iter().collect())
-    }
-}
-*/
-
 impl DrawingFastBounds for Presentation {
     fn fast_bounds(&self, measure: &dyn MeasureText) -> DrawingBounds {
-        use Presentation::*;
+        use Presentation as P;
         match self {
-            Empty => DrawingBounds::Empty,
+            P::Empty => DrawingBounds::Empty,
             // note: outset of area is not part of the drawing bounds.
-            Scoped(_, nested) | Area(_, nested) => nested.fast_bounds(measure),
-            InlineArea(_) => DrawingBounds::Empty,
-            Clipped(clip, nested) => nested.fast_bounds(measure).clipped(clip.clone()),
-            Transformed(transform, nested) => {
+            P::Scoped(_, nested) | P::Area(_, nested) => nested.fast_bounds(measure),
+            P::InlineArea(_) => DrawingBounds::Empty,
+            P::Clipped(clip, nested) => nested.fast_bounds(measure).clipped(clip.clone()),
+            P::Transformed(transform, nested) => {
                 nested.fast_bounds(measure).transformed(transform.clone())
             }
-            BackToFront(nested) => {
+            P::BackToFront(nested) => {
                 DrawingBounds::union_all(nested.iter().map(|n| n.fast_bounds(measure)))
             }
-            Drawing(nested) => nested.fast_bounds(measure),
+            P::Drawing(nested) => nested.fast_bounds(measure),
         }
     }
 }
@@ -160,6 +154,116 @@ impl Presentation {
             | Presentation::Transformed(_, _)
             | Presentation::Drawing(_) => Presentation::BackToFront(vec![p, presentation]),
         })
+    }
+
+    /// Returns a trimmed presentation and its trimmed bounds.
+    ///
+    /// Trimming a presentation removes elements that are _completely outside_ the given bounds.
+    ///
+    /// This also means that the returned trimmed size may be larger than the given bounds, e.g. when an
+    /// element is partially visible inside the `bounds`.
+    pub fn trimmed(self, bounds: Bounds, measure: &dyn MeasureText) -> (Self, DrawingBounds) {
+        use Presentation as P;
+        match self {
+            P::Empty => (self, DrawingBounds::Empty),
+            P::Scoped(scope, nested) => {
+                let (trimmed, trimmed_bounds) = nested.trimmed(bounds, measure);
+                (P::Scoped(scope, trimmed.into()), trimmed_bounds)
+            }
+            P::Area(outset, nested) => {
+                // TODO: handle outset clipping properly.
+                let (trimmed, trimmed_bounds) = nested.trimmed(bounds, measure);
+                (P::Area(outset, trimmed.into()), trimmed_bounds)
+            }
+            P::InlineArea(clip) => {
+                if let Some(intersection) = Bounds::intersect(&clip.fast_bounds(), &bounds) {
+                    // we keep the original clip, but return the intersection with bounds.
+                    (P::InlineArea(clip), intersection.into())
+                } else {
+                    (P::Empty, DrawingBounds::Empty)
+                }
+            }
+            P::Clipped(clip, nested) => {
+                let clip_bounds = clip.fast_bounds();
+                if let Some(intersection) = Bounds::intersect(&bounds, &clip_bounds) {
+                    let (trimmed, trimmed_bounds) = nested.trimmed(intersection, measure);
+                    (
+                        P::Clipped(clip, trimmed.into()),
+                        // trimmed nested bounds may be larger than clip, but they are are expected
+                        // to be visually trimmed by the renderer, so we return the intersection
+                        // of the clip and the trimmed bounds as the trimmed bounds of the clip.
+                        DrawingBounds::intersect(&bounds.into(), &trimmed_bounds),
+                    )
+                } else {
+                    (P::Empty, DrawingBounds::Empty)
+                }
+            }
+            P::Transformed(transform, nested) => {
+                if let Some(inv_trans) = transform.invert() {
+                    let bounds = bounds.transformed(inv_trans);
+                    let (trimmed, trimmed_bounds) = nested.trimmed(bounds, measure);
+                    (
+                        P::Transformed(transform.clone(), trimmed.into()),
+                        trimmed_bounds.transformed(transform),
+                    )
+                } else {
+                    // TODO: log / display an error here.
+                    (P::Empty, DrawingBounds::Empty)
+                }
+            }
+            P::BackToFront(mut presentations) => {
+                // TODO: remove empty ones?
+                let mut trimmed_bounds_union = DrawingBounds::Empty;
+                for i in 0..presentations.len() {
+                    presentations[i].replace_with(|p| {
+                        let (trimmed, trimmed_bounds) = p.trimmed(bounds, measure);
+                        trimmed_bounds_union =
+                            DrawingBounds::union(trimmed_bounds_union, trimmed_bounds);
+                        trimmed
+                    });
+                }
+                (P::BackToFront(presentations), trimmed_bounds_union)
+            }
+            P::Drawing(ref drawing) => {
+                // TODO: may trim drawing's content?
+                let drawing_bounds = drawing.fast_bounds(measure);
+                if DrawingBounds::intersect(&bounds.into(), &drawing_bounds) != DrawingBounds::Empty
+                {
+                    (self, drawing_bounds)
+                } else {
+                    (P::Empty, DrawingBounds::Empty)
+                }
+            }
+        }
+    }
+
+    /// Returns all the presentation paths that are used in the presentation.
+    pub fn paths(&self) -> HashSet<PresentationPath> {
+        // TODO: think about something like a prefix tree for a compact representation of paths.
+        let mut set = HashSet::new();
+        fill_paths(self, &PresentationPath::new(), &mut set);
+        return set;
+
+        fn fill_paths(
+            s: &Presentation,
+            base: &PresentationPath,
+            dict: &mut HashSet<PresentationPath>,
+        ) {
+            match s {
+                Presentation::Scoped(scope, nested) => {
+                    let p = base.clone().scoped(scope.clone());
+                    fill_paths(nested, &p, dict);
+                    dict.insert(p);
+                }
+                Presentation::Area(_, nested)
+                | Presentation::Clipped(_, nested)
+                | Presentation::Transformed(_, nested) => fill_paths(nested, base, dict),
+                Presentation::BackToFront(presentations) => {
+                    presentations.iter().for_each(|p| fill_paths(p, base, dict))
+                }
+                Presentation::Empty | Presentation::InlineArea(_) | Presentation::Drawing(_) => {}
+            }
+        }
     }
 }
 

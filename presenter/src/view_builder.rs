@@ -2,10 +2,8 @@ use crate::input_processor::Subscriber;
 use crate::{
     Context, ContextPath, ContextScope, InputProcessor, ProcessorRecord, ScopedView, Support, View,
 };
-use emergent_drawing::{
-    Bounds, DrawingBounds, DrawingFastBounds, MeasureText, Rect, Text, Transform, Transformed,
-};
-use emergent_presentation::{Presentation, PresentationScope};
+use emergent_drawing::{Bounds, MeasureText, Rect, Text, Transform, Transformed};
+use emergent_presentation::Presentation;
 use emergent_ui::WindowMessage;
 use std::any::Any;
 use std::iter;
