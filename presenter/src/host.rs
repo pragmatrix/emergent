@@ -52,8 +52,8 @@ impl<Msg> Host<Msg> {
         let builder = ViewBuilder::new(context);
 
         let view = {
-            let (width, height) = boundary.dimensions;
             let view = present(builder);
+            let (width, height) = boundary.dimensions;
             view.trimmed(
                 Bounds::new(Point::ZERO, Extent::from((width as isize, height as isize))),
                 self.support.deref(),
