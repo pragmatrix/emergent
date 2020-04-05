@@ -28,6 +28,7 @@ impl Transform {
         }
     }
 
+    // TODO: return Cow?
     pub fn to_matrix(&self) -> Matrix {
         match self {
             Transform::Identity => Matrix::new_identity(),

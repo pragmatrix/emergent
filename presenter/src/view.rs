@@ -1,6 +1,7 @@
 use crate::{ContextPath, ContextScope, ProcessorRecord, ScopedState, ViewBuilder};
 use emergent_drawing::{
-    DrawingBounds, DrawingFastBounds, MeasureText, ReplaceWith, Transform, Transformed,
+    Bounds, DrawingBounds, DrawingFastBounds, MeasureText, Rect, ReplaceWith, Transform,
+    Transformed,
 };
 use emergent_presentation::{Presentation, PresentationScope, Scoped};
 use std::any::Any;
@@ -122,6 +123,20 @@ impl<Msg> View<Msg> {
     pub fn with_state(mut self, state: impl Any + 'static) -> Self {
         self.states.push((ContextPath::new(), Box::new(state)));
         self
+    }
+
+    /// Returns this view trimmed to a boundary.
+    ///
+    /// This removes
+    /// - parts of the presentation that are completely outside the boundary rectangle.
+    /// - processors of which their presentation scope does not exist anymore and don't
+    ///   have any active subscriptions.
+    pub fn trimmed(self, bounds: Bounds, measure: &dyn MeasureText) -> Self {
+        let (presentation, _) = self.presentation.trimmed(bounds, measure);
+        Self {
+            presentation,
+            ..self
+        }
     }
 }
 
