@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 log = "0.4.8"
 emergent-drawing = { path = "../drawing" }
-serde = { version = "1.0.105", features = ["derive"] }
+serde = { version = "1.0.106", features = ["derive"] }
 winit = { version = "0.21.0", features = ["serde"] }

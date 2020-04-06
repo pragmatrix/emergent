@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 emergent-drawing = { path = "../drawing" }
-serde = { version = "1.0.105", features = ["derive"] }
+serde = { version = "1.0.106", features = ["derive"] }
 # for event to msg serialization
 ron = "0.5.1"
 once_cell = "1.3.1"
