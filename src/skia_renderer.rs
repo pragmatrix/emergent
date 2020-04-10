@@ -322,6 +322,7 @@ impl CanvasDrawingTarget<'_> {
                 }
 
                 if let Some(last_line) = last_line {
+                    // TODO: use the measure result from the MeasureText implementation's cache here?
                     let last_line_advance = font.measure_str(last_line, None).0 as drawing::scalar;
                     current.advance(last_line_advance);
                 };

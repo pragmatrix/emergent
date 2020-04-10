@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use crate::skia;
     use crate::skia::text::PrimitiveText;
     use emergent_drawing::functions::*;
     use emergent_drawing::{

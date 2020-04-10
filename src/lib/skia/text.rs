@@ -1,27 +1,35 @@
 use super::convert::ToSkia;
+use crate::skia::generation_cache::GenerationCache;
 use crate::{text_as_lines, TextOrigin};
 use emergent_drawing as drawing;
 use emergent_drawing::functions::*;
 use emergent_drawing::{Bounds, FastBounds, FromTestEnvironment, Text, Union};
 use emergent_ui::DPI;
+use skia_safe::typeface::FontId;
 use skia_safe::{Font, Point, Rect, Shaper, Typeface};
+use std::borrow::Borrow;
+use std::hash::{Hash, Hasher};
 
 // Primitive text measurement and text rendering.
 pub struct PrimitiveText {
     dpi: DPI,
+    cache: GenerationCache<TextMeasureKey, TextMeasureResult>,
 }
 
 impl PrimitiveText {
+    pub const CACHE_MAX_GENERATIONS: usize = 10;
+
     pub fn new(dpi: DPI) -> PrimitiveText {
-        PrimitiveText { dpi }
+        PrimitiveText {
+            dpi,
+            cache: GenerationCache::new(Self::CACHE_MAX_GENERATIONS),
+        }
     }
 }
 
 impl FromTestEnvironment for PrimitiveText {
     fn from_test_environment() -> PrimitiveText {
-        PrimitiveText {
-            dpi: DPI::from_test_environment(),
-        }
+        Self::new(DPI::from_test_environment())
     }
 }
 
@@ -63,7 +71,8 @@ impl PrimitiveText {
                     if i != 0 {
                         origin.newline(line_spacing)
                     }
-                    let (advance, rect) = font.measure_str(line, None);
+                    // let (advance, rect) = font.measure_str(line, None);
+                    let (advance, rect) = self.measure_str(font, line);
                     let width = rect.width();
                     // top & height are taken from the font metrics.
                     let bounds = bounds(
@@ -88,6 +97,17 @@ impl PrimitiveText {
             Block(_) => unimplemented!(),
             Drawing(_, _) => unimplemented!(),
         }
+    }
+
+    fn measure_str(&self, font: &Font, str: &str) -> (f32, Rect) {
+        let key = (
+            font.typeface().unwrap().unique_id(),
+            (font.size() * 72.0) as i32,
+            str,
+        );
+        self.cache.resolve(&key as &dyn TextMeasureKeyTuple, || {
+            font.measure_str(str, None)
+        })
     }
 }
 
@@ -174,4 +194,96 @@ fn skia_rect_to_bounds(rect: &Rect) -> drawing::Bounds {
         (rect.left as drawing::scalar, rect.top as drawing::scalar),
         (width as drawing::scalar, height as drawing::scalar),
     )
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct TextMeasureKey(FontId, i32, String);
+
+type TextMeasureResult = (f32, Rect);
+
+trait TextMeasureKeyTuple {
+    fn font_id(&self) -> &FontId;
+    fn size(&self) -> &i32;
+    fn str(&self) -> &str;
+}
+
+impl<'a> Borrow<dyn TextMeasureKeyTuple + 'a> for TextMeasureKey {
+    fn borrow(&self) -> &(dyn TextMeasureKeyTuple + 'a) {
+        self
+    }
+}
+
+impl<'a> Borrow<dyn TextMeasureKeyTuple + 'a> for (FontId, i32, &'a str) {
+    fn borrow(&self) -> &(dyn TextMeasureKeyTuple + 'a) {
+        self
+    }
+}
+
+impl TextMeasureKeyTuple for (u32, i32, &'_ str) {
+    fn font_id(&self) -> &u32 {
+        &self.0
+    }
+
+    fn size(&self) -> &i32 {
+        &self.1
+    }
+
+    fn str(&self) -> &str {
+        &self.2
+    }
+}
+
+impl TextMeasureKeyTuple for TextMeasureKey {
+    fn font_id(&self) -> &u32 {
+        &self.0
+    }
+
+    fn size(&self) -> &i32 {
+        &self.1
+    }
+
+    fn str(&self) -> &str {
+        &self.2
+    }
+}
+
+impl Hash for dyn TextMeasureKeyTuple + '_ {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.font_id().hash(state);
+        self.size().hash(state);
+        self.str().hash(state);
+    }
+}
+
+impl PartialEq for dyn TextMeasureKeyTuple + '_ {
+    fn eq(&self, other: &Self) -> bool {
+        self.font_id() == other.font_id()
+            && self.size() == other.size()
+            && self.str() == other.str()
+    }
+}
+
+impl Eq for dyn TextMeasureKeyTuple + '_ {}
+
+impl ToOwned for dyn TextMeasureKeyTuple + '_ {
+    type Owned = TextMeasureKey;
+
+    fn to_owned(&self) -> Self::Owned {
+        TextMeasureKey(*self.font_id(), *self.size(), self.str().to_owned())
+    }
+}
+
+#[test]
+fn test_cache_key_same_entries() {
+    let mut cache = GenerationCache::<TextMeasureKey, TextMeasureResult>::new(100);
+    assert_eq!(cache.len(), 0);
+
+    let measure = || ((0.4), Rect::new(10.0, 11.0, 12.0, 13.0));
+    let measure_tuple = (10u32, 11i32, "Hello");
+    let _ = cache.resolve(&measure_tuple as &dyn TextMeasureKeyTuple, measure);
+    assert_eq!(cache.len(), 1);
+    let measure_tuple2 = (10u32, 11i32, "Hello");
+    let measure2 = || panic!("unexpected");
+    let _ = cache.resolve(&measure_tuple2 as &dyn TextMeasureKeyTuple, measure2);
+    assert_eq!(cache.len(), 1);
 }
