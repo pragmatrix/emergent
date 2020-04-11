@@ -41,7 +41,7 @@ where
     /// The actual model of the application.
     model: Model,
 
-    /// System support.
+    /// System support to measure text and to find points in paths.
     support_builder: Box<dyn Fn(DPI) -> Support>,
 
     /// The presenter's host.
@@ -110,7 +110,11 @@ where
             WindowEvent::ScaleFactorChanged(frame_layout) => {
                 debug!("DPI change: regenerating host");
                 let dpi = frame_layout.dpi;
-                self.host = Host::new((self.support_builder)(dpi)).into();
+
+                self.host = {
+                    let support = (self.support_builder)(dpi);
+                    Host::new(support).into()
+                };
 
                 if let Some(dpi_msg) = &self.dpi_msg {
                     let msg = dpi_msg(dpi);
