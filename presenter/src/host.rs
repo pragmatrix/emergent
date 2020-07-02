@@ -3,7 +3,7 @@ use crate::{
     AreaHitTest, Context, InputProcessor, InputState, ProcessorRecord, ScopedStore, Support, View,
     ViewBuilder,
 };
-use emergent_drawing::{Bounds, Extent, Point};
+use emergent_drawing::{Bounds, Extent, MeasureText, Point};
 use emergent_presentation::Presentation;
 use emergent_ui::{FrameLayout, WindowMessage};
 use std::any::TypeId;
@@ -13,7 +13,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 pub struct Host<Msg> {
-    support: Rc<Support>,
+    support: Rc<dyn Support>,
 
     presentation: Presentation,
 
@@ -25,7 +25,7 @@ pub struct Host<Msg> {
 }
 
 impl<Msg> Host<Msg> {
-    pub fn new(support: Support) -> Host<Msg> {
+    pub fn new(support: impl Support + 'static) -> Host<Msg> {
         Host {
             support: Rc::new(support),
             presentation: Default::default(),
@@ -56,7 +56,7 @@ impl<Msg> Host<Msg> {
             let (width, height) = boundary.dimensions;
             view.trimmed(
                 Bounds::new(Point::ZERO, Extent::from((width as isize, height as isize))),
-                self.support.deref(),
+                self.measure_text(),
             )
         };
         let (presentation, processors, states) = view.destructure();
@@ -66,8 +66,8 @@ impl<Msg> Host<Msg> {
         self.store = ScopedStore::from_values(states);
     }
 
-    pub fn support(&self) -> &Support {
-        self.support.deref()
+    pub fn measure_text(&self) -> &dyn MeasureText {
+        self.support.measure_text()
     }
 
     pub fn presentation(&self) -> &Presentation {

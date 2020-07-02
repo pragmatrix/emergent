@@ -1,43 +1,53 @@
 use crate::PathContainsPoint;
-use emergent_drawing::{Bounds, MeasureText, Path, Point, Text};
+use emergent_drawing::{MeasureText, Path, Point, Text};
 use emergent_ui::DPI;
-use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 
-pub struct Support {
-    pub dpi: DPI,
-    measure: Box<dyn MeasureText>,
-    path_contains_point: Box<dyn PathContainsPoint>,
+pub(crate) trait Support: Debug {
+    fn dpi(&self) -> DPI;
+    fn measure_text(&self) -> &dyn MeasureText;
+    fn path_contains_point(&self) -> &dyn PathContainsPoint;
 }
 
-impl Debug for Support {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("dpi").field(&self.dpi).finish()
-    }
+#[derive(Debug)]
+struct SupportImpl<MT, PCP>
+where
+    MT: Debug,
+    PCP: Debug,
+{
+    dpi: DPI,
+    measure_text: MT,
+    path_contains_point: PCP,
 }
 
-impl Support {
-    pub fn new(
-        dpi: DPI,
-        measure: impl MeasureText + 'static,
-        path_contains_point: impl PathContainsPoint + 'static,
-    ) -> Self {
-        Self {
+impl dyn Support {
+    pub fn new<MT, PCP>(dpi: DPI, measure_text: MT, path_contains_point: PCP) -> impl Support
+    where
+        MT: MeasureText + Debug,
+        PCP: PathContainsPoint + Debug,
+    {
+        SupportImpl {
             dpi,
-            measure: Box::new(measure),
-            path_contains_point: Box::new(path_contains_point),
+            measure_text,
+            path_contains_point,
         }
     }
 }
 
-impl MeasureText for Support {
-    fn measure_text(&self, text: &Text) -> Bounds {
-        self.measure.measure_text(text)
+impl<MT, PCP> Support for SupportImpl<MT, PCP>
+where
+    MT: MeasureText + Debug,
+    PCP: PathContainsPoint + Debug,
+{
+    fn dpi(&self) -> DPI {
+        self.dpi
     }
-}
 
-impl PathContainsPoint for Support {
-    fn path_contains_point(&self, path: &Path, p: Point) -> bool {
-        self.path_contains_point.path_contains_point(path, p)
+    fn measure_text(&self) -> &dyn MeasureText {
+        &self.measure_text
+    }
+
+    fn path_contains_point(&self) -> &dyn PathContainsPoint {
+        &self.path_contains_point
     }
 }

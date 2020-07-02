@@ -1,6 +1,7 @@
 //! Single point presentation hit testing.
 
-use emergent_drawing::{Clip, Contains, DrawingFastBounds, MeasureText, Path, Point};
+use crate::Support;
+use emergent_drawing::{Clip, Contains, DrawingFastBounds, Path, Point};
 use emergent_presentation::{Presentation, PresentationPath};
 
 pub trait PathContainsPoint {
@@ -25,7 +26,7 @@ pub trait AreaHitTest {
         &self,
         p: Point,
         scope: PresentationPath,
-        support: &(impl PathContainsPoint + MeasureText),
+        support: &dyn Support,
     ) -> Vec<(PresentationPath, Point)>;
 }
 
@@ -34,7 +35,7 @@ impl AreaHitTest for Presentation {
         &self,
         p: Point,
         mut scope: PresentationPath,
-        support: &(impl PathContainsPoint + MeasureText),
+        support: &dyn Support,
     ) -> Vec<(PresentationPath, Point)> {
         match self {
             Presentation::Empty => Vec::new(),
@@ -44,7 +45,8 @@ impl AreaHitTest for Presentation {
                 nested.area_hit_test(p, scope, support)
             }
             Presentation::Area(outset, nested) => {
-                let nested_bounds_plus_outset = nested.fast_bounds(support).outset(outset);
+                let nested_bounds_plus_outset =
+                    nested.fast_bounds(support.measure_text()).outset(outset);
                 // TODO: scope gets cloned here!
                 let mut hits = nested.area_hit_test(p, scope.clone(), support);
                 if nested_bounds_plus_outset.contains(p) {
@@ -53,7 +55,7 @@ impl AreaHitTest for Presentation {
                 hits
             }
             Presentation::InlineArea(clip) => {
-                if clip.hit_test(p, support) {
+                if clip.hit_test(p, support.path_contains_point()) {
                     vec![(scope, p)]
                 } else {
                     Vec::new()
@@ -61,7 +63,7 @@ impl AreaHitTest for Presentation {
             }
             Presentation::Clipped(clip, nested) => {
                 // clip clips both, areas and drawings for now.
-                if clip.hit_test(p, support) {
+                if clip.hit_test(p, support.path_contains_point()) {
                     nested.area_hit_test(p, scope, support)
                 } else {
                     Vec::new()

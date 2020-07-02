@@ -2,6 +2,7 @@ use crate::{
     Arc, Bounds, Circle, Clip, Clipped, Contains, Drawing, Extent, Line, Outset, Oval, Point,
     Polygon, Rect, RoundedRect, Shape, Text, Transform, Transformed, Union,
 };
+use std::fmt::Debug;
 use std::ops::Deref;
 
 pub trait MeasureText {
